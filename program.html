@@ -1,0 +1,1424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI PM — Program rollup</title>
+<!-- Apply persisted theme BEFORE first paint to avoid a flash of the wrong theme (same key as viewer.html). -->
+<script>try{var t=localStorage.getItem("aipm-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+<style>
+/* ============================================================================
+   CSS block 1 of 2 — copied VERBATIM from pipeline/viewer.html so the program
+   rollup shares the single-project view's tokens, health/status palette,
+   cards, roadmap, tables, drop zone, theme handling and footer exactly.
+   ========================================================================== */
+/* ============================================================================
+   CSS — copied verbatim from pipeline/render.py (the normative renderer), with
+   a small block of viewer-only additions at the end (drop zone, banners, foot).
+   ========================================================================== */
+:root{
+  --plane:#eef1f5; --surface:#fbfcfe; --ink:#111823; --ink2:#495260; --muted:#707a89;
+  --grid:#e4e8ef; --axis:#ccd4de; --ring:rgba(17,24,35,.09); --shadow:0 1px 2px rgba(17,24,35,.04),0 10px 26px rgba(17,24,35,.06);
+  --ontrack:#2f6fd0; --accent:#227081; --accent-ink:#ffffff; --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,monospace;
+  --sp1:4px; --sp2:8px; --sp3:12px; --sp4:16px; --sp5:24px; --sp6:32px;
+  --r:12px; --r2:8px;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --plane:#101319; --surface:#191d25; --ink:#eef2f7; --ink2:#aab4c2; --muted:#78828f;
+    --grid:#262c35; --axis:#333a45; --ring:rgba(255,255,255,.09); --shadow:0 1px 2px rgba(0,0,0,.5),0 12px 32px rgba(0,0,0,.5);
+    --ontrack:#5091f0; --accent:#4ba3b8; --accent-ink:#07171b; }
+}
+:root[data-theme="dark"]{ --plane:#101319; --surface:#191d25; --ink:#eef2f7; --ink2:#aab4c2; --muted:#78828f;
+  --grid:#262c35; --axis:#333a45; --ring:rgba(255,255,255,.09); --shadow:0 1px 2px rgba(0,0,0,.5),0 12px 32px rgba(0,0,0,.5); --ontrack:#5091f0; --accent:#4ba3b8; --accent-ink:#07171b; }
+:root[data-theme="light"]{ --plane:#eef1f5; --surface:#fbfcfe; --ink:#111823; --ink2:#495260; --muted:#707a89;
+  --grid:#e4e8ef; --axis:#ccd4de; --ring:rgba(17,24,35,.09); --shadow:0 1px 2px rgba(17,24,35,.04),0 10px 26px rgba(17,24,35,.06); --ontrack:#2f6fd0; --accent:#227081; --accent-ink:#ffffff; }
+
+/* fixed status palette (identical both themes) */
+:root{ --st-planned:#7b8695; --st-atrisk:#e0951f; --st-late:#d64541; --st-done:#12a15e;
+  --sev-critical:#d64541; --sev-high:#e2723c; --sev-medium:#e0951f; --sev-low:#7b8695; }
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; }
+body{ background:var(--plane); color:var(--ink);
+  font-family:-apple-system,"SF Pro Text","Segoe UI",Roboto,system-ui,sans-serif; font-size:14px; line-height:1.45;
+  -webkit-font-smoothing:antialiased; }
+.wrap{ max-width:1200px; margin:0 auto; padding:var(--sp5) var(--sp5) 64px; }
+h1,h2,h3{ margin:0; font-weight:600; letter-spacing:-.01em; }
+.num{ font-variant-numeric:tabular-nums; }
+:where(a,button,select,summary,[tabindex]):focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
+@media (prefers-reduced-motion:reduce){ *{ transition-duration:.01ms !important; animation-duration:.01ms !important; } }
+
+/* ---------- header ---------- */
+.head{ background:var(--surface); border:1px solid var(--ring); border-radius:var(--r);
+  padding:var(--sp5); box-shadow:var(--shadow); margin-bottom:var(--sp4); }
+.head-main{ display:flex; align-items:flex-start; justify-content:space-between; gap:var(--sp4); }
+.head-id h1{ font-size:29px; line-height:1.12; font-weight:650; letter-spacing:-.022em; }
+.head-sub{ color:var(--ink2); margin-top:7px; font-size:13.5px; letter-spacing:.004em; }
+.verdict{ display:flex; align-items:center; gap:var(--sp3); padding:10px 16px 10px 14px;
+  border-radius:var(--r2); border:1px solid var(--ring); border-left:3px solid var(--ring); white-space:nowrap; }
+.verdict-dot{ width:12px; height:12px; border-radius:50%; flex:none; }
+.verdict-lbl{ display:block; font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); }
+.verdict-val{ display:block; font-size:16px; font-weight:600; line-height:1.1; margin-top:1px; letter-spacing:-.006em; }
+.verdict-good{ background:color-mix(in srgb,var(--st-done) 12%,var(--surface)); border-left-color:var(--st-done); }
+.verdict-good .verdict-dot{ background:var(--st-done); }
+.verdict-warning{ background:color-mix(in srgb,var(--st-atrisk) 16%,var(--surface)); border-left-color:var(--st-atrisk); }
+.verdict-warning .verdict-dot{ background:var(--st-atrisk); }
+.verdict-critical{ background:color-mix(in srgb,var(--st-late) 12%,var(--surface)); border-left-color:var(--st-late); }
+.verdict-critical .verdict-dot{ background:var(--st-late); }
+.stats{ display:flex; flex-wrap:wrap; gap:var(--sp4); margin-top:var(--sp5);
+  padding-top:var(--sp4); border-top:1px solid var(--grid); }
+.stat{ display:flex; flex-direction:column; gap:3px; padding-left:var(--sp4); border-left:1px solid var(--grid); }
+.stat:first-of-type{ padding-left:0; border-left:0; }
+.stat-n{ font-size:23px; font-weight:650; line-height:1; font-variant-numeric:tabular-nums; letter-spacing:-.015em; }
+.stat-l{ font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
+.stat-warn .stat-n{ color:var(--st-atrisk); }
+.stat-stamp{ margin-left:auto; text-align:right; }
+.stat-stampv{ font-size:12.5px; color:var(--ink2); font-variant-numeric:tabular-nums; font-family:var(--mono); letter-spacing:-.01em; }
+
+/* ---------- filters ---------- */
+.filters{ display:flex; flex-wrap:wrap; gap:var(--sp3); align-items:flex-end; margin-bottom:var(--sp4); }
+.filters label{ display:flex; flex-direction:column; gap:5px; font-size:11px; letter-spacing:.05em;
+  text-transform:uppercase; color:var(--muted); }
+.filters select{ font:inherit; font-size:13px; text-transform:none; letter-spacing:0; color:var(--ink);
+  background:var(--surface); border:1px solid var(--axis); border-radius:var(--r2);
+  padding:7px 30px 7px 10px; min-width:150px; appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 15px) 15px,calc(100% - 10px) 15px; background-size:5px 5px,5px 5px; background-repeat:no-repeat; }
+#f-reset{ font:inherit; font-size:12.5px; color:var(--ink2); background:transparent;
+  border:1px solid var(--axis); border-radius:var(--r2); padding:8px 14px; cursor:pointer; }
+#f-reset:hover{ color:var(--ink); border-color:var(--muted); }
+
+/* ---------- cards / sections ---------- */
+.card{ background:var(--surface); border:1px solid var(--ring); border-radius:var(--r);
+  box-shadow:var(--shadow); margin-bottom:var(--sp4); overflow:hidden; }
+.sec-head{ width:100%; display:flex; align-items:center; gap:var(--sp3); cursor:pointer;
+  background:transparent; border:0; text-align:left; padding:var(--sp4) var(--sp5); color:var(--ink); }
+.sec-head h2{ font-size:15px; letter-spacing:-.006em; }
+.card:not([data-collapsed="true"]) .sec-head{ border-bottom:1px solid var(--grid); }
+.sec-head .count{ font-size:12px; }
+.chev{ margin-left:auto; width:9px; height:9px; border-right:2px solid var(--muted);
+  border-bottom:2px solid var(--muted); transform:rotate(45deg); transition:transform .15s; }
+.card[data-collapsed="true"] .chev{ transform:rotate(-45deg); }
+.card[data-collapsed="true"] .sec-body{ display:none; }
+.sec-body{ padding:var(--sp4) var(--sp5) var(--sp5); }
+.count{ display:inline-block; min-width:20px; padding:1px 7px; border-radius:20px; text-align:center;
+  background:color-mix(in srgb,var(--muted) 18%,var(--surface)); color:var(--ink2);
+  font-size:11px; font-weight:600; font-variant-numeric:tabular-nums; }
+.empty{ color:var(--muted); font-style:italic; margin:2px 0 0; }
+
+/* ---------- roadmap ---------- */
+.hero .sec-body{ padding-bottom:var(--sp5); }
+.legend{ display:flex; flex-wrap:wrap; gap:var(--sp4); margin-bottom:var(--sp4); }
+.lg{ display:inline-flex; align-items:center; gap:7px; font-size:12px; color:var(--ink2); }
+.dot{ width:15px; height:15px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+  font-size:9px; line-height:1; color:#fff; flex:none; box-shadow:0 0 0 2px var(--surface); }
+.mk-planned{ background:var(--st-planned); color:#fff; }
+.mk-ontrack{ background:var(--ontrack); color:#fff; }
+.mk-atrisk{ background:var(--st-atrisk); color:#241a00; }
+.mk-late{ background:var(--st-late); color:#fff; font-weight:700; }
+.mk-done{ background:var(--st-done); color:#fff; }
+
+.roadmap-wrap{ }
+.roadmap{ display:flex; align-items:flex-start; }
+.lanes-gutter{ flex:none; }
+.lane-spacer{ }
+.lane-label{ display:flex; align-items:center; gap:8px; padding-right:var(--sp3);
+  border-top:1px solid var(--grid); font-size:12.5px; color:var(--ink2); font-weight:500; }
+.lane-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chip-dot{ width:9px; height:9px; border-radius:2px; flex:none; }
+.plot-wrap{ overflow-x:auto; flex:1; }
+.plot{ position:relative; }
+.grid-line{ position:absolute; width:1px; background:var(--grid); }
+.grid-label{ position:absolute; top:2px; font-size:10.5px; color:var(--muted);
+  font-variant-numeric:tabular-nums; font-family:var(--mono); letter-spacing:-.01em; }
+.lane-band{ position:absolute; left:0; border-top:1px solid var(--grid); }
+.band-alt{ background:color-mix(in srgb,var(--muted) 5%,transparent); }
+.today-line{ position:absolute; width:2px; background:var(--accent);
+  opacity:.9; z-index:3; }
+.today-tag{ position:absolute; top:2px; font-size:10.5px; font-weight:700; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--accent); z-index:3; }
+.pill{ position:absolute; height:24px; display:inline-flex; align-items:center; gap:6px;
+  padding:0 10px 0 5px; background:var(--surface); border:1px solid var(--axis); border-radius:20px;
+  font:inherit; font-size:11.5px; color:var(--ink); cursor:pointer; z-index:4; white-space:nowrap;
+  box-shadow:0 1px 2px rgba(0,0,0,.06); }
+.pill:hover{ border-color:var(--muted); z-index:6; }
+.pill:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+.pill.flip{ flex-direction:row-reverse; padding:0 5px 0 10px; }
+.pill .dot{ box-shadow:none; }
+.pill-t{ overflow:hidden; text-overflow:ellipsis; }
+.unsched{ display:flex; align-items:center; gap:var(--sp3); margin-top:var(--sp4);
+  padding-top:var(--sp3); border-top:1px dashed var(--axis); flex-wrap:wrap; }
+.unsched-lbl{ font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+.unsched-pills{ display:flex; flex-wrap:wrap; gap:var(--sp2); }
+.unsched .pill{ position:static; }
+.roadmap-empty{ color:var(--muted); font-style:italic; padding-top:var(--sp3); }
+
+/* ---------- tables ---------- */
+.grid{ width:100%; border-collapse:collapse; font-size:13px; }
+.grid th{ text-align:left; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); font-weight:600; padding:0 var(--sp3) var(--sp2); border-bottom:1px solid var(--grid); }
+.grid td{ padding:10px var(--sp3); border-bottom:1px solid var(--grid); vertical-align:middle; }
+.grid tbody tr:last-child td{ border-bottom:0; }
+.grid th.num,.grid td.num{ text-align:right; white-space:nowrap; }
+.grid tbody tr{ cursor:pointer; }
+.grid tbody tr:hover{ background:color-mix(in srgb,var(--muted) 7%,transparent); }
+tr:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
+.chip{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink2); }
+.tag{ display:inline-flex; align-items:center; gap:6px; font-size:12px; white-space:nowrap; }
+.tag .dot{ width:13px; height:13px; font-size:8px; box-shadow:none; }
+.badge{ display:inline-block; margin-left:8px; font-size:10px; font-weight:700; letter-spacing:.04em;
+  text-transform:uppercase; padding:2px 7px; border-radius:5px; vertical-align:middle; }
+.overdue{ background:color-mix(in srgb,var(--st-late) 16%,var(--surface)); color:var(--st-late); }
+.row-overdue td:first-child{ box-shadow:inset 3px 0 0 var(--st-late); }
+.tag-act-open{ color:var(--ink2); }
+.tag-act-in-progress{ color:var(--ontrack); }
+.tag-act-done{ color:var(--st-done); }
+.tag-act-dropped{ color:var(--muted); text-decoration:line-through; }
+
+/* ---------- RAID ---------- */
+.raid-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:var(--sp4); }
+.raid-col h3{ font-size:12px; letter-spacing:.04em; color:var(--ink2); margin-bottom:var(--sp3);
+  display:flex; align-items:center; gap:8px; }
+.raid-item{ border:1px solid var(--ring); border-radius:var(--r2); padding:var(--sp3);
+  margin-bottom:var(--sp2); cursor:pointer; background:var(--surface); }
+.raid-item:hover{ border-color:var(--muted); }
+.raid-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.raid-status{ font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
+.raid-title{ font-size:13px; font-weight:500; line-height:1.3; }
+.mit,.raid-meta{ font-size:12px; color:var(--ink2); margin-top:5px; }
+.raid-meta .meta{ color:var(--muted); }
+.sev{ display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; padding:2px 9px; border-radius:20px; }
+.sev::before{ content:""; width:8px; height:8px; border-radius:2px; }
+.sev-critical,.sev-high{ background:color-mix(in srgb,currentColor 13%,transparent); }
+.sev-critical{ color:var(--sev-critical); } .sev-critical::before{ background:var(--sev-critical); }
+.sev-high{ color:var(--sev-high); } .sev-high::before{ background:var(--sev-high); }
+.sev-medium{ color:var(--ink2); } .sev-medium::before{ background:var(--sev-medium); }
+.sev-low{ color:var(--ink2); } .sev-low::before{ background:var(--sev-low); }
+
+/* ---------- decisions ---------- */
+.d-log{ list-style:none; margin:0; padding:0; }
+.d-item{ display:flex; gap:var(--sp4); padding:var(--sp3) var(--sp2); border-bottom:1px solid var(--grid);
+  cursor:pointer; border-radius:6px; }
+.d-item:last-child{ border-bottom:0; }
+.d-item:hover{ background:color-mix(in srgb,var(--muted) 7%,transparent); }
+.d-date{ flex:none; width:104px; color:var(--muted); font-size:12px; padding-top:2px; font-family:var(--mono); font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+.d-sum{ font-weight:500; }
+.d-rat{ color:var(--ink2); font-size:12.5px; margin-top:3px; }
+
+/* ---------- requirements ---------- */
+.req-group{ margin-bottom:var(--sp4); }
+.req-group:last-child{ margin-bottom:0; }
+.req-group h3{ font-size:12px; letter-spacing:.04em; color:var(--ink2); margin-bottom:var(--sp2);
+  display:flex; align-items:center; gap:8px; }
+.req-list{ list-style:none; margin:0; padding:0; }
+.req{ padding:9px var(--sp2); border-bottom:1px solid var(--grid); cursor:pointer; border-radius:6px; }
+.req:last-child{ border-bottom:0; }
+.req:hover{ background:color-mix(in srgb,var(--muted) 7%,transparent); }
+.req-head{ display:flex; align-items:baseline; justify-content:space-between; gap:var(--sp3); }
+.req-title{ font-weight:500; }
+.req-detail{ color:var(--ink2); font-size:12.5px; margin-top:3px; }
+.pipe{ flex:none; font-size:10.5px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted);
+  padding:2px 8px; border-radius:20px; border:1px solid var(--ring); }
+.pipe-approved{ color:var(--st-done); border-color:color-mix(in srgb,var(--st-done) 40%,var(--ring)); }
+.pipe-implemented{ color:var(--st-done); }
+.pipe-in-review{ color:var(--ontrack); }
+.pipe-deferred{ text-decoration:line-through; }
+
+/* ---------- questions ---------- */
+.q-list{ list-style:none; margin:0; padding:0; }
+.q-item{ padding:var(--sp3) var(--sp2); border-bottom:1px solid var(--grid); cursor:pointer; border-radius:6px; }
+.q-item:last-child{ border-bottom:0; }
+.q-item:hover{ background:color-mix(in srgb,var(--muted) 7%,transparent); }
+.q-head{ display:flex; gap:var(--sp2); align-items:baseline; }
+.q-text{ font-weight:500; }
+.q-badge{ flex:none; font-size:9.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  padding:2px 7px; border-radius:5px; }
+.q-open{ background:color-mix(in srgb,var(--st-atrisk) 20%,var(--surface)); color:#7a5600; }
+.q-answered{ background:color-mix(in srgb,var(--st-done) 16%,var(--surface)); color:var(--st-done); }
+.q-meta{ font-size:12px; color:var(--muted); margin-top:4px; }
+.q-ans{ font-size:12.5px; color:var(--ink2); margin-top:5px; padding-left:10px;
+  border-left:2px solid var(--st-done); }
+
+/* ---------- conflicts ---------- */
+.cf-card{ border-color:color-mix(in srgb,var(--st-atrisk) 55%,var(--ring)); }
+.cf-banner{ background:color-mix(in srgb,var(--st-atrisk) 18%,var(--surface));
+  color:#7a5600; font-weight:600; font-size:13px; padding:10px var(--sp3); border-radius:var(--r2);
+  margin-bottom:var(--sp3); border:1px solid color-mix(in srgb,var(--st-atrisk) 45%,var(--ring)); }
+@media (prefers-color-scheme:dark){ .cf-banner,.q-open{ color:#ffd27a; } }
+:root[data-theme="dark"] .cf-banner,:root[data-theme="dark"] .q-open{ color:#ffd27a; }
+:root[data-theme="light"] .cf-banner{ color:#7a5600; }
+.cf-list{ list-style:none; margin:0; padding:0; }
+.cf-item{ padding:var(--sp3); border:1px solid var(--ring); border-radius:var(--r2);
+  margin-bottom:var(--sp2); cursor:pointer; }
+.cf-item:hover{ border-color:var(--st-atrisk); }
+.cf-about{ font-weight:600; margin-bottom:var(--sp2); }
+.cf-cols{ display:grid; grid-template-columns:1fr auto 1fr; gap:var(--sp3); align-items:center; }
+.cf-was,.cf-now{ font-size:13px; }
+.cf-lbl{ display:block; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
+.cf-src{ display:block; font-size:11px; color:var(--muted); margin-top:4px; }
+.cf-was{ color:var(--ink2); }
+.cf-arrow{ color:var(--st-atrisk); font-size:18px; }
+
+/* ---------- artifacts ---------- */
+.art-feed{ list-style:none; margin:0; padding:0; }
+.art-item{ display:flex; align-items:center; gap:var(--sp3); padding:10px var(--sp2);
+  border-bottom:1px solid var(--grid); }
+.art-item:last-child{ border-bottom:0; }
+.art-type{ flex:none; width:88px; font-size:10.5px; font-weight:600; letter-spacing:.03em;
+  text-transform:uppercase; color:var(--ink2); padding:3px 0; text-align:center;
+  border:1px solid var(--ring); border-radius:5px; background:color-mix(in srgb,var(--muted) 8%,transparent); }
+.art-body{ flex:1; min-width:0; }
+.art-file{ font-size:12.5px; font-variant-numeric:tabular-nums; font-family:var(--mono); letter-spacing:-.01em; }
+.art-one{ font-size:12.5px; color:var(--ink2); margin-top:2px; }
+.art-date{ flex:none; color:var(--muted); font-size:11.5px; font-family:var(--mono); font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+
+/* ---------- provenance popover ---------- */
+.pop{ position:fixed; z-index:50; max-width:340px; background:var(--surface);
+  border:1px solid var(--axis); border-radius:var(--r2); box-shadow:var(--shadow);
+  padding:var(--sp3); font-size:12.5px; }
+.pop-h{ font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted);
+  margin-bottom:var(--sp2); }
+.pop-src{ display:flex; gap:var(--sp2); padding:7px 0; border-top:1px solid var(--grid); }
+.pop-src:first-of-type{ border-top:0; }
+.pop-type{ flex:none; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+  color:var(--ink2); padding:2px 6px; border-radius:4px; height:fit-content;
+  background:color-mix(in srgb,var(--muted) 12%,transparent); }
+.pop-file{ font-size:12px; font-weight:500; }
+.pop-one{ color:var(--ink2); margin-top:2px; }
+.pop-date{ color:var(--muted); font-size:11px; margin-top:2px; font-variant-numeric:tabular-nums; }
+.pop-none{ color:var(--muted); font-style:italic; }
+
+/* ---------- stakeholders ---------- */
+.stk-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:var(--sp4); }
+.stk-org h3{ font-size:12px; letter-spacing:.04em; color:var(--ink2); margin-bottom:var(--sp2);
+  display:flex; align-items:center; gap:8px; }
+.stk-list{ list-style:none; margin:0; padding:0; }
+.stk{ padding:7px var(--sp2); border-bottom:1px solid var(--grid); cursor:pointer; border-radius:6px;
+  display:flex; align-items:baseline; justify-content:space-between; gap:var(--sp3); }
+.stk:last-child{ border-bottom:0; }
+.stk:hover{ background:color-mix(in srgb,var(--muted) 7%,transparent); }
+.stk-name{ font-weight:500; }
+.stk-role{ font-size:12px; color:var(--muted); text-align:right; }
+
+.foot{ text-align:center; color:var(--muted); font-size:11.5px; margin-top:var(--sp5); }
+@media (max-width:720px){ .raid-grid,.stk-grid{ grid-template-columns:1fr; } .head-main{ flex-direction:column; }
+  .stat-stamp{ margin-left:0; text-align:left; } }
+
+/* ============================================================================
+   Viewer-only additions (not in render.py): drop zone, validation banner,
+   parse-error page, footer privacy note + reload affordance.
+   ========================================================================== */
+.vbanner{ border-radius:var(--r); padding:var(--sp4) var(--sp5); margin-bottom:var(--sp4);
+  border:1px solid color-mix(in srgb,var(--st-atrisk) 55%,var(--ring));
+  background:color-mix(in srgb,var(--st-atrisk) 14%,var(--surface)); box-shadow:var(--shadow); }
+.vbanner.err{ border-color:color-mix(in srgb,var(--st-late) 55%,var(--ring));
+  background:color-mix(in srgb,var(--st-late) 10%,var(--surface)); }
+.vbanner-h{ display:flex; align-items:center; gap:9px; font-size:13.5px; font-weight:600; color:var(--ink); }
+.vbanner-dot{ width:10px; height:10px; border-radius:50%; flex:none; background:var(--st-atrisk); }
+.vbanner.err .vbanner-dot{ background:var(--st-late); }
+.vbanner-sub{ font-size:12px; color:var(--ink2); margin:4px 0 0 19px; }
+.vbanner ul{ margin:var(--sp3) 0 0; padding-left:19px; font-size:12.5px; color:var(--ink2); }
+.vbanner li{ margin:3px 0; }
+.vbanner code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px;
+  background:color-mix(in srgb,var(--muted) 14%,transparent); padding:1px 5px; border-radius:4px; color:var(--ink); }
+
+.centre{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:var(--sp5); }
+.dropzone{ width:min(560px,100%); background:var(--surface); border:2px dashed var(--axis);
+  border-radius:var(--r); padding:52px 44px; text-align:center; box-shadow:var(--shadow);
+  transition:border-color .15s, background .15s; }
+.dropzone.drag{ border-color:var(--accent); background:color-mix(in srgb,var(--accent) 8%,var(--surface)); }
+.dz-icon{ width:60px; height:60px; margin:0 auto var(--sp4); border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:color-mix(in srgb,var(--accent) 12%,var(--surface)); color:var(--accent); }
+.dz-icon svg{ width:28px; height:28px; }
+.dz-title{ font-size:19px; font-weight:600; letter-spacing:-.01em; color:var(--ink); }
+.dz-sub{ color:var(--ink2); font-size:13px; margin-top:9px; line-height:1.5; }
+.dz-actions{ margin-top:var(--sp5); }
+.dz-btn{ font:inherit; font-size:13.5px; font-weight:500; color:var(--accent-ink); background:var(--accent);
+  border:0; border-radius:var(--r2); padding:11px 22px; cursor:pointer; }
+.dz-btn:hover{ filter:brightness(1.05); }
+.dz-note{ color:var(--muted); font-size:11.5px; margin-top:var(--sp5); line-height:1.6; }
+.dz-err{ color:var(--st-late); font-size:12.5px; margin-top:var(--sp4); font-weight:500; }
+.dz-input{ position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; }
+
+.parse-card{ width:min(600px,100%); background:var(--surface); border:1px solid var(--ring);
+  border-left:4px solid var(--st-late); border-radius:var(--r); padding:34px; box-shadow:var(--shadow); }
+.parse-card h2{ font-size:17px; margin-bottom:8px; }
+.parse-card p{ margin:0; color:var(--ink2); font-size:13px; }
+.parse-msg{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; color:var(--ink2);
+  background:color-mix(in srgb,var(--muted) 10%,transparent); padding:12px 14px; border-radius:6px;
+  margin-top:14px; white-space:pre-wrap; word-break:break-word; }
+.parse-card .dz-btn{ margin-top:var(--sp4); }
+
+.foot .foot-priv{ margin-top:7px; color:var(--ink2); }
+.foot .reload-link{ font:inherit; font-size:11.5px; color:var(--accent);
+  background:transparent; border:0; cursor:pointer; text-decoration:underline; padding:0; margin-top:6px; }
+.foot .reload-link:hover{ filter:brightness(1.1); }
+
+/* filter-bar tools: expand/collapse all + theme toggle (right-aligned) */
+.filter-tools{ margin-left:auto; display:flex; align-items:center; gap:var(--sp2); }
+.tool-btn{ font:inherit; font-size:12.5px; color:var(--ink2); background:transparent;
+  border:1px solid var(--axis); border-radius:var(--r2); padding:8px 12px; cursor:pointer; }
+.tool-btn:hover{ color:var(--ink); border-color:var(--muted); }
+.theme-toggle{ display:inline-flex; align-items:center; justify-content:center; width:38px; height:36px;
+  padding:0; color:var(--ink2); background:transparent; border:1px solid var(--axis); border-radius:var(--r2); cursor:pointer; }
+.theme-toggle:hover{ color:var(--ink); border-color:var(--muted); }
+.theme-toggle svg{ width:17px; height:17px; }
+.roadmap-none{ color:var(--muted); font-style:italic; padding-top:var(--sp3); }
+@media (max-width:720px){ .filter-tools{ margin-left:0; } }
+
+/* parking lot — catch-all items that don't fit a section yet */
+.pk-list{ list-style:none; margin:0; padding:0; }
+.pk-item{ display:flex; gap:var(--sp4); padding:var(--sp3) var(--sp2); border-bottom:1px solid var(--grid);
+  cursor:pointer; border-radius:6px; }
+.pk-item:last-child{ border-bottom:0; }
+.pk-item:hover{ background:color-mix(in srgb,var(--muted) 7%,transparent); }
+.pk-date{ flex:none; width:86px; color:var(--muted); font-size:12px; padding-top:2px; font-family:var(--mono); font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+.pk-note{ font-weight:500; }
+.pk-ctx{ color:var(--ink2); font-size:12.5px; margin-top:3px; }
+.pk-sugg{ display:inline-block; margin-top:7px; font-size:12px; color:#7a5600;
+  background:color-mix(in srgb,var(--st-atrisk) 18%,var(--surface));
+  border:1px solid color-mix(in srgb,var(--st-atrisk) 40%,var(--ring));
+  padding:3px 9px; border-radius:20px; }
+@media (prefers-color-scheme:dark){ .pk-sugg{ color:#ffd27a; } }
+:root[data-theme="dark"] .pk-sugg{ color:#ffd27a; }
+:root[data-theme="light"] .pk-sugg{ color:#7a5600; }
+
+/* ---------- BDD scenarios (requirements) ---------- */
+.req-head-right{ display:inline-flex; align-items:center; gap:var(--sp2); flex:none; }
+.sc-chip{ display:inline-block; padding:2px 8px; border-radius:20px; font-size:10.5px; font-weight:600;
+  letter-spacing:.01em; color:var(--ink2); background:color-mix(in srgb,var(--muted) 16%,var(--surface)); white-space:nowrap; }
+.sc-list{ margin-top:var(--sp3); display:flex; flex-direction:column; gap:var(--sp2); }
+.sc{ border:1px solid var(--ring); border-radius:var(--r2); padding:10px var(--sp3);
+  background:color-mix(in srgb,var(--muted) 4%,var(--surface)); cursor:pointer; }
+.sc:hover{ border-color:var(--muted); }
+.sc-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--sp3); margin-bottom:7px; }
+.sc-title{ font-weight:600; font-size:12.5px; line-height:1.35; }
+.sc-tag{ flex:none; font-size:9.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  padding:2px 8px; border-radius:20px; border:1px solid var(--ring); color:var(--muted); }
+.sc-draft{ color:#7a5600; background:color-mix(in srgb,var(--st-atrisk) 16%,var(--surface));
+  border-color:color-mix(in srgb,var(--st-atrisk) 40%,var(--ring)); }
+.sc-agreed{ color:var(--ink2); background:color-mix(in srgb,var(--muted) 12%,var(--surface)); }
+.sc-implemented,.sc-passing{ color:var(--st-done); background:color-mix(in srgb,var(--st-done) 14%,var(--surface));
+  border-color:color-mix(in srgb,var(--st-done) 40%,var(--ring)); }
+.sc-failing{ color:var(--st-late); background:color-mix(in srgb,var(--st-late) 13%,var(--surface));
+  border-color:color-mix(in srgb,var(--st-late) 42%,var(--ring)); }
+@media (prefers-color-scheme:dark){ .sc-draft{ color:#ffd27a; } }
+:root[data-theme="dark"] .sc-draft{ color:#ffd27a; }
+:root[data-theme="light"] .sc-draft{ color:#7a5600; }
+.gwt{ display:flex; flex-direction:column; gap:3px; }
+.gwt-row{ display:flex; gap:var(--sp2); align-items:baseline; font-size:12.5px; line-height:1.45; }
+.gwt-kw{ flex:none; width:46px; text-align:left; font-size:10px; font-weight:700; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--muted); }
+.gwt-clause{ color:var(--ink); }
+
+/* ---------- Export .feature control ---------- */
+.rx-bar{ display:flex; justify-content:flex-end; position:relative; margin-bottom:var(--sp3); }
+.rx-btn{ font:inherit; font-size:12.5px; color:var(--ink2); background:transparent; border:1px solid var(--axis);
+  border-radius:var(--r2); padding:7px 12px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
+.rx-btn:hover{ color:var(--ink); border-color:var(--muted); }
+.rx-caret{ width:6px; height:6px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted);
+  transform:rotate(45deg); margin-top:-3px; }
+.rx-menu{ position:absolute; right:0; top:calc(100% + 6px); z-index:20; min-width:240px; max-width:360px;
+  background:var(--surface); border:1px solid var(--axis); border-radius:var(--r2); box-shadow:var(--shadow); padding:var(--sp1); }
+.rx-item{ width:100%; text-align:left; font:inherit; font-size:12.5px; color:var(--ink); background:transparent;
+  border:0; border-radius:6px; padding:8px 10px; cursor:pointer; display:flex; align-items:center;
+  justify-content:space-between; gap:var(--sp3); }
+.rx-item:hover{ background:color-mix(in srgb,var(--muted) 10%,transparent); }
+.rx-all{ border-top:1px solid var(--grid); margin-top:var(--sp1); font-weight:600; }
+.rx-n{ flex:none; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+
+/* ---------- What changed ---------- */
+.wc-range{ display:inline-flex; border:1px solid var(--axis); border-radius:var(--r2); overflow:hidden; margin-bottom:var(--sp4); }
+.wc-r{ font:inherit; font-size:12px; color:var(--ink2); background:transparent; border:0;
+  border-left:1px solid var(--axis); padding:7px 14px; cursor:pointer; }
+.wc-r:first-child{ border-left:0; }
+.wc-r:hover{ color:var(--ink); background:color-mix(in srgb,var(--muted) 8%,transparent); }
+.wc-r.active{ color:var(--ink); background:color-mix(in srgb,var(--accent) 15%,var(--surface)); font-weight:600; box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent); }
+.wc-group{ margin-bottom:var(--sp4); }
+.wc-group:last-child{ margin-bottom:0; }
+.wc-h{ font-size:12px; letter-spacing:.04em; color:var(--ink2); margin-bottom:var(--sp2);
+  display:flex; align-items:center; gap:8px; }
+.wc-item{ display:flex; gap:var(--sp3); align-items:flex-start; padding:9px var(--sp2);
+  border-bottom:1px solid var(--grid); cursor:pointer; border-radius:6px; }
+.wc-item:last-child{ border-bottom:0; }
+.wc-item:hover{ background:color-mix(in srgb,var(--muted) 7%,transparent); }
+.wc-chip{ flex:none; font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--ink2); padding:3px 8px; border-radius:5px; margin-top:1px; min-width:78px; text-align:center;
+  background:color-mix(in srgb,var(--muted) 12%,transparent); border:1px solid var(--ring); }
+.wc-body{ flex:1; min-width:0; }
+.wc-title{ font-weight:500; font-size:13px; }
+.wc-change{ display:flex; flex-wrap:wrap; align-items:center; gap:7px; margin-top:3px; font-size:12px; color:var(--ink2); }
+.wc-field{ text-transform:uppercase; letter-spacing:.04em; font-size:10px; color:var(--muted); }
+.wc-was{ color:var(--muted); text-decoration:line-through; }
+.wc-arrow{ color:var(--ontrack); }
+.wc-now{ color:var(--ink); font-weight:500; }
+.wc-note{ display:inline-block; margin-top:3px; font-size:11.5px; color:var(--st-done); }
+.wc-empty{ color:var(--muted); font-style:italic; margin:2px 0 0; }
+
+/* ---------- Status-report modal ---------- */
+.modal-overlay{ position:fixed; inset:0; z-index:60; background:rgba(11,11,11,.44);
+  display:flex; align-items:center; justify-content:center; padding:var(--sp5); }
+.modal{ width:min(680px,100%); max-height:86vh; display:flex; flex-direction:column;
+  background:var(--surface); border:1px solid var(--axis); border-radius:var(--r); box-shadow:var(--shadow); overflow:hidden; }
+.modal-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--sp3);
+  padding:var(--sp4) var(--sp5); border-bottom:1px solid var(--grid); }
+.modal-title{ font-size:14px; font-weight:600; }
+.modal-x{ font:inherit; font-size:20px; line-height:1; color:var(--muted); background:transparent; border:0;
+  cursor:pointer; padding:0 4px; }
+.modal-x:hover{ color:var(--ink); }
+.modal-pre{ margin:0; overflow:auto; padding:var(--sp4) var(--sp5);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.55; color:var(--ink);
+  white-space:pre-wrap; word-break:break-word; }
+.modal-actions{ display:flex; justify-content:flex-end; gap:var(--sp2);
+  padding:var(--sp3) var(--sp5) var(--sp4); border-top:1px solid var(--grid); }
+.modal-btn{ font:inherit; font-size:12.5px; color:var(--ink2); background:transparent; border:1px solid var(--axis);
+  border-radius:var(--r2); padding:8px 16px; cursor:pointer; }
+.modal-btn:hover{ color:var(--ink); border-color:var(--muted); }
+.modal-btn[data-act="copy"]{ color:var(--accent-ink); background:var(--accent); border-color:var(--accent); }
+.modal-btn[data-act="copy"]:hover{ filter:brightness(1.06); color:var(--accent-ink); }
+
+/* ============================================================================
+   PROGRAM ROLLUP — additions on top of viewer.html's verbatim CSS.
+   Only new component styles live here (health strip, per-project timeline
+   lanes, cross-project tables, multi-file drop zone tweaks).
+   ========================================================================== */
+
+/* tools-only bar (expand/collapse all + theme toggle), no filters here */
+.tools-bar{ display:flex; align-items:center; margin-bottom:var(--sp4); }
+.tools-bar .filter-tools{ margin-left:auto; }
+
+/* ---------- health strip (the hero — always visible) ---------- */
+.pstrip-card{ overflow:visible; }
+.pstrip-head{ display:flex; align-items:center; gap:var(--sp3); padding:var(--sp4) var(--sp5) 0; }
+.pstrip-head h2{ font-size:15px; }
+.pstrip-head .sub{ font-size:12px; color:var(--muted); margin-left:auto; }
+.pstrip-wrap{ overflow-x:auto; padding:var(--sp3) var(--sp5) var(--sp5); }
+.pstrip{ width:100%; border-collapse:collapse; font-size:13px; }
+.pstrip th{ text-align:left; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); font-weight:600; padding:0 var(--sp3) var(--sp2); border-bottom:1px solid var(--grid); }
+.pstrip th.num,.pstrip td.num{ text-align:right; white-space:nowrap; }
+.pstrip td{ padding:13px var(--sp3); border-bottom:1px solid var(--grid); vertical-align:middle; }
+.pstrip tbody tr.pstrip-row:last-child td{ border-bottom:0; }
+.pj{ display:flex; align-items:center; gap:10px; min-width:0; }
+.pj-dot{ width:11px; height:11px; border-radius:3px; flex:none; }
+.pj-meta{ min-width:0; }
+.pj-name{ font-weight:600; font-size:14px; color:var(--ink); text-decoration:none; }
+.pj-name:hover{ text-decoration:underline; }
+.pj-sub{ font-size:11.5px; color:var(--muted); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:260px; }
+.vbadge{ display:inline-block; margin-left:9px; font-size:10px; font-weight:700; letter-spacing:.03em;
+  text-transform:uppercase; padding:2px 8px; border-radius:20px; cursor:pointer; vertical-align:middle;
+  background:color-mix(in srgb,var(--st-atrisk) 20%,var(--surface)); color:#7a5600;
+  border:1px solid color-mix(in srgb,var(--st-atrisk) 40%,var(--ring)); }
+@media (prefers-color-scheme:dark){ .vbadge{ color:#ffd27a; } }
+:root[data-theme="dark"] .vbadge{ color:#ffd27a; }
+:root[data-theme="light"] .vbadge{ color:#7a5600; }
+.hchip{ display:inline-flex; align-items:center; gap:7px; padding:5px 11px; border-radius:20px;
+  border:1px solid var(--ring); font-size:12px; font-weight:600; white-space:nowrap; }
+.hchip .verdict-dot{ width:9px; height:9px; border-radius:50%; flex:none; }
+.pstrip .big{ font-size:16px; font-weight:600; font-variant-numeric:tabular-nums; }
+.pstrip .warnv{ color:var(--st-late); }
+.pstrip .zero{ color:var(--muted); }
+.pstrip-stamp{ color:var(--ink2); font-variant-numeric:tabular-nums; white-space:nowrap; font-size:12.5px; }
+.pstrip-detail td{ padding:6px var(--sp3) 12px; border-bottom:1px solid var(--grid);
+  background:color-mix(in srgb,var(--st-atrisk) 6%,transparent); }
+.pstrip-detail .vbanner{ margin:0; }
+.pstrip-err .pj-sub{ color:var(--st-late); max-width:520px; white-space:normal; }
+.pstrip-err .pj-dot{ background:var(--st-late); }
+.pstrip-err td{ color:var(--ink2); }
+
+/* ---------- combined timeline (lane = project) ---------- */
+.uns-groups{ display:flex; flex-direction:column; gap:8px; width:100%; }
+.uns-group{ display:flex; align-items:center; gap:var(--sp2); flex-wrap:wrap; }
+.uns-prefix{ font-size:10.5px; font-weight:600; letter-spacing:.02em; color:#fff;
+  padding:3px 10px; border-radius:20px; white-space:nowrap; flex:none; }
+
+/* ---------- cross-project tables ---------- */
+.pcol{ white-space:nowrap; }
+.pcol .pj-dot{ display:inline-block; vertical-align:middle; margin-right:7px; }
+.dep-blocked td:first-child{ box-shadow:inset 3px 0 0 var(--st-late); }
+.tag-dep-open{ color:var(--ink2); }
+.tag-dep-met{ color:var(--st-done); }
+.tag-dep-blocked{ color:var(--st-late); font-weight:600; }
+.cf-proj{ font-size:11px; font-weight:600; letter-spacing:.02em; color:var(--ink2);
+  display:inline-flex; align-items:center; gap:6px; margin-bottom:6px; }
+
+/* ---------- multi-file drop zone ---------- */
+.dz-files{ margin-top:var(--sp4); font-size:12px; color:var(--ink2); text-align:left;
+  max-width:380px; margin-left:auto; margin-right:auto; }
+.dz-files div{ padding:3px 0; font-variant-numeric:tabular-nums; }
+
+.foot-files{ margin-top:6px; color:var(--muted); font-size:11px; word-break:break-word; }
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- ============================================================================
+     EMBEDDED-DATA MODE (optional, empty by default).
+     A builder (pipeline/build_program_demo.py) can fill this block with
+       {"name":"…","projects":[{"folder":"…","title":null,"state":{ …full state… }}, …]}
+     to produce a SELF-CONTAINED, zero-request program snapshot for demos, hosting
+     or emailing. When this block holds non-empty JSON it takes precedence over
+     ?projects=, the program.json fetch, and the drop zone. Leave it EMPTY and the
+     page behaves exactly as before (fetch / drop-zone modes untouched).
+     ========================================================================== -->
+<script type="application/json" id="embedded-program">{"name": "Contoso \u00d7 Meridian Program", "projects": [{"folder": "demo-atlas", "title": null, "state": {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration", "client": "Contoso Financial", "description": "Migrate Contoso Financial's legacy CRM to Dynamics 365 Sales, with NorthPeak Systems delivering configuration + core-banking integration and Veridian Consulting delivering the data migration.", "vendors": ["NorthPeak Systems", "Veridian Consulting"], "lastDigest": "2026-07-09T16:20:00Z"}, "stakeholders": [{"id": "stk-jchen", "name": "Jordan Chen", "org": "Contoso Financial", "role": "Program Sponsor", "sources": ["art-kickoff"]}, {"id": "stk-mpatel", "name": "Meera Patel", "org": "Contoso Financial", "role": "Project Manager", "sources": ["art-kickoff", "art-steering-0708"]}, {"id": "stk-rsingh", "name": "Raj Singh", "org": "Contoso Financial", "role": "CRM Product Owner", "sources": ["art-kickoff", "art-brd"]}, {"id": "stk-twolfe", "name": "Tom Wolfe", "org": "NorthPeak Systems", "role": "Engagement Lead", "sources": ["art-kickoff"]}, {"id": "stk-agarcia", "name": "Ana Garcia", "org": "NorthPeak Systems", "role": "Solution Architect", "sources": ["art-kickoff", "art-design"]}, {"id": "stk-dkim", "name": "David Kim", "org": "NorthPeak Systems", "role": "Integration Engineer", "sources": ["art-design"]}, {"id": "stk-lnovak", "name": "Lena Novak", "org": "Veridian Consulting", "role": "Data Migration Lead", "sources": ["art-kickoff", "art-migration-plan"]}, {"id": "stk-schen", "name": "Sophie Chen", "org": "Veridian Consulting", "role": "Data Engineer", "sources": ["art-migration-plan"]}], "workstreams": [{"id": "ws-infra", "name": "Environments & Integration", "color": "#4a3aa7"}, {"id": "ws-data", "name": "Data Migration", "color": "#1baf7a"}, {"id": "ws-config", "name": "CRM Configuration", "color": "#eb6834"}, {"id": "ws-uat", "name": "Testing & Go-Live", "color": "#e87ba4"}], "milestones": [{"id": "ms-env-provision", "title": "Dev & Test environments provisioned", "workstream": "ws-infra", "due": "2026-05-20", "status": "done", "confidence": "high", "notes": "Dynamics sandboxes stood up by NorthPeak.", "sources": ["art-design", "art-status-0612"], "history": []}, {"id": "ms-brd-signoff", "title": "BRD sign-off", "workstream": "ws-config", "due": "2026-06-05", "status": "done", "confidence": "high", "notes": "Business Requirements Document v1.0 approved by Contoso.", "sources": ["art-brd", "art-steering-0625"], "history": []}, {"id": "ms-data-profiling", "title": "Legacy data profiling complete", "workstream": "ws-data", "due": "2026-06-19", "status": "done", "confidence": "high", "notes": "Profiling surfaced significant duplicate/quality issues.", "sources": ["art-steering-0625", "art-migration-plan"], "history": []}, {"id": "ms-config-sprint1", "title": "Config sprint 1 \u2014 accounts & contacts", "workstream": "ws-config", "due": "2026-07-03", "status": "late", "confidence": "high", "notes": "Slipped: dependent on remediated data and API sandbox access.", "sources": ["art-status-0703", "art-steering-0708"], "history": [{"field": "status", "old": "on-track", "date": "2026-07-03", "source": "art-status-0703"}]}, {"id": "ms-migration-dryrun", "title": "Data migration dry run #1", "workstream": "ws-data", "due": "2026-07-18", "status": "at-risk", "confidence": "medium", "notes": "At risk pending duplicate-record remediation.", "sources": ["art-status-0703", "art-migration-plan"], "history": [{"field": "due", "old": "2026-07-15", "date": "2026-07-06", "source": "art-migration-plan"}]}, {"id": "ms-integration-api", "title": "Core-banking API integration", "workstream": "ws-infra", "due": "2026-08-01", "status": "on-track", "confidence": "medium", "notes": "Nightly batch pattern; blocked-adjacent on sandbox credentials.", "sources": ["art-design", "art-steering-0708"], "history": [{"field": "status", "old": "planned", "date": "2026-07-09", "source": "art-steering-0708"}]}, {"id": "ms-config-sprint2", "title": "Config sprint 2 \u2014 pipeline & reporting", "workstream": "ws-config", "due": "2026-08-15", "status": "on-track", "confidence": "medium", "notes": "Advanced analytics deferred to phase 2.", "sources": ["art-steering-0625", "art-steering-0708"], "history": []}, {"id": "ms-uat-start", "title": "UAT begins", "workstream": "ws-uat", "due": "2026-09-08", "status": "planned", "confidence": "medium", "notes": "Shifted later to absorb the config sprint 1 slip.", "sources": ["art-kickoff", "art-steering-0708"], "history": [{"field": "due", "old": "2026-08-24", "date": "2026-07-08", "source": "art-kickoff"}]}, {"id": "ms-golive", "title": "Production go-live", "workstream": "ws-uat", "due": "2026-10-05", "status": "planned", "confidence": "low", "notes": "Phased regional cutover.", "sources": ["art-steering-0708", "art-migration-plan"], "history": []}, {"id": "ms-training", "title": "End-user training", "workstream": "ws-uat", "due": null, "status": "planned", "confidence": null, "notes": "Not yet scheduled \u2014 pending confirmed UAT and go-live dates.", "sources": ["art-steering-0708"], "history": []}], "actions": [{"id": "act-finalize-brd", "title": "Finalize BRD and secure sign-off", "owner": "stk-rsingh", "due": "2026-06-05", "status": "done", "notes": null, "sources": ["art-brd"], "history": []}, {"id": "act-provision-test", "title": "Provision Dynamics test environment", "owner": "stk-dkim", "due": "2026-05-20", "status": "done", "notes": null, "sources": ["art-design", "art-status-0612"], "history": []}, {"id": "act-profile-legacy", "title": "Profile legacy CRM data quality", "owner": "stk-schen", "due": "2026-06-18", "status": "done", "notes": "Report delivered to steering committee.", "sources": ["art-steering-0625", "art-migration-plan"], "history": []}, {"id": "act-config-accounts", "title": "Complete accounts & contacts configuration", "owner": "stk-agarcia", "due": "2026-07-03", "status": "in-progress", "notes": "Blocked-adjacent on data remediation.", "sources": ["art-status-0703"], "history": [{"field": "status", "old": "open", "date": "2026-06-25", "source": "art-steering-0625"}]}, {"id": "act-fix-dq-issues", "title": "Remediate 12,400 duplicate customer records", "owner": "stk-lnovak", "due": "2026-07-09", "status": "in-progress", "notes": "Dedup rules applied; validation ongoing.", "sources": ["art-status-0703", "art-migration-plan"], "history": []}, {"id": "act-api-credentials", "title": "Provide core-banking API sandbox credentials", "owner": "stk-mpatel", "due": "2026-07-20", "status": "open", "notes": "Awaiting Contoso security review.", "sources": ["art-steering-0708"], "history": []}, {"id": "act-dryrun-prep", "title": "Prepare migration dry-run dataset", "owner": "stk-schen", "due": "2026-07-15", "status": "in-progress", "notes": null, "sources": ["art-migration-plan"], "history": []}, {"id": "act-uat-plan", "title": "Draft UAT test plan and entry criteria", "owner": "stk-rsingh", "due": "2026-08-10", "status": "open", "notes": null, "sources": ["art-steering-0708"], "history": []}, {"id": "act-revise-plan", "title": "Circulate revised project plan to steering committee", "owner": "stk-mpatel", "due": "2026-07-14", "status": "open", "notes": null, "sources": ["art-steering-0708"], "history": []}, {"id": "act-training-schedule", "title": "Schedule end-user training sessions", "owner": null, "due": null, "status": "open", "notes": "Owner not yet assigned.", "sources": ["art-steering-0708"], "history": []}], "decisions": [{"id": "dec-2026-05-02-vendor-split", "date": "2026-05-02", "summary": "Split delivery \u2014 NorthPeak owns configuration & integration, Veridian owns data migration.", "rationale": "Plays to each vendor's strength and isolates the data-migration risk under a specialist.", "sources": ["art-kickoff"], "history": []}, {"id": "dec-2026-05-15-platform", "date": "2026-05-15", "summary": "Target platform confirmed as Microsoft Dynamics 365 Sales.", "rationale": "Aligns with Contoso's existing M365 tenant and licensing.", "sources": ["art-brd"], "history": []}, {"id": "dec-2026-06-01-integration-pattern", "date": "2026-06-01", "summary": "Integrate to the core-banking system via nightly batch API rather than real-time.", "rationale": "Real-time was disproportionate to need and raised the security-review burden.", "sources": ["art-design"], "history": []}, {"id": "dec-2026-06-25-defer-analytics", "date": "2026-06-25", "summary": "Defer advanced analytics & reporting to phase 2.", "rationale": "Protects the go-live date; core pipeline reporting is sufficient for launch.", "sources": ["art-steering-0625"], "history": []}, {"id": "dec-2026-07-08-phased-cutover", "date": "2026-07-08", "summary": "Adopt a phased regional cutover instead of a single big-bang cutover.", "rationale": "Reduces go-live blast radius given unresolved data-quality issues.", "sources": ["art-steering-0708"], "history": []}, {"id": "dec-2026-07-08-uat-shift", "date": "2026-07-08", "summary": "Shift UAT start to 8 September to absorb the config sprint 1 slip.", "rationale": "Preserves a realistic UAT window rather than compressing testing.", "sources": ["art-steering-0708"], "history": []}], "risks": [{"id": "risk-data-quality", "title": "Legacy data quality far worse than assumed (duplicates, missing fields)", "severity": "critical", "likelihood": "high", "mitigation": "Dedicated remediation sprint; Veridian dedup tooling; profiling report driving cleanup.", "status": "open", "sources": ["art-steering-0625", "art-migration-plan", "art-status-0703"], "history": [{"field": "severity", "old": "high", "date": "2026-07-03", "source": "art-status-0703"}]}, {"id": "risk-api-access", "title": "Core-banking API sandbox access delayed by Contoso security review", "severity": "high", "likelihood": "medium", "mitigation": "Escalated to sponsor; provisional mock endpoint for early build.", "status": "open", "sources": ["art-steering-0708"], "history": []}, {"id": "risk-config-capacity", "title": "NorthPeak configuration team under-staffed for sprint 2", "severity": "medium", "likelihood": "medium", "mitigation": "Additional configurator being onboarded for August.", "status": "mitigating", "sources": ["art-status-0703"], "history": []}, {"id": "risk-uat-window", "title": "Compressed UAT window threatens go-live quality", "severity": "high", "likelihood": "medium", "mitigation": "UAT shifted to 8 Sep; entry criteria being defined up front.", "status": "open", "sources": ["art-steering-0708"], "history": []}, {"id": "risk-scope-reporting", "title": "Reporting requirements expanding beyond phase 1 scope", "severity": "medium", "likelihood": "low", "mitigation": "Advanced analytics formally deferred to phase 2.", "status": "mitigating", "sources": ["art-steering-0625"], "history": []}], "issues": [{"id": "iss-duplicate-records", "title": "12,400 duplicate customer records in the legacy extract", "severity": "high", "mitigation": "Dedup rules defined; remediation in progress under Veridian.", "status": "open", "sources": ["art-status-0703", "art-migration-plan"], "history": []}, {"id": "iss-env-latency", "title": "Test-environment latency during large batch loads", "severity": "low", "mitigation": "NorthPeak retuned the batch window; acceptable in retest.", "status": "resolved", "sources": ["art-status-0612"], "history": []}], "dependencies": [{"id": "dep-api-creds", "title": "Integration build blocked on core-banking API sandbox credentials", "on": "Contoso IT security approval", "neededBy": "2026-07-20", "status": "open", "sources": ["art-steering-0708"], "history": []}, {"id": "dep-remediated-extract", "title": "Migration dry run depends on the remediated data extract", "on": "Data remediation (Veridian)", "neededBy": "2026-07-15", "status": "open", "sources": ["art-migration-plan"], "history": []}], "requirements": [{"id": "req-acct-360", "kind": "functional", "title": "360-degree customer account view", "detail": "Consolidated view of accounts, contacts, products held and recent interactions.", "status": "approved", "sources": ["art-brd"], "history": [], "scenarios": [{"id": "sc-acct360-view", "title": "RM opens a customer with products across the group", "given": ["a relationship manager is signed in", "the customer Northwind Traders exists in core banking"], "when": ["they open the customer account page"], "then": ["the 360 view shows accounts, contacts and products held", "interactions from the last 90 days are listed"], "status": "passing", "sources": ["art-bdd"], "history": []}, {"id": "sc-acct360-empty", "title": "Customer with no linked banking products", "given": ["a relationship manager is signed in"], "when": ["they open an account that has no linked products"], "then": ["the products panel shows an empty-state message"], "status": "implemented", "sources": ["art-bdd"], "history": []}]}, {"id": "req-pipeline", "kind": "functional", "title": "Sales pipeline & opportunity management", "detail": "Stage-based pipeline with forecasting for relationship managers.", "status": "approved", "sources": ["art-brd"], "history": []}, {"id": "req-batch-sync", "kind": "functional", "title": "Nightly batch synchronisation with core-banking", "detail": "Overnight sync of account balances and product holdings via batch API.", "status": "in-review", "sources": ["art-brd", "art-design"], "history": [], "scenarios": [{"id": "sc-batch-nightly", "title": "Nightly sync reconciles balances and holdings", "given": ["the nightly batch window has opened", "core-banking has published the daily balance file"], "when": ["the synchronisation job runs"], "then": ["account balances in the CRM match core banking", "product holdings are updated", "a sync summary is written to the audit log"], "status": "agreed", "sources": ["art-bdd"], "history": []}, {"id": "sc-batch-failure", "title": "Sync retries when the core-banking sandbox is unreachable", "given": ["the nightly batch window has opened", "the core-banking API sandbox is unreachable"], "when": ["the synchronisation job runs"], "then": ["the job retries three times", "an alert is raised to the integration team", "the previous balances are retained"], "status": "failing", "sources": ["art-bdd"], "history": []}]}, {"id": "req-rbac", "kind": "non-functional", "title": "Role-based access control aligned to Contoso security policy", "detail": "MFA for all users; least-privilege roles mapped to Contoso's IAM standard.", "status": "approved", "sources": ["art-brd", "art-steering-0708"], "history": []}, {"id": "req-perf", "kind": "non-functional", "title": "Account view loads in under 3 seconds at 50k accounts", "detail": "Performance target for the primary relationship-manager view.", "status": "proposed", "sources": ["art-design"], "history": []}, {"id": "uc-onboard-customer", "kind": "use-case", "title": "Relationship manager onboards a new corporate customer", "detail": "RM captures the customer, links banking products, and creates an onboarding opportunity.", "status": "approved", "sources": ["art-brd"], "history": [], "scenarios": [{"id": "sc-onboard-corp", "title": "Onboard a new corporate customer with product linkage", "given": ["a relationship manager is signed in", "the customer does not yet exist in the CRM"], "when": ["they create a new corporate customer", "they link the customer's banking products"], "then": ["an onboarding opportunity is created", "a KYC review task is assigned to the RM", "the customer appears in the RM's book of business"], "status": "agreed", "sources": ["art-bdd"], "history": []}, {"id": "sc-onboard-existing", "title": "Prospect already holds a mortgage in core banking", "given": ["a relationship manager is signed in", "the prospect already holds a mortgage in core banking"], "when": ["they start onboarding the prospect"], "then": ["the existing mortgage is surfaced automatically", "the RM is prompted to confirm the linkage"], "status": "draft", "sources": ["art-steering-0708"], "history": []}]}, {"id": "uc-migrate-book", "kind": "use-case", "title": "Migrate a relationship manager's existing book of business", "detail": "Bulk-migrate an RM's accounts, contacts and open opportunities with data lineage preserved.", "status": "in-review", "sources": ["art-migration-plan"], "history": []}], "openQuestions": [{"id": "oq-data-retention", "question": "What is the data-retention policy for migrated closed accounts?", "raisedBy": "stk-agarcia", "date": "2026-06-01", "status": "open", "answer": null, "sources": ["art-design"], "history": []}, {"id": "oq-mfa-scope", "question": "Is MFA required for all CRM users or only privileged roles?", "raisedBy": "stk-dkim", "date": "2026-06-25", "status": "answered", "answer": "All users \u2014 confirmed at steering committee on 8 July.", "sources": ["art-steering-0625", "art-steering-0708"], "history": [{"field": "status", "old": "open", "date": "2026-07-08", "source": "art-steering-0708"}]}, {"id": "oq-cutover-window", "question": "What production cutover downtime window is acceptable to the business?", "raisedBy": "stk-lnovak", "date": "2026-07-08", "status": "open", "answer": null, "sources": ["art-steering-0708", "art-migration-plan"], "history": []}, {"id": "oq-reassign-threshold", "question": "What approval threshold applies to bulk reassignments above 500 accounts?", "raisedBy": "stk-agarcia", "date": "2026-07-08", "status": "open", "answer": null, "sources": ["art-steering-0708"], "history": [], "storyRef": "us-bulk-reassign"}], "conflicts": [{"id": "cf-uat-date", "about": "UAT start date", "was": "24 August 2026 (kickoff plan)", "now": "8 September 2026 (steering committee, 8 July)", "sourceOld": "art-kickoff", "sourceNew": "art-steering-0708", "status": "open"}, {"id": "cf-cutover-approach", "about": "Production cutover approach", "was": "Single big-bang cutover (BRD)", "now": "Phased regional cutover (steering committee, 8 July)", "sourceOld": "art-brd", "sourceNew": "art-steering-0708", "status": "open"}], "artifacts": [{"id": "art-kickoff", "file": "2026-05-02-transcript-kickoff.txt", "type": "transcript", "date": "2026-05-02", "digestedAt": "2026-05-03T09:10:00Z", "oneLiner": "Project kickoff \u2014 scope, vendor split, teams and initial timeline agreed."}, {"id": "art-brd", "file": "2026-05-15-brd-atlas-requirements-v1.docx", "type": "brd", "date": "2026-05-15", "digestedAt": "2026-05-16T11:40:00Z", "oneLiner": "Business Requirements Document v1.0 \u2014 functional, non-functional and use-case requirements."}, {"id": "art-design", "file": "2026-06-01-design-doc-solution-architecture.pdf", "type": "design-doc", "date": "2026-06-01", "digestedAt": "2026-06-02T14:05:00Z", "oneLiner": "Solution design \u2014 environments, integration pattern and data model."}, {"id": "art-status-0612", "file": "2026-06-12-email-weekly-status.txt", "type": "email", "date": "2026-06-12", "digestedAt": "2026-06-12T17:30:00Z", "oneLiner": "Weekly status \u2014 environments live, profiling underway, sprint 1 starting."}, {"id": "art-steering-0625", "file": "2026-06-25-transcript-steering-committee-1.vtt", "type": "transcript", "date": "2026-06-25", "digestedAt": "2026-06-26T08:50:00Z", "oneLiner": "Steering committee #1 \u2014 profiling complete, risks reviewed, analytics deferred."}, {"id": "art-migration-plan", "file": "2026-07-06-design-doc-migration-plan.pdf", "type": "design-doc", "date": "2026-07-06", "digestedAt": "2026-07-06T19:15:00Z", "oneLiner": "Veridian data-migration plan & runbook \u2014 dry-run approach and remediation."}, {"id": "art-status-0703", "file": "2026-07-03-email-weekly-status.txt", "type": "email", "date": "2026-07-03", "digestedAt": "2026-07-03T17:22:00Z", "oneLiner": "Weekly status \u2014 sprint 1 slipped, dry run at risk, data quality escalated."}, {"id": "art-steering-0708", "file": "2026-07-08-transcript-steering-committee-2.vtt", "type": "transcript", "date": "2026-07-08", "digestedAt": "2026-07-09T09:05:00Z", "oneLiner": "Steering committee #2 \u2014 UAT moved to 8 Sep, phased cutover adopted, MFA scope confirmed."}, {"id": "art-bdd", "file": "2026-07-09-bdd-crm-scenarios.feature", "type": "bdd", "date": "2026-07-09", "digestedAt": "2026-07-09T09:30:00Z", "oneLiner": "Imported BDD/Gherkin spec \u2014 agreed acceptance scenarios for account view, batch sync and onboarding."}], "userStories": [{"id": "us-account-360", "title": "Relationship-manager 360 customer view", "narrative": {"asA": "relationship manager", "iWant": "a single 360 view of a customer across all their Atlas accounts", "soThat": "I can advise them without switching between the core-banking screens"}, "workstream": "ws-config", "status": "in-review", "rules": [{"id": "rule-360-consolidation", "title": "All of a customer's linked accounts appear on one screen", "examples": [{"id": "ex-360-household", "title": "Retail + mortgage in one household", "context": "Household H-4471 holds a Contoso retail current account and a mortgage", "action": "An RM opens the customer record", "outcome": "Both accounts are listed together under the household"}, {"id": "ex-360-joint", "title": "Joint account holders", "context": "A joint savings account is held by Priya and Sam Okafor", "action": "An RM opens either holder", "outcome": "Both holders' names are shown against the joint account"}, {"id": "ex-360-closed", "title": "Recently closed account", "context": "A current account was closed 3 months ago", "action": "An RM opens the customer", "outcome": "The closed account is shown greyed with a 'Closed' badge, not hidden"}]}, {"id": "rule-360-freshness", "title": "Balances reflect core-banking within the sync SLA and never show stale data silently", "examples": [{"id": "ex-360-asof", "title": "Balances after the nightly batch", "context": "The nightly batch completed at 02:00", "action": "An RM opens the customer at 08:00", "outcome": "Balances show an 'as of 02:00' timestamp"}, {"id": "ex-360-intraday", "title": "Intraday transfer not yet synced", "context": "A GBP 5,000 transfer posted at 10:00 has not synced", "action": "An RM opens the customer at 10:05", "outcome": "The last-sync time is shown so the RM knows the figure may lag"}, {"id": "ex-360-batchfail", "title": "Batch failed overnight", "context": "The 02:00 batch failed and did not complete", "action": "An RM opens the customer", "outcome": "A banner warns 'Balances may be delayed' instead of showing yesterday's data as current"}]}, {"id": "rule-360-permissions", "title": "An RM only sees customers and data they are authorised for", "examples": [{"id": "ex-360-inbook", "title": "Customer in the RM's book", "context": "RM Meera is assigned to household H-4471", "action": "Meera opens that customer", "outcome": "Access is allowed and the full 360 view loads"}, {"id": "ex-360-outbook", "title": "Customer outside the RM's book", "context": "A customer is assigned to a different RM's book", "action": "Meera attempts to open that customer", "outcome": "Access is blocked with a 'not authorised' message"}, {"id": "ex-360-private", "title": "Private-banking flagged customer", "context": "A customer is flagged private-banking and the RM lacks clearance", "action": "The RM opens the record", "outcome": "Sensitive fields are masked while basic contact details remain"}]}], "scenarios": [{"id": "sc-360-household", "title": "Linked accounts appear together for a household", "given": ["a household holds a retail current account and a mortgage"], "when": ["a relationship manager opens the customer record"], "then": ["both accounts appear together on one screen"], "status": "agreed", "sources": ["art-bdd"], "history": []}, {"id": "sc-360-asof", "title": "Balances are stamped with their sync time", "given": ["the nightly balance batch completed at 02:00"], "when": ["a relationship manager opens the customer at 08:00"], "then": ["each balance shows an 'as of 02:00' timestamp"], "status": "draft", "sources": ["art-steering-0708"], "history": []}, {"id": "sc-360-outside-book", "title": "Access outside the assigned book is blocked", "given": ["a relationship manager is not assigned to a customer's book"], "when": ["the relationship manager attempts to open that customer"], "then": ["access is blocked with a not-authorised message"], "status": "implemented", "sources": ["art-design", "art-bdd"], "history": []}], "sources": ["art-brd", "art-design", "art-bdd"], "history": []}, {"id": "us-bulk-reassign", "title": "Bulk-reassign a departing RM's book of business", "narrative": {"asA": "sales operations lead", "iWant": "to reassign a departing relationship manager's accounts in bulk", "soThat": "customer coverage continues without manual one-by-one edits"}, "workstream": "ws-config", "status": "draft", "rules": [{"id": "rule-reassign-bulk", "title": "A whole book can be moved to another RM in a single action", "examples": [{"id": "ex-reassign-basic", "title": "Move an entire book", "context": "RM Tom Wolfe is leaving with 180 assigned accounts", "action": "Ops selects Tom's book and reassigns it to RM Ana Garcia", "outcome": "All 180 accounts show Ana as the owning RM"}, {"id": "ex-reassign-audit", "title": "Reassignment is auditable", "context": "A bulk reassignment of 180 accounts is performed", "action": "Compliance later reviews the change", "outcome": "An audit entry records who reassigned what, when, and from/to whom"}]}], "scenarios": [], "sources": ["art-steering-0708"], "history": []}]}}, {"folder": "synthetic-meridian", "title": null, "state": {"project": {"id": "synthetic-meridian", "name": "Privacy Program \u2014 Vantix & AI Automation (SYNTHETIC TWIN)", "client": "Meridian", "description": "SYNTHESIZED review copy: real project structure, all names/organizations/identifying details replaced with fictional ones. Privacy-team program: Vantix delivery with PM support, DataVault MCP integration, and AI automation of PIA/PR and advisory workflows (part of the the automation platform vision).", "vendors": ["Vantix", "DataVault"], "lastDigest": "2026-07-11"}, "stakeholders": [{"id": "st-sam", "name": "Sam", "org": "Meridian", "role": "Privacy AI & automation; stepping in as Vantix PM support", "sources": ["art-2026-07-03-1on1"]}, {"id": "st-laura", "name": "Laura", "org": "Meridian", "role": "Privacy advisor \u2014 advisory requests, PIAs; on program since phase 1", "sources": ["art-2026-07-03-1on1"]}, {"id": "st-nina", "name": "Nina", "org": "Meridian", "role": "Privacy analyst; stepping in for Kara; runs manual DataVault imports", "sources": ["art-2026-07-03-1on1"]}, {"id": "st-kara", "name": "Kara", "org": "Meridian", "role": "Previously drafting Vantix requirements; no longer available", "sources": ["art-2026-07-03-1on1"]}, {"id": "st-hana", "name": "Hana", "org": "Meridian", "role": "Business owner of the existing Vantix-vendor solution in Meridian", "sources": ["art-2026-07-03-1on1"]}, {"id": "st-nora", "name": "Nora", "org": "Meridian", "role": "Privacy team people leader", "sources": ["art-2026-07-03-1on1"]}, {"id": "st-perry", "name": "Perry", "org": "Vantix", "role": "Vendor lead \u2014 builds the solution; covering multiple roles alone", "sources": ["art-2026-07-03-1on1"]}, {"id": "st-wes", "name": "Wes", "org": "Meridian", "role": "Currently consumes DataVault APIs", "sources": ["art-2026-07-03-1on1"]}], "workstreams": [{"id": "ws-vantix", "name": "Vantix Delivery & PM Support", "color": "#5e5ce6"}, {"id": "ws-datavault", "name": "DataVault MCP Integration", "color": "#2e9e63"}, {"id": "ws-pia", "name": "PIA / PR Automation", "color": "#e07b39"}, {"id": "ws-advisory", "name": "Advisory Automation", "color": "#c2417f"}], "milestones": [{"id": "ms-Vantix-phase5", "title": "Vantix Phase 5 kickoff", "workstream": "ws-vantix", "due": null, "status": "planned", "confidence": null, "notes": "Next phase; scope shaped by regenerated requirements. AI project dashboard to run as internal POC alongside it.", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "ms-Vantix-dashboard", "title": "Internal transcript-fed Vantix dashboard live", "workstream": "ws-vantix", "due": null, "status": "on-track", "confidence": null, "notes": "Quiet internal POC \u2014 feed all Vantix meeting transcripts, generate independent picture of project state; flags idle workstreams.", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "ms-datavault-mcp-poc", "title": "DataVault MCP + Copilot POC in testers' hands", "workstream": "ws-datavault", "due": null, "status": "planned", "confidence": null, "notes": "Quick-and-dirty POC for Laura & Nina to interrogate DataVault data conversationally.", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "ms-advisory-structure", "title": "Advisory report structures defined", "workstream": "ws-advisory", "due": null, "status": "planned", "confidence": null, "notes": "Prerequisite for AI-drafted advisories: categorize ~5 real advisories with Laura, fix report templates.", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "ms-pia-pipeline", "title": "PIA/PR pipeline automated end-to-end", "workstream": "ws-pia", "due": null, "status": "planned", "confidence": null, "notes": "Folder-drop \u2192 prompt \u2192 DataVault import \u2192 notification; removes today's manual run-and-paste loop.", "sources": ["art-2026-07-03-1on1"], "history": []}], "actions": [{"id": "act-clear-reviews", "title": "Clear outstanding reviews to free capacity for MCP work", "owner": "st-sam", "due": null, "status": "open", "notes": "Vantix takes priority; MCP exploration starts once reviews are off the plate.", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "act-mcp-poc", "title": "Stand up DataVault-hosted MCP + Copilot and hand a quick POC to Laura & Nina", "owner": "st-sam", "due": null, "status": "open", "notes": "Validate vendor claims hands-on first; goal \u2014 talk to the data, bypass manual copy-paste into DataVault.", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "act-talk-wes", "title": "Review current DataVault API usage & authentication with Wes before agent integration", "owner": "st-sam", "due": null, "status": "open", "notes": null, "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "act-Vantix-pm-support", "title": "Provide PM support/oversight on Vantix", "owner": "st-sam", "due": null, "status": "in-progress", "notes": "Oversee workstreams, conversations and feedback loops; get delivery 'back on the tracks'.", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "act-feed-transcripts", "title": "Transcribe every Vantix meeting and feed into the internal AI dashboard", "owner": "st-sam", "due": null, "status": "in-progress", "notes": "Also regenerate requirements (BDD docs) behind the scenes from the same context.", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "act-tuesday-invite", "title": "Send replacement team-meeting invite for Tuesday (Monday dropped)", "owner": "st-laura", "due": "2026-07-07", "status": "open", "notes": "Sam off Monday (Jul 6).", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "act-advisory-shadow", "title": "Walk through ~5 real advisories together; categorize and templatize report structures", "owner": "st-sam", "due": null, "status": "open", "notes": "Joint with Laura (shadow or debrief format); defines the structure AI drafting will fill to 80-90%.", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "act-fleettech-advisory", "title": "FleetTech in-cab camera advisory \u2014 jurisdictional privacy requirements + exec summary", "owner": "st-laura", "due": null, "status": "done", "notes": "Pilot \u2192 production planning; jurisdictions: seven jurisdictions. Drafted with Copilot plus heavy manual assembly \u2014 cited as the case for advisory automation.", "sources": ["art-2026-07-03-1on1"], "history": []}], "decisions": [{"id": "dec-sam-pm-Vantix", "date": "2026-07-03", "summary": "Sam steps in to provide project-management support and oversight on Vantix.", "rationale": "Neither client nor vendor side has PM structure; Kara is gone; phase 5 needs someone tracking the whole picture.", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "dec-transcripts-dashboard", "date": "2026-07-03", "summary": "Record and transcribe all Vantix meetings and feed them into an internal AI-generated project dashboard (quiet POC for phase 5).", "rationale": "Independent, always-current view of project state without relying on either side's PM; would flag idle workstreams (e.g. the phase-4 workstream nobody noticed stalling).", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "dec-hosted-mcp", "date": "2026-07-03", "summary": "Pursue DataVault's vendor-hosted MCP server rather than self-hosting one.", "rationale": "Self-hosting infra was the blocker last attempt (email never answered); hosted MCP fronts the same APIs Wes already uses, no internal infrastructure work.", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "dec-model-tiering", "date": "2026-07-03", "summary": "Use the top-tier model (Fable, while accessible) for planning; implement with lower-tier models.", "rationale": "Top-tier access is time-limited and expensive; planning quality is where it pays.", "sources": ["art-2026-07-03-1on1"], "history": []}], "risks": [{"id": "risk-Vantix-no-pm", "title": "Vantix delivery lacks PM structure and tracking on both client and vendor side", "severity": "high", "likelihood": "high", "mitigation": "Sam providing PM oversight; internal transcript-fed dashboard as independent tracking.", "status": "mitigating", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "risk-Vantix-reqs-missing", "title": "Requirements never finalized and drafts unlocatable \u2014 scope ambiguity persists into phase 5", "severity": "high", "likelihood": "high", "mitigation": "Regenerate requirements/BDD docs from meeting transcripts behind the scenes; review with team.", "status": "mitigating", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "risk-vendor-capacity", "title": "Vendor lead covering many roles alone; limited vendor-side support and weak vendor-side PM", "severity": "medium", "likelihood": "high", "mitigation": null, "status": "open", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "risk-datavault-claims", "title": "DataVault capability claims historically overstated \u2014 hosted-MCP POC may not work as promised", "severity": "medium", "likelihood": "medium", "mitigation": "Hands-on validation by Sam before handing anything to the team.", "status": "open", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "risk-learnings-lost", "title": "Phase-to-phase learnings evaporate; each phase restarts as if the previous never happened", "severity": "medium", "likelihood": "high", "mitigation": "Living dashboard/state as a system of record rather than human memory.", "status": "mitigating", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "risk-model-access", "title": "Top-tier AI model access ends Jul 7; planning-grade AI becomes significantly more expensive", "severity": "low", "likelihood": "high", "mitigation": "Tiered usage \u2014 plan on top tier while available, implement on cheaper models.", "status": "open", "sources": ["art-2026-07-03-1on1"], "history": []}], "issues": [{"id": "iss-kara-gap", "title": "Kara unavailable; Nina inheriting Vantix context with no documentation to inherit", "severity": "high", "mitigation": "Requirements regeneration + dashboard give her a picture to step into.", "status": "open", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "iss-scope-underestimated", "title": "Vantix was scoped as a small add-on to the existing Meridian deployment; actual scope is materially larger", "severity": "high", "mitigation": null, "status": "open", "sources": ["art-2026-07-03-1on1"], "history": []}], "dependencies": [{"id": "dep-mcp-server", "title": "MCP POC depends on DataVault's hosted MCP server being available and working as claimed", "on": "DataVault", "neededBy": null, "status": "open", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "dep-security-approvals", "title": "Agent access to vendor APIs (Vantix has no MCP yet) needs an authentication approach and security approval \u2014 possibly other departments", "on": "Meridian security (owner TBD)", "neededBy": null, "status": "open", "sources": ["art-2026-07-03-1on1"], "history": []}], "requirements": [{"id": "req-uc-mcp-chat", "kind": "use-case", "title": "Privacy team interrogates DataVault data conversationally via an agent over the hosted MCP", "detail": "Testers (Laura, Nina) ask real questions against a straightforward pipeline; agent taggable in conversations (e.g. 'give me all the PIs\u2026').", "status": "proposed", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "req-datavault-no-copy-paste", "kind": "functional", "title": "Eliminate the manual copy-paste import into DataVault", "detail": "Nina's current manual flow replaced by MCP-based import.", "status": "proposed", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "req-uc-pia-pipeline", "kind": "use-case", "title": "Folder-drop PIA pipeline", "detail": "Documents from TrackPoint et al. land in a folder with a naming convention \u2192 job runs the PIA prompt \u2192 saves response \u2192 imports to DataVault \u2192 notifies the team (or the whole flow via agent chat).", "status": "proposed", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "req-uc-pia-agent", "kind": "use-case", "title": "Conversational PR/PIA intake agent as alternative to form-filling", "detail": "Agent interviews the contract owner, fills the PR, gets confirmation, submits to the target system. Pattern proven outside work; Copilot's capability gap to be solved.", "status": "proposed", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "req-uc-status-lookup", "kind": "use-case", "title": "Status lookup by tagging an agent with the TrackPoint number", "detail": "Anyone can ask 'status of this PIA/PR' with the unique identifier and get the current stage.", "status": "proposed", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "req-advisory-templates", "kind": "functional", "title": "Advisory reports follow defined structures; AI drafts to 80\u201390%, human reviews and edits", "detail": "Fixed report structures per advisory category (incl. exec-summary variant); AI instructed which sources to consult; output editable before sending (editable medium, e.g. HTML mini-app).", "status": "proposed", "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "req-nfr-context", "kind": "non-functional", "title": "Every automation is grounded in captured context (transcripts, documents) \u2014 context completeness gates output quality", "detail": "'Most of the problem AI has right now is not intelligence, it's context.' Transcribe meetings, attach advisory calls to their request context.", "status": "proposed", "sources": ["art-2026-07-03-1on1"], "history": []}], "openQuestions": [{"id": "q-security-owner", "question": "Who must approve security/authentication for agent access to vendor APIs and MCP endpoints?", "raisedBy": "Sam", "date": "2026-07-03", "status": "open", "answer": null, "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "q-kara-reqs", "question": "Do Kara's draft Vantix requirements exist anywhere retrievable?", "raisedBy": "Laura", "date": "2026-07-03", "status": "open", "answer": null, "sources": ["art-2026-07-03-1on1"], "history": []}, {"id": "q-monday-meeting", "question": "Is the Monday team meeting happening?", "raisedBy": "Laura", "date": "2026-07-03", "status": "answered", "answer": "No invite exists for Monday; Laura to send a new invite for Tuesday (Sam off Monday).", "sources": ["art-2026-07-03-1on1"], "history": []}], "conflicts": [], "artifacts": [{"id": "art-2026-07-03-1on1", "file": "2026-07-03-transcript-1on1-laura.md", "type": "transcript", "date": "2026-07-03", "digestedAt": "2026-07-11", "oneLiner": "1:1 Sam\u2013Laura: Vantix retro (no PM structure, requirements lost), Sam steps in as PM + transcript-fed dashboard POC; DataVault hosted-MCP plan; PIA/advisory automation vision; FleetTech advisory recap."}]}}]}</script>
+
+<script>
+"use strict";
+(function(){
+/* ==========================================================================
+   AI PM — PROGRAM ROLLUP (zero-code).
+   Aggregates several projects' state.json files into one executive rollup:
+   per-project health strip, combined milestone timeline (one lane per
+   project), cross-project dependencies, open conflicts, and overdue/due-soon
+   actions. Zero external requests. Loads via: ?projects=a,b -> program.json
+   -> (file:// or fetch failure) multi-file drop zone.
+   Helpers, timeline geometry, health formula and validation are ported from
+   pipeline/viewer.html so the numbers/colours match the single-project view.
+   ========================================================================== */
+
+var app = document.getElementById('app');
+
+/* When data is carried inline in the #embedded-program block there are no sibling
+   project folders to open, so dashboard links in the health strip are suppressed
+   (project names render unlinked) and no dashboard HEAD probes are issued. */
+var EMBEDDED = false;
+
+/* ------------------------------------------------------------- constants --- */
+var PLOT_W = 1000, GUTTER_W = 208, MONTHS_H = 26, PILL_H = 24, V_GAP = 8,
+    H_GAP = 12, LANE_PAD = 10, CHAR_W = 6.2, DOT = 15, LABEL_FLIP = 0.70;
+
+var MS_STATUS = {
+  "planned":  {label:"Planned",  cls:"planned",  glyph:"○"},
+  "on-track": {label:"On track", cls:"ontrack",  glyph:"●"},
+  "at-risk":  {label:"At risk",  cls:"atrisk",   glyph:"▲"},
+  "late":     {label:"Late",     cls:"late",     glyph:"!"},
+  "done":     {label:"Done",     cls:"done",     glyph:"✓"}
+};
+var MS_STATUS_ORDER = ["planned","on-track","at-risk","late","done"];
+var ACT_STATUS = {"open":"Open","in-progress":"In progress","done":"Done","dropped":"Dropped"};
+var DEP_STATUS = {"open":"Open","met":"Met","blocked":"Blocked"};
+var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+/* per-project accent palette (distinct in both themes; pill fills stay the
+   status palette — these only tint lane dots + unscheduled prefix chips). */
+var PROJECT_COLORS = ["#2a78d6","#7c5cff","#0ca30c","#d98a1f","#c0416b","#1f9e9e","#b0532c","#5a6acf"];
+var DUE_SOON_DAYS = 14;
+
+/* --------------------------------------------------------------- helpers --- */
+function esc(v){
+  if(v === null || v === undefined) return "";
+  return String(v).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#x27;"}[c];
+  });
+}
+function safeColor(c){ return (/^#[0-9a-fA-F]{3,8}$/).test(c) ? c : "#898781"; }
+function truncate(s, n){ s = s || ""; return s.length <= n ? s : s.slice(0, n - 1).replace(/\s+$/,"") + "…"; }
+function plural(n, word){ return n === 1 ? word : word + "s"; }
+
+/* per-section expanded state — persisted under the fixed program key. */
+var EXPANDED = {};
+var PID = "program";
+function collapsedAttr(key){ return EXPANDED[key] ? "false" : "true"; }
+function expandedAria(key){ return EXPANDED[key] ? "true" : "false"; }
+function loadSections(){
+  var out = {};
+  try { var raw = localStorage.getItem("aipm-sections-" + PID);
+    if(raw){ JSON.parse(raw).forEach(function(k){ out[k] = true; }); } } catch(e){}
+  return out;
+}
+function saveSections(){
+  try { var ex = [];
+    document.querySelectorAll(".card[data-sec]").forEach(function(c){
+      if(c.getAttribute("data-collapsed") === "false") ex.push(c.getAttribute("data-sec"));
+    });
+    localStorage.setItem("aipm-sections-" + PID, JSON.stringify(ex));
+  } catch(e){}
+}
+function parseDate(s){
+  if(!s) return null;
+  var t = String(s).slice(0, 10);
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
+  if(!m) return null;
+  var y = +m[1], mo = +m[2], d = +m[3];
+  var dt = new Date(Date.UTC(y, mo - 1, d));
+  if(dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return null;
+  return {y:y, mo:mo, d:d, dn: dt.getTime() / 86400000, t: dt};
+}
+function fmtDate(s){ var d = parseDate(s); if(!d) return "—"; return d.d + " " + MONTHS[d.mo - 1] + " " + d.y; }
+function fmtStamp(s){
+  if(!s) return "—";
+  var m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/.exec(String(s));
+  if(!m || !parseDate(m[1] + "-" + m[2] + "-" + m[3])) return fmtDate(s);
+  var base = (+m[3]) + " " + MONTHS[(+m[2]) - 1] + " " + m[1];
+  if(m[4] === undefined) return base;
+  return base + ", " + m[4] + ":" + m[5] + " UTC";
+}
+function monthFloor(t){ return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), 1)); }
+function addMonth(t){ var y = t.getUTCFullYear(), mo = t.getUTCMonth();
+  return new Date(Date.UTC(y + (mo >= 11 ? 1 : 0), (mo + 1) % 12, 1)); }
+function round2(x){ return Math.round(x * 100) / 100; }
+function days(a, b){ return (a.getTime() - b.getTime()) / 86400000; }
+function todayUTC(){ var n = new Date(); return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())); }
+function nowStr(){
+  var d = new Date();
+  function p(n){ return (n < 10 ? "0" : "") + n; }
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+}
+
+/* ----------------------------------------------------------- derivations --- */
+/* Health formula — identical to viewer.html/render.py. */
+function deriveHealth(state){
+  var ms = state.milestones || [];
+  var raid = (state.risks || []).concat(state.issues || []);
+  var conflicts = state.conflicts || [];
+  function unresolved(x){ return x.status !== "resolved" && x.status !== "closed"; }
+  var late = ms.some(function(m){ return m.status === "late"; });
+  var critical = raid.some(function(x){ return x.severity === "critical" && unresolved(x); });
+  if(late || critical) return ["critical", "Off track"];
+  var high = raid.some(function(x){ return x.severity === "high" && unresolved(x); });
+  var at_risk = ms.some(function(m){ return m.status === "at-risk"; });
+  var open_conf = conflicts.some(function(c){ return c.status === "open"; });
+  if(high || at_risk || open_conf) return ["warning", "Needs attention"];
+  return ["good", "On track"];
+}
+function isOverdue(a, today){
+  var d = parseDate(a.due);
+  return !!(d && d.dn < today.getTime() / 86400000 && (a.status === "open" || a.status === "in-progress"));
+}
+function projCounts(state, today){
+  return {
+    openActions: (state.actions || []).filter(function(a){ return a.status === "open" || a.status === "in-progress"; }).length,
+    openRisks:   (state.risks || []).filter(function(r){ return r.status === "open" || r.status === "mitigating"; }).length,
+    openConflicts:(state.conflicts || []).filter(function(c){ return c.status === "open"; }).length,
+    overdue:     (state.actions || []).filter(function(a){ return isOverdue(a, today); }).length
+  };
+}
+
+function msPillDot(status){
+  var meta = MS_STATUS[status] || MS_STATUS["planned"];
+  return '<span class="dot mk-' + meta.cls + '" aria-hidden="true">' + esc(meta.glyph) + '</span>';
+}
+
+/* ========================================================================== */
+/*  VALIDATION — ported from pipeline/validate.py (via viewer.html)           */
+/* ========================================================================== */
+var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+var ENUMS = {
+  "milestone.status": ["planned","on-track","at-risk","late","done"],
+  "action.status": ["open","in-progress","done","dropped"],
+  "risk.severity": ["low","medium","high","critical"],
+  "risk.likelihood": ["low","medium","high"],
+  "risk.status": ["open","mitigating","resolved","closed"],
+  "issue.severity": ["low","medium","high","critical"],
+  "issue.status": ["open","mitigating","resolved","closed"],
+  "dependency.status": ["open","met","blocked"],
+  "requirement.kind": ["functional","non-functional","use-case"],
+  "requirement.status": ["proposed","in-review","approved","implemented","deferred"],
+  "question.status": ["open","answered"],
+  "conflict.status": ["open","resolved","dismissed"],
+  "artifact.type": ["transcript","email","minutes","brd","bdd","design-doc","deck","recording","other"]
+};
+var TOP_KEYS = ["project","stakeholders","workstreams","milestones","actions","decisions",
+  "risks","issues","dependencies","requirements","openQuestions","conflicts","artifacts"];
+function pyRepr(v){
+  if(v === null || v === undefined) return "None";
+  if(typeof v === "string") return "'" + v + "'";
+  if(v === true) return "True";
+  if(v === false) return "False";
+  return String(v);
+}
+function isPlainObj(o){ return o !== null && typeof o === "object" && !Array.isArray(o); }
+function validate(state){
+  var errors = [];
+  function err(m){ errors.push(m); }
+  function require_(obj, field, where){
+    if(!isPlainObj(obj) || !(field in obj) || obj[field] === null || obj[field] === undefined || obj[field] === ""){
+      err(where + ": missing required field '" + field + "'"); return false;
+    }
+    return true;
+  }
+  function checkEnum(obj, field, key, where, allowNull){
+    if(!isPlainObj(obj) || !(field in obj)) return;
+    var val = obj[field];
+    if((val === null || val === undefined) && allowNull) return;
+    if(ENUMS[key].indexOf(val) === -1){
+      var allowed = ENUMS[key].slice().sort().join(", ");
+      err(where + ": '" + field + "'=" + pyRepr(val) + " not in [" + allowed + "]");
+    }
+  }
+  function checkDate(obj, field, where){
+    if(!isPlainObj(obj)) return;
+    var val = obj[field];
+    if(val === null || val === undefined) return;
+    if(typeof val !== "string" || !DATE_RE.test(val))
+      err(where + ": '" + field + "'=" + pyRepr(val) + " is not YYYY-MM-DD or null");
+  }
+  if(!isPlainObj(state)) return {errors: ["state.json root must be an object"], fatal: true};
+  TOP_KEYS.forEach(function(key){
+    if(!(key in state)) err("root: missing required key '" + key + "'");
+    else if(key !== "project" && !Array.isArray(state[key])) err("root: '" + key + "' must be an array");
+  });
+  if(isPlainObj(state.project) === false) err("root: 'project' must be an object");
+  var all_ids = {}, artifact_ids = {};
+  function registerIds(coll, label){
+    (state[coll] || []).forEach(function(item, i){
+      if(!isPlainObj(item)){ err(label + "[" + i + "]: must be an object"); return; }
+      var iid = item.id;
+      if(!iid){ err(label + "[" + i + "]: missing 'id'"); return; }
+      if(iid in all_ids) err("duplicate id '" + iid + "' (in " + all_ids[iid] + " and " + label + ")");
+      else all_ids[iid] = label;
+    });
+  }
+  TOP_KEYS.forEach(function(coll){ if(coll !== "project") registerIds(coll, coll); });
+  if(Array.isArray(state.parkingLot)) registerIds("parkingLot", "parkingLot");
+  (state.artifacts || []).forEach(function(a){ if(isPlainObj(a) && a.id) artifact_ids[a.id] = true; });
+  function checkSources(item, where){
+    var srcs = ("sources" in item) ? item.sources : [];
+    if(srcs === null || srcs === undefined) return;
+    if(!Array.isArray(srcs)){ err(where + ": 'sources' must be an array"); return; }
+    srcs.forEach(function(s){ if(!(s in artifact_ids)) err(where + ": source '" + s + "' does not resolve to an artifact id"); });
+  }
+  function W(coll, i, it){ return coll + "[" + i + "] (" + (isPlainObj(it) && it.id != null ? it.id : "?") + ")"; }
+  var proj = state.project;
+  if(isPlainObj(proj)){ ["id","name","client"].forEach(function(f){ require_(proj, f, "project"); }); }
+  (state.stakeholders || []).forEach(function(it, i){ var w = W("stakeholders", i, it); require_(it, "name", w); if(isPlainObj(it)) checkSources(it, w); });
+  (state.workstreams || []).forEach(function(it, i){ var w = W("workstreams", i, it); require_(it, "name", w); });
+  (state.milestones || []).forEach(function(it, i){
+    var w = W("milestones", i, it); require_(it, "title", w); require_(it, "status", w);
+    checkEnum(it, "status", "milestone.status", w); checkDate(it, "due", w);
+    if(isPlainObj(it)){ checkSources(it, w); var ws = it.workstream;
+      if(ws !== null && ws !== undefined && !(ws in all_ids)) err(w + ": workstream '" + ws + "' does not resolve to a workstream id"); }
+  });
+  (state.actions || []).forEach(function(it, i){
+    var w = W("actions", i, it); require_(it, "title", w); require_(it, "status", w);
+    checkEnum(it, "status", "action.status", w); checkDate(it, "due", w);
+    if(isPlainObj(it)){ checkSources(it, w); var owner = it.owner;
+      if(owner !== null && owner !== undefined && !(owner in all_ids)) err(w + ": owner '" + owner + "' does not resolve to a stakeholder id"); }
+  });
+  (state.decisions || []).forEach(function(it, i){ var w = W("decisions", i, it); require_(it, "summary", w); checkDate(it, "date", w); if(isPlainObj(it)) checkSources(it, w); });
+  (state.risks || []).forEach(function(it, i){ var w = W("risks", i, it); require_(it, "title", w);
+    checkEnum(it, "severity", "risk.severity", w); checkEnum(it, "likelihood", "risk.likelihood", w, true);
+    checkEnum(it, "status", "risk.status", w); if(isPlainObj(it)) checkSources(it, w); });
+  (state.issues || []).forEach(function(it, i){ var w = W("issues", i, it); require_(it, "title", w);
+    checkEnum(it, "severity", "issue.severity", w); checkEnum(it, "status", "issue.status", w); if(isPlainObj(it)) checkSources(it, w); });
+  (state.dependencies || []).forEach(function(it, i){ var w = W("dependencies", i, it); require_(it, "title", w);
+    checkEnum(it, "status", "dependency.status", w); checkDate(it, "neededBy", w); if(isPlainObj(it)) checkSources(it, w); });
+  (state.requirements || []).forEach(function(it, i){ var w = W("requirements", i, it); require_(it, "title", w);
+    checkEnum(it, "kind", "requirement.kind", w); checkEnum(it, "status", "requirement.status", w); if(isPlainObj(it)) checkSources(it, w); });
+  (state.openQuestions || []).forEach(function(it, i){ var w = W("openQuestions", i, it); require_(it, "question", w);
+    checkEnum(it, "status", "question.status", w); checkDate(it, "date", w); if(isPlainObj(it)) checkSources(it, w); });
+  (state.conflicts || []).forEach(function(it, i){ var w = W("conflicts", i, it); require_(it, "about", w);
+    checkEnum(it, "status", "conflict.status", w);
+    if(isPlainObj(it)){ ["sourceOld","sourceNew"].forEach(function(f){ var ref = it[f];
+      if(ref !== null && ref !== undefined && !(ref in artifact_ids)) err(w + ": " + f + " '" + ref + "' does not resolve to an artifact id"); }); }
+  });
+  (state.artifacts || []).forEach(function(it, i){ var w = W("artifacts", i, it); require_(it, "file", w);
+    checkEnum(it, "type", "artifact.type", w); checkDate(it, "date", w); });
+  if("parkingLot" in state && state.parkingLot !== null && state.parkingLot !== undefined && !Array.isArray(state.parkingLot))
+    err("root: 'parkingLot' must be an array");
+  (Array.isArray(state.parkingLot) ? state.parkingLot : []).forEach(function(it, i){ var w = W("parkingLot", i, it); require_(it, "note", w); checkDate(it, "date", w); if(isPlainObj(it)) checkSources(it, w); });
+  return {errors: errors, fatal: false};
+}
+
+/* ========================================================================== */
+/*  SECTIONS + THEME (ported from viewer.html)                                */
+/* ========================================================================== */
+function section(secKey, title, body, count, empty){
+  if(empty === undefined) empty = "Nothing recorded yet.";
+  var cnt = (count !== undefined && count !== null) ? '<span class="count">' + count + '</span>' : "";
+  var inner = (body && body.trim()) ? body : '<p class="empty">' + esc(empty) + '</p>';
+  return '<section class="card" data-sec="' + esc(secKey) + '" data-collapsed="' + collapsedAttr(secKey) + '">' +
+    '<button class="sec-head" aria-expanded="' + expandedAria(secKey) + '"><h2>' + esc(title) + '</h2>' + cnt +
+    '<span class="chev" aria-hidden="true"></span></button>' +
+    '<div class="sec-body">' + inner + '</div></section>';
+}
+var SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>';
+var MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>';
+function activeTheme(){
+  var t = document.documentElement.getAttribute("data-theme");
+  if(t === "light" || t === "dark") return t;
+  return (window.matchMedia && window.matchMedia("(prefers-color-scheme:dark)").matches) ? "dark" : "light";
+}
+function setTheme(t){ document.documentElement.setAttribute("data-theme", t);
+  try { localStorage.setItem("aipm-theme", t); } catch(e){} updateThemeIcon(); }
+function updateThemeIcon(){
+  var btn = document.getElementById("theme-toggle"); if(!btn) return;
+  var dark = activeTheme() === "dark";
+  btn.innerHTML = dark ? SUN : MOON;
+  btn.setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
+}
+
+/* ========================================================================== */
+/*  PROGRAM AGGREGATION MODEL                                                  */
+/* ========================================================================== */
+/* A "project" record: {folder, title, stateFile, state|null, error|null,
+   color, health, verdict, counts, validation:{errors}}. */
+function decorate(records, today){
+  records.forEach(function(pr, i){
+    pr.color = PROJECT_COLORS[i % PROJECT_COLORS.length];
+    if(pr.state){
+      var h = deriveHealth(pr.state);
+      pr.healthLevel = h[0]; pr.verdict = h[1];
+      pr.counts = projCounts(pr.state, today);
+      pr.validation = validate(pr.state);
+      pr.name = pr.title || (pr.state.project && pr.state.project.name) || pr.folder || pr.stateFile || "Untitled project";
+      pr.client = (pr.state.project && pr.state.project.client) || "";
+    } else {
+      pr.name = pr.title || pr.folder || pr.stateFile || "Unknown project";
+    }
+  });
+  return records;
+}
+
+/* ------------------------------------------------------ combined timeline --- */
+function buildProgramTimeline(records, today){
+  var dated = [];
+  records.forEach(function(pr){
+    if(!pr.state) return;
+    (pr.state.milestones || []).forEach(function(m){ var d = parseDate(m.due); if(d) dated.push(d.t); });
+  });
+  var lo, hi;
+  if(dated.length){ lo = dated[0]; hi = dated[0]; dated.forEach(function(t){ if(t < lo) lo = t; if(t > hi) hi = t; }); }
+  else { lo = today; hi = today; }
+  var start = monthFloor(lo < today ? lo : today);
+  var end = addMonth(hi > today ? hi : today);
+  var span = Math.max(days(end, start), 1);
+  function x_of(d){ return days(d, start) / span * PLOT_W; }
+  var months = [], mm = new Date(start.getTime());
+  while(mm <= end){
+    var firstOrJan = (mm.getTime() === start.getTime()) || (mm.getUTCMonth() === 0);
+    var label = firstOrJan ? (MONTHS[mm.getUTCMonth()] + " " + mm.getUTCFullYear()) : MONTHS[mm.getUTCMonth()];
+    months.push({x: round2(x_of(mm)), label: label});
+    mm = addMonth(mm);
+  }
+  var today_x = (start <= today && today <= end) ? round2(x_of(today)) : null;
+  var lanes = [], unsched = [], y = MONTHS_H;
+  records.forEach(function(pr){
+    if(!pr.state) return;                 // error projects are omitted from the plot
+    var items = [], uns = [];
+    (pr.state.milestones || []).forEach(function(m){ if(parseDate(m.due)) items.push(m); else uns.push(m); });
+    items.sort(function(a, b){ return a.due < b.due ? -1 : (a.due > b.due ? 1 : 0); });
+    var rows_right = [], placements = [];
+    items.forEach(function(m){
+      var x = x_of(parseDate(m.due).t);
+      var shown = truncate(m.title, 30);
+      var pill_w = DOT + 6 + shown.length * CHAR_W + 16;
+      var left_side = x > PLOT_W * LABEL_FLIP;
+      var span_lo = left_side ? (x - pill_w + DOT / 2) : (x - DOT / 2);
+      var span_hi = span_lo + pill_w;
+      var row = null;
+      for(var i = 0; i < rows_right.length; i++){
+        if(span_lo >= rows_right[i] + H_GAP){ row = i; rows_right[i] = span_hi; break; }
+      }
+      if(row === null){ row = rows_right.length; rows_right.push(span_hi); }
+      placements.push({m:m, shown:shown, left:round2(span_lo), width:round2(pill_w), row:row, left_side:left_side});
+    });
+    var n_rows = Math.max(1, rows_right.length);
+    var lane_h = LANE_PAD * 2 + n_rows * PILL_H + (n_rows - 1) * V_GAP;
+    lanes.push({pr:pr, top:y, height:lane_h, placements:placements, n_rows:n_rows});
+    y += lane_h;
+    if(uns.length) unsched.push({pr:pr, items:uns});
+  });
+  return {months:months, today_x:today_x, lanes:lanes, plot_h:y, unsched:unsched};
+}
+
+function renderTimeline(tl){
+  var legend = MS_STATUS_ORDER.map(function(s){
+    return '<span class="lg"><span class="dot mk-' + MS_STATUS[s].cls + '">' +
+           esc(MS_STATUS[s].glyph) + '</span>' + esc(MS_STATUS[s].label) + '</span>';
+  }).join("");
+
+  var gutter = ['<div class="lane-spacer" style="height:' + MONTHS_H + 'px"></div>'];
+  tl.lanes.forEach(function(lane){
+    gutter.push(
+      '<div class="lane-label" style="height:' + lane.height + 'px">' +
+      '<span class="chip-dot" style="background:' + esc(safeColor(lane.pr.color)) + '"></span>' +
+      '<span class="lane-name">' + esc(lane.pr.name) + '</span></div>');
+  });
+
+  var plot = [];
+  tl.months.forEach(function(mo){
+    plot.push(
+      '<div class="grid-line" style="left:' + mo.x + 'px;top:' + MONTHS_H + 'px;height:' + (tl.plot_h - MONTHS_H) + 'px"></div>' +
+      '<div class="grid-label" style="left:' + (mo.x + 5) + 'px">' + esc(mo.label) + '</div>');
+  });
+  tl.lanes.forEach(function(lane, idx){
+    var band = (idx % 2) ? "band-alt" : "band";
+    plot.push('<div class="lane-band ' + band + '" style="top:' + lane.top + 'px;height:' + lane.height + 'px;width:' + PLOT_W + 'px"></div>');
+  });
+  if(tl.today_x !== null){
+    plot.push(
+      '<div class="today-line" style="left:' + tl.today_x + 'px;top:' + (MONTHS_H - 4) + 'px;height:' + (tl.plot_h - MONTHS_H + 4) + 'px"></div>' +
+      '<div class="today-tag" style="left:' + (tl.today_x + 5) + 'px">Today</div>');
+  }
+  tl.lanes.forEach(function(lane){
+    lane.placements.forEach(function(p){
+      var m = p.m, meta = MS_STATUS[m.status] || MS_STATUS["planned"];
+      var top = lane.top + LANE_PAD + p.row * (PILL_H + V_GAP);
+      var side = p.left_side ? "flip" : "";
+      var title_full = lane.pr.name + " · " + m.title + " · " + fmtDate(m.due) + " · " + meta.label;
+      plot.push(
+        '<button class="pill ' + side + '" data-status="' + esc(m.status) + '" ' +
+        'style="left:' + p.left + 'px;top:' + top + 'px;min-width:' + p.width + 'px" ' +
+        'title="' + esc(title_full) + '">' +
+        msPillDot(m.status) + '<span class="pill-t">' + esc(p.shown) + '</span></button>');
+    });
+  });
+
+  var unsched = "";
+  if(tl.unsched.length){
+    var groups = tl.unsched.map(function(g){
+      var chips = g.items.map(function(m){
+        var meta = MS_STATUS[m.status] || MS_STATUS["planned"];
+        return '<button class="pill" data-status="' + esc(m.status) + '" ' +
+               'title="' + esc(g.pr.name + " · " + m.title + " · " + meta.label) + '">' +
+               msPillDot(m.status) + '<span class="pill-t">' + esc(truncate(m.title, 30)) + '</span></button>';
+      }).join("");
+      return '<div class="uns-group"><span class="uns-prefix" style="background:' + esc(safeColor(g.pr.color)) + '">' +
+             esc(g.pr.name) + '</span>' + chips + '</div>';
+    }).join("");
+    unsched = '<div class="unsched"><span class="unsched-lbl">Unscheduled</span>' +
+              '<div class="uns-groups">' + groups + '</div></div>';
+  }
+
+  var totalPlaced = tl.lanes.reduce(function(n, l){ return n + l.placements.length; }, 0);
+  var placeholder = "";
+  if(totalPlaced === 0){
+    var msg = tl.unsched.length ? ("No dated milestones yet — all milestones are unscheduled, listed below") : "No milestones recorded across these projects yet.";
+    placeholder = '<div class="roadmap-none">' + esc(msg) + '</div>';
+  }
+  if(!tl.lanes.length && !tl.unsched.length){
+    return section("timeline", "Combined timeline", '<p class="empty">No projects with milestones to plot.</p>', null);
+  }
+
+  var body =
+    '<div class="legend">' + legend + '</div>' +
+    '<div class="roadmap-wrap"><div class="roadmap">' +
+    '<div class="lanes-gutter" style="width:' + GUTTER_W + 'px">' + gutter.join("") + '</div>' +
+    '<div class="plot-wrap"><div class="plot" style="width:' + PLOT_W + 'px;height:' + tl.plot_h + 'px">' +
+    plot.join("") + '</div></div></div>' + unsched + placeholder + '</div>';
+  return '<section class="card" data-sec="timeline" data-collapsed="' + collapsedAttr("timeline") + '">' +
+    '<button class="sec-head" aria-expanded="' + expandedAria("timeline") + '"><h2>Combined timeline</h2>' +
+    '<span class="chev" aria-hidden="true"></span></button>' +
+    '<div class="sec-body">' + body + '</section>';
+}
+
+/* ------------------------------------------------------------- health strip --- */
+function renderHealthStrip(records){
+  var rows = records.map(function(pr, i){
+    if(!pr.state){
+      return '<tr class="pstrip-row pstrip-err"><td colspan="7">' +
+        '<div class="pj"><span class="pj-dot"></span><div class="pj-meta">' +
+        '<div class="pj-name">' + esc(pr.name) + '</div>' +
+        '<div class="pj-sub">Could not load ' + esc(pr.stateFile || pr.folder || "state.json") + ' — ' + esc(pr.error || "unknown error") + '</div>' +
+        '</div></div></td></tr>';
+    }
+    var c = pr.counts;
+    var nameCell;
+    if(pr.folder && !EMBEDDED){
+      var folderSafe = pr.folder.replace(/\/+$/,'').replace(/^\/+/, '');
+      var href = "./" + folderSafe + "/dashboard.aspx";
+      nameCell = '<a class="pj-name" data-folder="' + esc(folderSafe) + '" href="' + esc(href) + '">' + esc(pr.name) + '</a>';
+    } else {
+      // Embedded (or drop-zone) records have no sibling dashboard to open — name stays unlinked.
+      nameCell = '<span class="pj-name">' + esc(pr.name) + '</span>';
+    }
+    var vbadge = "";
+    var nerr = pr.validation.errors.length;
+    if(nerr){ vbadge = '<span class="vbadge" data-detail="pstrip-detail-' + i + '" role="button" tabindex="0" ' +
+      'title="Show validation issues">' + nerr + ' ' + plural(nerr, "issue") + '</span>'; }
+    function numCell(n){ return '<td class="num"><span class="big ' + (n ? "" : "zero") + '">' + n + '</span></td>'; }
+    function warnCell(n){ return '<td class="num"><span class="big ' + (n ? "warnv" : "zero") + '">' + n + '</span></td>'; }
+    var row = '<tr class="pstrip-row">' +
+      '<td><div class="pj"><span class="pj-dot" style="background:' + esc(safeColor(pr.color)) + '"></span>' +
+      '<div class="pj-meta">' + nameCell + vbadge +
+      '<div class="pj-sub">' + esc(pr.client) + '</div></div></div></td>' +
+      '<td><span class="hchip verdict-' + pr.healthLevel + '"><span class="verdict-dot"></span>' + esc(pr.verdict) + '</span></td>' +
+      numCell(c.openActions) + numCell(c.openRisks) + warnCell(c.openConflicts) + warnCell(c.overdue) +
+      '<td class="pstrip-stamp">' + fmtStamp(pr.state.project && pr.state.project.lastDigest) + '</td></tr>';
+    if(nerr){
+      row += '<tr class="pstrip-detail" id="pstrip-detail-' + i + '" hidden><td colspan="7">' +
+        '<div class="vbanner"><div class="vbanner-h"><span class="vbanner-dot"></span>' +
+        nerr + ' validation ' + (nerr === 1 ? "issue" : "issues") + ' in ' + esc(pr.name) + '</div>' +
+        '<div class="vbanner-sub">Health and counts above still reflect everything renderable. Fix against <code>schema.json</code>.</div>' +
+        '<ul>' + pr.validation.errors.map(function(e){ return '<li>' + esc(e) + '</li>'; }).join("") + '</ul></div></td></tr>';
+    }
+    return row;
+  }).join("");
+
+  return '<section class="card pstrip-card">' +
+    '<div class="pstrip-head"><h2>Program health</h2><span class="sub">One row per project' +
+    (EMBEDDED ? " · embedded snapshot" : " · click a name to open its dashboard") + '</span></div>' +
+    '<div class="pstrip-wrap"><table class="pstrip"><thead><tr>' +
+    '<th>Project</th><th>Health</th><th class="num">Open actions</th><th class="num">Open risks</th>' +
+    '<th class="num">Open conflicts</th><th class="num">Overdue</th><th>Last digest</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table></div></section>';
+}
+
+/* --------------------------------------------------- cross-project deps --- */
+function renderDependencies(records, today){
+  var todn = today.getTime() / 86400000;
+  var all = [];
+  records.forEach(function(pr){
+    if(!pr.state) return;
+    (pr.state.dependencies || []).forEach(function(d){ all.push({pr:pr, d:d}); });
+  });
+  var sortRank = {"blocked":0, "open":1, "met":2};
+  all.sort(function(a, b){
+    var ra = sortRank[a.d.status] === undefined ? 9 : sortRank[a.d.status];
+    var rb = sortRank[b.d.status] === undefined ? 9 : sortRank[b.d.status];
+    if(ra !== rb) return ra - rb;
+    var da = parseDate(a.d.neededBy), db = parseDate(b.d.neededBy);
+    return (da ? da.dn : Infinity) - (db ? db.dn : Infinity);
+  });
+  if(!all.length) return section("dependencies", "Cross-project dependencies", "", 0, "No cross-project dependencies recorded.");
+  var rows = all.map(function(x){
+    var d = x.d, pr = x.pr;
+    var nd = parseDate(d.neededBy);
+    var overdue = !!(nd && nd.dn < todn && d.status !== "met");
+    var dueCell = overdue
+      ? '<td class="num">' + fmtDate(d.neededBy) + ' <span class="badge overdue">Overdue</span></td>'
+      : '<td class="num">' + fmtDate(d.neededBy) + '</td>';
+    var cls = "pstrip-plain" + (d.status === "blocked" ? " dep-blocked" : "");
+    return '<tr class="' + cls + '">' +
+      '<td class="pcol"><span class="pj-dot" style="background:' + esc(safeColor(pr.color)) + '"></span>' + esc(pr.name) + '</td>' +
+      '<td>' + esc(d.title) + '</td>' +
+      '<td>' + esc(d.on || "—") + '</td>' + dueCell +
+      '<td><span class="tag tag-dep-' + esc(d.status) + '">' + esc(DEP_STATUS[d.status] || d.status) + '</span></td></tr>';
+  }).join("");
+  var body = '<table class="grid"><thead><tr><th>Project</th><th>Dependency</th><th>On</th>' +
+    '<th class="num">Needed by</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  return section("dependencies", "Cross-project dependencies", body, all.length);
+}
+
+/* ------------------------------------------------------- open conflicts --- */
+function renderConflicts(records){
+  var all = [];
+  records.forEach(function(pr){
+    if(!pr.state) return;
+    var art = {};
+    (pr.state.artifacts || []).forEach(function(a){ art[a.id] = a; });
+    (pr.state.conflicts || []).filter(function(c){ return c.status === "open"; }).forEach(function(c){ all.push({pr:pr, c:c, art:art}); });
+  });
+  if(!all.length) return section("conflicts", "Open conflicts", "", 0, "No open conflicts across the program.");
+  function srcLine(art, cid){ var a = art[cid]; if(!a) return ""; return esc(a.type) + " · " + fmtDate(a.date); }
+  var items = all.map(function(x){
+    var c = x.c, pr = x.pr;
+    return '<li class="cf-item">' +
+      '<div class="cf-proj"><span class="pj-dot" style="background:' + esc(safeColor(pr.color)) + '"></span>' + esc(pr.name) + '</div>' +
+      '<div class="cf-about">' + esc(c.about) + '</div>' +
+      '<div class="cf-cols">' +
+      '<div class="cf-was"><span class="cf-lbl">Was</span>' + esc(c.was) + '<span class="cf-src">' + srcLine(x.art, c.sourceOld) + '</span></div>' +
+      '<div class="cf-arrow" aria-hidden="true">→</div>' +
+      '<div class="cf-now"><span class="cf-lbl">Now</span>' + esc(c.now) + '<span class="cf-src">' + srcLine(x.art, c.sourceNew) + '</span></div>' +
+      '</div></li>';
+  }).join("");
+  var n = all.length;
+  var banner = '<div class="cf-banner">' + n + ' open conflict' + (n !== 1 ? "s" : "") + ' across the program need' + (n === 1 ? "s" : "") + ' review</div>';
+  return '<section class="card cf-card" data-sec="conflicts" data-collapsed="' + collapsedAttr("conflicts") + '">' +
+    '<button class="sec-head" aria-expanded="' + expandedAria("conflicts") + '"><h2>Open conflicts</h2>' +
+    '<span class="count">' + n + '</span><span class="chev" aria-hidden="true"></span></button>' +
+    '<div class="sec-body">' + banner + '<ul class="cf-list">' + items + '</ul></div></section>';
+}
+
+/* ------------------------------------------ overdue & due-soon actions --- */
+function renderActions(records, today){
+  var todn = today.getTime() / 86400000;
+  var all = [];
+  records.forEach(function(pr){
+    if(!pr.state) return;
+    var stk = {};
+    (pr.state.stakeholders || []).forEach(function(s){ stk[s.id] = s.name; });
+    (pr.state.actions || []).forEach(function(a){
+      if(a.status !== "open" && a.status !== "in-progress") return;
+      var d = parseDate(a.due);
+      if(!d) return;                                   // no due date -> not overdue/due-soon
+      if(d.dn > todn + DUE_SOON_DAYS) return;          // beyond the 14-day window
+      all.push({pr:pr, a:a, owner:(a.owner ? (stk[a.owner] !== undefined ? stk[a.owner] : "Unassigned") : "Unassigned"), dn:d.dn});
+    });
+  });
+  all.sort(function(a, b){ return a.dn - b.dn; });
+  if(!all.length) return section("actions", "Overdue & due-soon actions", "", 0, "Nothing overdue or due within 14 days.");
+  var rows = all.map(function(x){
+    var a = x.a, pr = x.pr;
+    var overdue = x.dn < todn;
+    var tag = overdue ? ' <span class="badge overdue">Overdue</span>' : "";
+    var cls = overdue ? "row-overdue" : "";
+    return '<tr class="' + cls + '">' +
+      '<td class="pcol"><span class="pj-dot" style="background:' + esc(safeColor(pr.color)) + '"></span>' + esc(pr.name) + '</td>' +
+      '<td>' + esc(a.title) + tag + '</td>' +
+      '<td>' + esc(x.owner) + '</td>' +
+      '<td class="num">' + fmtDate(a.due) + '</td>' +
+      '<td><span class="tag tag-act-' + esc(a.status) + '">' + esc(ACT_STATUS[a.status] || a.status) + '</span></td></tr>';
+  }).join("");
+  var body = '<table class="grid"><thead><tr><th>Project</th><th>Action</th><th>Owner</th>' +
+    '<th class="num">Due</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  return section("actions", "Overdue & due-soon actions", body, all.length);
+}
+
+/* --------------------------------------------------------------- header --- */
+var WORST = {"good":0, "warning":1, "critical":2};
+var WORST_VERDICT = {0:["good","On track"], 1:["warning","Needs attention"], 2:["critical","Off track"]};
+function renderHeader(records, programName){
+  var loaded = records.filter(function(pr){ return pr.state; });
+  var errored = records.length - loaded.length;
+  var sum = {actions:0, risks:0, conflicts:0, overdue:0};
+  var worst = -1;
+  loaded.forEach(function(pr){
+    sum.actions += pr.counts.openActions; sum.risks += pr.counts.openRisks;
+    sum.conflicts += pr.counts.openConflicts; sum.overdue += pr.counts.overdue;
+    var w = WORST[pr.healthLevel]; if(w > worst) worst = w;
+  });
+  var level, verdict;
+  if(worst < 0){ level = "warning"; verdict = "No data"; }
+  else { var v = WORST_VERDICT[worst]; level = v[0]; verdict = v[1]; }
+
+  var stats = [];
+  function stat(n, label, warn){ stats.push('<div class="stat' + (warn && n ? " stat-warn" : "") + '"><span class="stat-n">' + n + '</span><span class="stat-l">' + esc(label) + '</span></div>'); }
+  stat(records.length, plural(records.length, "Project"));
+  stat(sum.actions, plural(sum.actions, "Open action"));
+  stat(sum.risks, plural(sum.risks, "Open risk"));
+  stat(sum.conflicts, plural(sum.conflicts, "Open conflict"), true);
+  stat(sum.overdue, plural(sum.overdue, "Overdue action"), true);
+  if(errored) stat(errored, plural(errored, "Project") + " unreadable", true);
+
+  return '<header class="head">' +
+    '<div class="head-main"><div class="head-id">' +
+    '<h1>' + esc(programName) + '</h1>' +
+    '<div class="head-sub">Program rollup · ' + loaded.length + ' of ' + records.length + ' ' + plural(records.length, "project") + ' loaded</div></div>' +
+    '<div class="verdict verdict-' + level + '"><span class="verdict-dot"></span>' +
+    '<div class="verdict-txt"><span class="verdict-lbl">Worst-of health</span>' +
+    '<span class="verdict-val">' + esc(verdict) + '</span></div></div></div>' +
+    '<div class="stats">' + stats.join("") + '</div></header>';
+}
+
+/* ========================================================================== */
+/*  ASSEMBLE + WIRE                                                            */
+/* ========================================================================== */
+var PROGRAM_NAME = "Program rollup";
+function renderProgram(records, meta){
+  var today = todayUTC();
+  EXPANDED = loadSections();
+  decorate(records, today);
+
+  var parts = [];
+  parts.push(renderHeader(records, PROGRAM_NAME));
+  parts.push('<div class="filters tools-bar" role="group" aria-label="View controls"><div class="filter-tools">' +
+    '<button class="tool-btn" id="expand-all" type="button">Expand all</button>' +
+    '<button class="tool-btn" id="collapse-all" type="button">Collapse all</button>' +
+    '<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle light or dark theme"></button>' +
+    '</div></div>');
+  parts.push(renderHealthStrip(records));
+  parts.push(renderTimeline(buildProgramTimeline(records, today)));
+  parts.push(renderDependencies(records, today));
+  parts.push(renderConflicts(records));
+  parts.push(renderActions(records, today));
+
+  var files = records.map(function(pr){ return esc(pr.stateFile || (pr.folder ? pr.folder + "/state.json" : pr.name)); }).join(" · ");
+  parts.push(
+    '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) + ' · AI PM program rollup · states validated against schema.json' +
+    '<div class="foot-priv">Rendered in your browser — data never leaves this page · loaded ' + esc(meta.loadedAt) + '</div>' +
+    '<div class="foot-files">State files: ' + files + '</div>' +
+    '<div><button class="reload-link" id="reload-btn" type="button">Load different projects</button></div></div>');
+
+  document.title = PROGRAM_NAME + " — Program rollup";
+  app.innerHTML = '<div class="wrap">' + parts.join("\n") + '</div>';
+  wireInteractivity();
+  probeDashboards();
+  window.scrollTo(0, 0);
+}
+
+function wireInteractivity(){
+  document.querySelectorAll(".sec-head").forEach(function(h){
+    h.addEventListener("click", function(){
+      var card = h.closest(".card");
+      var col = card.getAttribute("data-collapsed") === "true";
+      card.setAttribute("data-collapsed", col ? "false" : "true");
+      h.setAttribute("aria-expanded", col ? "true" : "false");
+      saveSections();
+    });
+  });
+  function setAll(collapsed){
+    document.querySelectorAll(".card[data-sec]").forEach(function(c){
+      c.setAttribute("data-collapsed", collapsed ? "true" : "false");
+      var h = c.querySelector(".sec-head");
+      if(h) h.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    });
+    saveSections();
+  }
+  var ea = document.getElementById("expand-all"), ca = document.getElementById("collapse-all");
+  if(ea) ea.addEventListener("click", function(){ setAll(false); });
+  if(ca) ca.addEventListener("click", function(){ setAll(true); });
+
+  var tt = document.getElementById("theme-toggle");
+  if(tt){ updateThemeIcon(); tt.addEventListener("click", function(){ setTheme(activeTheme() === "dark" ? "light" : "dark"); }); }
+
+  // validation detail toggles (amber badge in the health strip)
+  function toggleDetail(badge){
+    var id = badge.getAttribute("data-detail");
+    var row = document.getElementById(id);
+    if(row) row.hidden = !row.hidden;
+  }
+  document.querySelectorAll(".vbadge").forEach(function(b){
+    b.addEventListener("click", function(e){ e.preventDefault(); e.stopPropagation(); toggleDetail(b); });
+    b.addEventListener("keydown", function(e){ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); toggleDetail(b); } });
+  });
+
+  var rb = document.getElementById("reload-btn");
+  if(rb) rb.addEventListener("click", function(){ showDropZone(null); });
+}
+
+/* Dashboard link: default to <folder>/dashboard.aspx; if that 404s, fall back
+   to <folder>/dashboard.html. Same-origin HEAD probe only (no external calls). */
+function probeDashboards(){
+  document.querySelectorAll("a.pj-name[data-folder]").forEach(function(a){
+    var folder = (a.getAttribute("data-folder") || "").replace(/^\/+/, '');
+    if(!folder) return;
+    fetch("./" + folder + "/dashboard.aspx", {method:"HEAD"}).then(function(r){
+      if(!r.ok) a.href = "./" + folder + "/dashboard.html";
+    }).catch(function(){ a.href = "./" + folder + "/dashboard.html"; });
+  });
+}
+
+/* ========================================================================== */
+/*  LOADING                                                                    */
+/* ========================================================================== */
+/* Embedded mode: state objects are carried inline (no fetches). Each entry is
+   {folder, title, state}. Records are built directly and validated/rendered by the
+   SAME pipeline as fetched/dropped states. */
+function loadEmbedded(cfg){
+  EMBEDDED = true;
+  PROGRAM_NAME = (cfg && cfg.name) || "Program rollup";
+  var entries = (cfg && cfg.projects) || [];
+  if(!entries.length){ showDropZone("The embedded program block lists no projects. Drop your state.json files below."); return; }
+  var records = entries.map(function(e){
+    e = e || {};
+    var folder = e.folder ? String(e.folder).replace(/\/+$/,"") : null;
+    var stateFile = folder ? folder + "/state.json" : null;
+    if(e.state === null || e.state === undefined){
+      return {folder:folder, title:e.title || null, error:"No embedded state provided for this project", stateFile:stateFile};
+    }
+    return {folder:folder, title:e.title || null, state:e.state, stateFile:stateFile};
+  });
+  renderProgram(records, {loadedAt: nowStr()});
+}
+
+function loadProgram(cfg){
+  PROGRAM_NAME = (cfg && cfg.name) || "Program rollup";
+  var entries = (cfg && cfg.projects) || [];
+  if(!entries.length){ showDropZone("program.json lists no projects. Drop your state.json files below."); return; }
+  Promise.all(entries.map(function(e){
+    var folder = String(e.folder || "").replace(/\/$/,"");
+    var url = folder + "/state.json";
+    return fetch(url).then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+      .then(function(text){
+        var state; try { state = JSON.parse(text); }
+        catch(pe){ return {folder:folder, title:e.title || null, error:"Invalid JSON: " + (pe && pe.message ? pe.message : pe), stateFile:url}; }
+        return {folder:folder, title:e.title || null, state:state, stateFile:url};
+      })
+      .catch(function(err){ return {folder:folder, title:e.title || null, error:(err && err.message ? err.message : String(err)), stateFile:url}; });
+  })).then(function(records){ renderProgram(records, {loadedAt: nowStr()}); });
+}
+
+function readFiles(fileList){
+  var arr = Array.prototype.slice.call(fileList);
+  if(!arr.length) return;
+  Promise.all(arr.map(readOneFile)).then(function(records){
+    var loaded = records.filter(function(r){ return r.state; }).length;
+    PROGRAM_NAME = "Program rollup (" + loaded + " " + plural(loaded, "project") + ")";
+    renderProgram(records, {loadedAt: nowStr()});
+  });
+}
+function readOneFile(file){
+  return new Promise(function(resolve){
+    var reader = new FileReader();
+    reader.onload = function(){
+      var state; try { state = JSON.parse(String(reader.result)); }
+      catch(e){ resolve({folder:null, title:null, error:"Invalid JSON: " + (e && e.message ? e.message : e), stateFile:file.name}); return; }
+      resolve({folder:null, title:null, state:state, stateFile:file.name});
+    };
+    reader.onerror = function(){ resolve({folder:null, title:null, error:"Could not read file", stateFile:file.name}); };
+    reader.readAsText(file);
+  });
+}
+
+function showDropZone(errMsg){
+  document.title = "AI PM — Program rollup";
+  var icon = '<div class="dz-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M12 16V4M12 4l-4 4M12 4l4 4"></path>' +
+    '<path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"></path></svg></div>';
+  app.innerHTML =
+    '<div class="centre"><div class="dropzone" id="dropzone">' + icon +
+    '<div class="dz-title">Drop your projects’ state.json files here</div>' +
+    '<div class="dz-sub">Select or drag <strong>several</strong> state.json files at once — one per project. ' +
+    'Everything renders locally in your browser; your data is never uploaded or sent anywhere.</div>' +
+    '<div class="dz-actions"><button class="dz-btn" id="dz-pick" type="button">Choose files…</button>' +
+    '<input type="file" id="dz-file" class="dz-input" accept=".json,application/json" multiple></div>' +
+    (errMsg ? '<div class="dz-err">' + esc(errMsg) + '</div>' : '') +
+    '<div class="dz-note">Tip: on a network share, add <code>?projects=folder-a,folder-b</code> to the URL, ' +
+    'or place a <code>program.json</code> next to this page.</div>' +
+    '</div></div>';
+
+  var zone = document.getElementById("dropzone");
+  var input = document.getElementById("dz-file");
+  var pick = document.getElementById("dz-pick");
+  pick.addEventListener("click", function(){ input.click(); });
+  input.addEventListener("change", function(){ if(input.files && input.files.length) readFiles(input.files); });
+  ["dragenter","dragover"].forEach(function(ev){
+    zone.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); zone.classList.add("drag"); });
+  });
+  ["dragleave","dragend"].forEach(function(ev){
+    zone.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); zone.classList.remove("drag"); });
+  });
+  zone.addEventListener("drop", function(e){
+    e.preventDefault(); e.stopPropagation(); zone.classList.remove("drag");
+    var fs = e.dataTransfer && e.dataTransfer.files;
+    if(fs && fs.length) readFiles(fs);
+  });
+  document.addEventListener("dragover", preventNav);
+  document.addEventListener("drop", preventNav);
+}
+function preventNav(e){ e.preventDefault(); }
+
+/* ---- boot: embedded block -> ?projects= -> program.json -> multi-file drop zone ---- */
+function boot(){
+  // 1) Embedded data (self-contained snapshot). Takes precedence when non-empty.
+  var emb = document.getElementById("embedded-program");
+  if(emb){
+    var raw = (emb.textContent || "");
+    if(raw.trim()){
+      var ecfg;
+      try { ecfg = JSON.parse(raw); }
+      catch(e){ showDropZone("The embedded program data is not valid JSON (" + (e && e.message ? e.message : e) + "). Drop your state.json files below."); return; }
+      loadEmbedded(ecfg);
+      return;
+    }
+  }
+
+  var qs = new URLSearchParams(window.location.search);
+  var pj = qs.get("projects");
+  if(pj){
+    var folders = pj.split(",").map(function(s){ return s.trim(); }).filter(Boolean)
+      .filter(function(f){ return !/^([a-z]+:)?\/\//i.test(f); });
+    if(folders.length){
+      loadProgram({name: qs.get("name") || "Program rollup", projects: folders.map(function(f){ return {folder:f, title:null}; })});
+      return;
+    }
+  }
+  fetch("program.json").then(function(r){ if(!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+    .then(function(text){
+      var cfg; try { cfg = JSON.parse(text); }
+      catch(e){ showDropZone("program.json is not valid JSON (" + (e && e.message ? e.message : e) + "). Drop your state.json files below."); return; }
+      loadProgram(cfg);
+    })
+    .catch(function(){ showDropZone(null); });
+}
+boot();
+})();
+</script>
+</body>
+</html>
