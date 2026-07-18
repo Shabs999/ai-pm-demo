@@ -309,6 +309,40 @@ tr:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
 @media (max-width:720px){ .raid-grid,.stk-grid{ grid-template-columns:1fr; } .head-main{ flex-direction:column; }
   .stat-stamp{ margin-left:0; text-align:left; } }
 
+/* ---------- phones (≤640px) — SharePoint-in-Teams mobile layout ---------- */
+@media (max-width:640px){
+  .wrap{ padding:var(--sp3) var(--sp3) 48px; }
+  .head{ padding:var(--sp4); }
+  .head-id h1{ font-size:22px; letter-spacing:-.018em; }
+  .verdict{ align-self:stretch; }
+  .stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:var(--sp3) var(--sp3); margin-top:var(--sp4); }
+  .stat{ border-left:0; padding-left:0; }
+  .stat-n{ font-size:20px; }
+  .tools-bar{ flex-wrap:wrap; }
+  .filter-tools{ flex-wrap:wrap; }
+  /* health strip: pin the Project column while the metrics scroll under it */
+  .pstrip-head{ flex-wrap:wrap; }
+  .pstrip-head .sub{ margin-left:0; width:100%; }
+  .pstrip th:first-child,.pstrip td:first-child{ position:sticky; left:0; z-index:2;
+    background:var(--surface); width:150px; min-width:150px; max-width:150px;
+    border-right:1px solid var(--grid); }
+  .pstrip td[colspan]{ position:static; width:auto; min-width:0; max-width:none; border-right:0; }
+  /* timeline: one scroll region — lane labels travel with the plot */
+  .roadmap{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .plot-wrap{ overflow-x:visible; }
+  .lanes-gutter{ width:132px !important; }
+  /* conflicts: was/now stack vertically */
+  .cf-cols{ grid-template-columns:1fr; }
+  .cf-arrow{ transform:rotate(90deg); width:fit-content; margin-left:2px; }
+  .grid th,.grid td{ padding:8px 9px; font-size:12.5px; }
+  /* wide data tables become their own scroll region instead of clipping */
+  .grid{ display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .grid th,.grid td{ white-space:normal; min-width:110px; }
+  .grid td:first-child,.grid th:first-child{ min-width:150px; }
+  .uns-prefix{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pop{ max-width:calc(100vw - 24px); }
+}
+
 /* ============================================================================
    Viewer-only additions (not in render.py): drop zone, validation banner,
    parse-error page, footer privacy note + reload affordance.
