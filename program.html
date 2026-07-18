@@ -526,6 +526,18 @@ tr:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
 .pstrip-err .pj-sub{ color:var(--st-late); max-width:520px; white-space:normal; }
 .pstrip-err .pj-dot{ background:var(--st-late); }
 .pstrip-err td{ color:var(--ink2); }
+/* Requirements/BA maturity column (compact two-line cell) */
+.req-cell{ line-height:1.2; white-space:nowrap; }
+.req-top{ font-size:12.5px; color:var(--ink); }
+.req-top a.req-link{ color:inherit; text-decoration:none; }
+.req-top a.req-link:hover{ text-decoration:underline; }
+.req-sub{ font-size:11.5px; color:var(--ink2); margin-top:1px; }
+.req-none{ color:var(--muted); font-size:12px; }
+.req-bad{ color:var(--st-late); font-weight:600; }
+.req-warn{ color:#7a5600; }
+@media (prefers-color-scheme:dark){ .req-warn{ color:#ffd27a; } }
+:root[data-theme="dark"] .req-warn{ color:#ffd27a; }
+:root[data-theme="light"] .req-warn{ color:#7a5600; }
 
 /* ---------- combined timeline (lane = project) ---------- */
 .uns-groups{ display:flex; flex-direction:column; gap:8px; width:100%; }
@@ -718,8 +730,22 @@ function projCounts(state, today){
     openActions: (state.actions || []).filter(function(a){ return a.status === "open" || a.status === "in-progress"; }).length,
     openRisks:   (state.risks || []).filter(function(r){ return r.status === "open" || r.status === "mitigating"; }).length,
     openConflicts:(state.conflicts || []).filter(function(c){ return c.status === "open"; }).length,
-    overdue:     (state.actions || []).filter(function(a){ return isOverdue(a, today); }).length
+    overdue:     (state.actions || []).filter(function(a){ return isOverdue(a, today); }).length,
+    ba:          baCounts(state)
   };
+}
+/* Requirements/BA maturity — one summary of userStories + BDD scenarios per project. */
+function baCounts(state){
+  var stories = state.userStories || [];
+  var byStatus = {draft:0, agreed:0, implemented:0, passing:0, failing:0};
+  var scenarios = 0;
+  stories.forEach(function(u){
+    (u.scenarios || []).forEach(function(sc){
+      scenarios++;
+      if(byStatus.hasOwnProperty(sc.status)) byStatus[sc.status]++;
+    });
+  });
+  return { stories: stories.length, scenarios: scenarios, byStatus: byStatus };
 }
 
 function msPillDot(status){
@@ -1035,22 +1061,49 @@ function renderTimeline(tl){
 function renderHealthStrip(records){
   var rows = records.map(function(pr, i){
     if(!pr.state){
-      return '<tr class="pstrip-row pstrip-err"><td colspan="7">' +
+      return '<tr class="pstrip-row pstrip-err"><td colspan="8">' +
         '<div class="pj"><span class="pj-dot"></span><div class="pj-meta">' +
         '<div class="pj-name">' + esc(pr.name) + '</div>' +
         '<div class="pj-sub">Could not load ' + esc(pr.stateFile || pr.folder || "state.json") + ' — ' + esc(pr.error || "unknown error") + '</div>' +
         '</div></div></td></tr>';
     }
     var c = pr.counts;
+    var folderSafe = (pr.folder && !EMBEDDED) ? pr.folder.replace(/\/+$/,'').replace(/^\/+/, '') : null;
     var nameCell;
-    if(pr.folder && !EMBEDDED){
-      var folderSafe = pr.folder.replace(/\/+$/,'').replace(/^\/+/, '');
+    if(folderSafe){
       var href = "./" + folderSafe + "/dashboard.aspx";
       nameCell = '<a class="pj-name" data-folder="' + esc(folderSafe) + '" href="' + esc(href) + '">' + esc(pr.name) + '</a>';
     } else {
       // Embedded (or drop-zone) records have no sibling dashboard to open — name stays unlinked.
       nameCell = '<span class="pj-name">' + esc(pr.name) + '</span>';
     }
+    // Requirements/BA cell — compact maturity summary, deep-links into the project's user-stories section.
+    var reqCell = (function(){
+      var ba = c.ba;
+      if(!ba || !ba.stories){ return '<td><span class="req-none">no stories yet</span></td>'; }
+      var topTxt = ba.stories + ' ' + (ba.stories === 1 ? "story" : "stories") + ' · ' +
+        ba.scenarios + ' ' + plural(ba.scenarios, "scenario");
+      var topHtml = folderSafe
+        ? '<a class="req-link" href="./' + esc(folderSafe) + '/dashboard.aspx#ba-us-sec" title="Open user stories & RTM">' + esc(topTxt) + '</a>'
+        : '<span>' + esc(topTxt) + '</span>';
+      var sub;
+      if(ba.scenarios === 0){
+        sub = '<span class="req-warn">no scenarios yet</span>';
+      } else {
+        var b = ba.byStatus, parts = [];
+        if(b.agreed) parts.push('<span>' + b.agreed + ' agreed</span>');
+        var ip = b.implemented + b.passing;
+        if(ip) parts.push('<span>' + ip + ' ' + (b.passing ? "passing" : "implemented") + '</span>');
+        if(b.draft){
+          var draftHeavy = (b.draft / ba.scenarios) > 0.5;
+          parts.push('<span' + (draftHeavy ? ' class="req-warn"' : '') + '>' + b.draft + ' draft</span>');
+        }
+        if(b.failing) parts.push('<span class="req-bad">' + b.failing + ' failing</span>');
+        sub = parts.join(' · ');
+      }
+      return '<td><div class="req-cell"><div class="req-top">' + topHtml + '</div>' +
+        '<div class="req-sub">' + sub + '</div></div></td>';
+    })();
     var vbadge = "";
     var nerr = pr.validation.errors.length;
     if(nerr){ vbadge = '<span class="vbadge" data-detail="pstrip-detail-' + i + '" role="button" tabindex="0" ' +
@@ -1063,9 +1116,10 @@ function renderHealthStrip(records){
       '<div class="pj-sub">' + esc(pr.client) + '</div></div></div></td>' +
       '<td><span class="hchip verdict-' + pr.healthLevel + '"><span class="verdict-dot"></span>' + esc(pr.verdict) + '</span></td>' +
       numCell(c.openActions) + numCell(c.openRisks) + warnCell(c.openConflicts) + warnCell(c.overdue) +
+      reqCell +
       '<td class="pstrip-stamp">' + fmtStamp(pr.state.project && pr.state.project.lastDigest) + '</td></tr>';
     if(nerr){
-      row += '<tr class="pstrip-detail" id="pstrip-detail-' + i + '" hidden><td colspan="7">' +
+      row += '<tr class="pstrip-detail" id="pstrip-detail-' + i + '" hidden><td colspan="8">' +
         '<div class="vbanner"><div class="vbanner-h"><span class="vbanner-dot"></span>' +
         nerr + ' validation ' + (nerr === 1 ? "issue" : "issues") + ' in ' + esc(pr.name) + '</div>' +
         '<div class="vbanner-sub">Health and counts above still reflect everything renderable. Fix against <code>schema.json</code>.</div>' +
@@ -1079,7 +1133,7 @@ function renderHealthStrip(records){
     (EMBEDDED ? " · embedded snapshot" : " · click a name to open its dashboard") + '</span></div>' +
     '<div class="pstrip-wrap"><table class="pstrip"><thead><tr>' +
     '<th>Project</th><th>Health</th><th class="num">Open actions</th><th class="num">Open risks</th>' +
-    '<th class="num">Open conflicts</th><th class="num">Overdue</th><th>Last digest</th>' +
+    '<th class="num">Open conflicts</th><th class="num">Overdue</th><th>Requirements</th><th>Last digest</th>' +
     '</tr></thead><tbody>' + rows + '</tbody></table></div></section>';
 }
 
