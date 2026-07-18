@@ -1,0 +1,1878 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atlas CRM Migration — Dashboard</title>
+<script>/* apply saved theme before first paint to avoid a flash */
+try{var t=localStorage.getItem('aipm-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<style>
+:root{
+  --plane:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --ring:rgba(11,11,11,.10); --shadow:0 1px 2px rgba(11,11,11,.05),0 6px 20px rgba(11,11,11,.05);
+  --ontrack:#2a78d6;
+  --sp1:4px; --sp2:8px; --sp3:12px; --sp4:16px; --sp5:24px; --sp6:32px;
+  --r:12px; --r2:8px;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --plane:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,.10); --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.45);
+    --ontrack:#3987e5; }
+}
+:root[data-theme="dark"]{ --plane:#0d0d0d; --surface:#1a1a19; --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,.10); --ontrack:#3987e5; }
+:root[data-theme="light"]{ --plane:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --ring:rgba(11,11,11,.10); --ontrack:#2a78d6; }
+
+/* fixed status palette (identical both themes) */
+:root{ --st-planned:#898781; --st-atrisk:#fab219; --st-late:#d03b3b; --st-done:#0ca30c;
+  --sev-critical:#d03b3b; --sev-high:#ec835a; --sev-medium:#fab219; --sev-low:#898781; }
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; }
+body{ background:var(--plane); color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif; font-size:14px; line-height:1.45;
+  -webkit-font-smoothing:antialiased; }
+.wrap{ max-width:1200px; margin:0 auto; padding:var(--sp5) var(--sp5) 64px; }
+h1,h2,h3{ margin:0; font-weight:600; letter-spacing:-.01em; }
+.num{ font-variant-numeric:tabular-nums; }
+
+/* ---------- header ---------- */
+.head{ background:var(--surface); border:1px solid var(--ring); border-radius:var(--r);
+  padding:var(--sp5); box-shadow:var(--shadow); margin-bottom:var(--sp4); }
+.head-main{ display:flex; align-items:flex-start; justify-content:space-between; gap:var(--sp4); }
+.head-id h1{ font-size:24px; line-height:1.15; }
+.head-sub{ color:var(--ink2); margin-top:6px; font-size:13.5px; }
+.verdict{ display:flex; align-items:center; gap:var(--sp3); padding:10px 16px 10px 12px;
+  border-radius:var(--r2); border:1px solid var(--ring); white-space:nowrap; }
+.verdict-dot{ width:12px; height:12px; border-radius:50%; flex:none; }
+.verdict-lbl{ display:block; font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); }
+.verdict-val{ display:block; font-size:16px; font-weight:600; line-height:1.1; margin-top:1px; }
+.verdict-good{ background:color-mix(in srgb,var(--st-done) 12%,var(--surface)); }
+.verdict-good .verdict-dot{ background:var(--st-done); }
+.verdict-warning{ background:color-mix(in srgb,var(--st-atrisk) 16%,var(--surface)); }
+.verdict-warning .verdict-dot{ background:var(--st-atrisk); }
+.verdict-critical{ background:color-mix(in srgb,var(--st-late) 12%,var(--surface)); }
+.verdict-critical .verdict-dot{ background:var(--st-late); }
+.stats{ display:flex; flex-wrap:wrap; gap:var(--sp5); margin-top:var(--sp5);
+  padding-top:var(--sp4); border-top:1px solid var(--grid); }
+.stat{ display:flex; flex-direction:column; gap:2px; }
+.stat-n{ font-size:22px; font-weight:600; line-height:1; }
+.stat-l{ font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
+.stat-warn .stat-n{ color:var(--st-atrisk); }
+.stat-stamp{ margin-left:auto; text-align:right; }
+.stat-stampv{ font-size:13px; color:var(--ink2); font-variant-numeric:tabular-nums; }
+
+/* ---------- filters ---------- */
+.filters{ display:flex; flex-wrap:wrap; gap:var(--sp3); align-items:flex-end; margin-bottom:var(--sp4); }
+.filters label{ display:flex; flex-direction:column; gap:5px; font-size:11px; letter-spacing:.05em;
+  text-transform:uppercase; color:var(--muted); }
+.filters select{ font:inherit; font-size:13px; text-transform:none; letter-spacing:0; color:var(--ink);
+  background:var(--surface); border:1px solid var(--axis); border-radius:var(--r2);
+  padding:7px 30px 7px 10px; min-width:150px; appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 15px) 15px,calc(100% - 10px) 15px; background-size:5px 5px,5px 5px; background-repeat:no-repeat; }
+#f-reset{ font:inherit; font-size:12.5px; color:var(--ink2); background:transparent;
+  border:1px solid var(--axis); border-radius:var(--r2); padding:8px 14px; cursor:pointer; }
+#f-reset:hover{ color:var(--ink); border-color:var(--muted); }
+.f-spacer{ flex:1; }
+.f-tool{ font:inherit; font-size:12.5px; color:var(--ink2); background:transparent;
+  border:1px solid var(--axis); border-radius:var(--r2); padding:8px 14px; cursor:pointer; }
+.f-tool:hover{ color:var(--ink); border-color:var(--muted); }
+.f-theme{ font-size:15px; line-height:1; padding:7px 11px; }
+
+/* ---------- cards / sections ---------- */
+.card{ background:var(--surface); border:1px solid var(--ring); border-radius:var(--r);
+  box-shadow:var(--shadow); margin-bottom:var(--sp4); overflow:hidden; }
+.sec-head{ width:100%; display:flex; align-items:center; gap:var(--sp3); cursor:pointer;
+  background:transparent; border:0; text-align:left; padding:var(--sp4) var(--sp5); color:var(--ink); }
+.sec-head h2{ font-size:15px; }
+.sec-head .count{ font-size:12px; }
+.chev{ margin-left:auto; width:9px; height:9px; border-right:2px solid var(--muted);
+  border-bottom:2px solid var(--muted); transform:rotate(45deg); transition:transform .15s; }
+.card[data-collapsed="true"] .chev{ transform:rotate(-45deg); }
+.card[data-collapsed="true"] .sec-body{ display:none; }
+.sec-body{ padding:0 var(--sp5) var(--sp5); }
+.count{ display:inline-block; min-width:20px; padding:1px 7px; border-radius:20px; text-align:center;
+  background:color-mix(in srgb,var(--muted) 18%,var(--surface)); color:var(--ink2);
+  font-size:11px; font-weight:600; font-variant-numeric:tabular-nums; }
+.empty{ color:var(--muted); font-style:italic; margin:2px 0 0; }
+
+/* ---------- roadmap ---------- */
+.hero .sec-body{ padding-bottom:var(--sp5); }
+.legend{ display:flex; flex-wrap:wrap; gap:var(--sp4); margin-bottom:var(--sp4); }
+.lg{ display:inline-flex; align-items:center; gap:7px; font-size:12px; color:var(--ink2); }
+.dot{ width:15px; height:15px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+  font-size:9px; line-height:1; color:#fff; flex:none; box-shadow:0 0 0 2px var(--surface); }
+.mk-planned{ background:var(--st-planned); color:#fff; }
+.mk-ontrack{ background:var(--ontrack); color:#fff; }
+.mk-atrisk{ background:var(--st-atrisk); color:#241a00; }
+.mk-late{ background:var(--st-late); color:#fff; font-weight:700; }
+.mk-done{ background:var(--st-done); color:#fff; }
+
+.roadmap-wrap{ }
+.roadmap{ display:flex; align-items:flex-start; }
+.lanes-gutter{ flex:none; }
+.lane-spacer{ }
+.lane-label{ display:flex; align-items:center; gap:8px; padding-right:var(--sp3);
+  border-top:1px solid var(--grid); font-size:12.5px; color:var(--ink2); font-weight:500; }
+.lane-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chip-dot{ width:9px; height:9px; border-radius:2px; flex:none; }
+.plot-wrap{ overflow-x:auto; flex:1; }
+.plot{ position:relative; }
+.grid-line{ position:absolute; width:1px; background:var(--grid); }
+.grid-label{ position:absolute; top:2px; font-size:11px; color:var(--muted);
+  font-variant-numeric:tabular-nums; }
+.lane-band{ position:absolute; left:0; border-top:1px solid var(--grid); }
+.band-alt{ background:color-mix(in srgb,var(--muted) 5%,transparent); }
+.today-line{ position:absolute; width:2px; background:var(--ink);
+  opacity:.62; z-index:3; }
+.today-tag{ position:absolute; top:2px; font-size:10.5px; font-weight:600; letter-spacing:.04em;
+  text-transform:uppercase; color:var(--ink); z-index:3; }
+.pill{ position:absolute; height:24px; display:inline-flex; align-items:center; gap:6px;
+  padding:0 10px 0 5px; background:var(--surface); border:1px solid var(--ring); border-radius:20px;
+  font:inherit; font-size:11.5px; color:var(--ink); cursor:pointer; z-index:4; white-space:nowrap;
+  box-shadow:0 1px 1px rgba(11,11,11,.04); }
+.pill:hover{ border-color:var(--muted); z-index:6; }
+.pill:focus-visible{ outline:2px solid var(--ontrack); outline-offset:1px; }
+.pill.flip{ flex-direction:row-reverse; padding:0 5px 0 10px; }
+.pill .dot{ box-shadow:none; }
+.pill-t{ overflow:hidden; text-overflow:ellipsis; }
+.unsched{ display:flex; align-items:center; gap:var(--sp3); margin-top:var(--sp4);
+  padding-top:var(--sp3); border-top:1px dashed var(--axis); flex-wrap:wrap; }
+.unsched-lbl{ font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+.unsched-pills{ display:flex; flex-wrap:wrap; gap:var(--sp2); }
+.unsched .pill{ position:static; }
+.roadmap-empty{ color:var(--muted); font-style:italic; padding-top:var(--sp3); }
+
+/* ---------- tables ---------- */
+.grid{ width:100%; border-collapse:collapse; font-size:13px; }
+.grid th{ text-align:left; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); font-weight:600; padding:0 var(--sp3) var(--sp2); border-bottom:1px solid var(--grid); }
+.grid td{ padding:10px var(--sp3); border-bottom:1px solid var(--grid); vertical-align:middle; }
+.grid tbody tr:last-child td{ border-bottom:0; }
+.grid th.num,.grid td.num{ text-align:right; white-space:nowrap; }
+.grid tbody tr{ cursor:pointer; }
+.grid tbody tr:hover{ background:color-mix(in srgb,var(--muted) 7%,transparent); }
+tr:focus-visible{ outline:2px solid var(--ontrack); outline-offset:-2px; }
+.chip{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink2); }
+.tag{ display:inline-flex; align-items:center; gap:6px; font-size:12px; white-space:nowrap; }
+.tag .dot{ width:13px; height:13px; font-size:8px; box-shadow:none; }
+.badge{ display:inline-block; margin-left:8px; font-size:10px; font-weight:700; letter-spacing:.04em;
+  text-transform:uppercase; padding:2px 7px; border-radius:5px; vertical-align:middle; }
+.overdue{ background:color-mix(in srgb,var(--st-late) 16%,var(--surface)); color:var(--st-late); }
+.row-overdue td:first-child{ box-shadow:inset 3px 0 0 var(--st-late); }
+.tag-act-open{ color:var(--ink2); }
+.tag-act-in-progress{ color:var(--ontrack); }
+.tag-act-done{ color:var(--st-done); }
+.tag-act-dropped{ color:var(--muted); text-decoration:line-through; }
+
+/* ---------- RAID ---------- */
+.raid-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:var(--sp4); }
+.raid-col h3{ font-size:12px; letter-spacing:.04em; color:var(--ink2); margin-bottom:var(--sp3);
+  display:flex; align-items:center; gap:8px; }
+.raid-item{ border:1px solid var(--ring); border-radius:var(--r2); padding:var(--sp3);
+  margin-bottom:var(--sp2); cursor:pointer; background:var(--surface); }
+.raid-item:hover{ border-color:var(--muted); }
+.raid-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.raid-status{ font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
+.raid-title{ font-size:13px; font-weight:500; line-height:1.3; }
+.mit,.raid-meta{ font-size:12px; color:var(--ink2); margin-top:5px; }
+.raid-meta .meta{ color:var(--muted); }
+.sev{ display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:600; }
+.sev::before{ content:""; width:9px; height:9px; border-radius:2px; }
+.sev-critical{ color:var(--sev-critical); } .sev-critical::before{ background:var(--sev-critical); }
+.sev-high{ color:var(--sev-high); } .sev-high::before{ background:var(--sev-high); }
+.sev-medium{ color:var(--ink2); } .sev-medium::before{ background:var(--sev-medium); }
+.sev-low{ color:var(--ink2); } .sev-low::before{ background:var(--sev-low); }
+
+/* ---------- decisions ---------- */
+.d-log{ list-style:none; margin:0; padding:0; }
+.d-item{ display:flex; gap:var(--sp4); padding:var(--sp3) var(--sp2); border-bottom:1px solid var(--grid);
+  cursor:pointer; border-radius:6px; }
+.d-item:last-child{ border-bottom:0; }
+.d-item:hover{ background:color-mix(in srgb,var(--muted) 7%,transparent); }
+.d-date{ flex:none; width:104px; color:var(--muted); font-size:12.5px; padding-top:1px; }
+.d-sum{ font-weight:500; }
+.d-rat{ color:var(--ink2); font-size:12.5px; margin-top:3px; }
+
+/* ---------- requirements ---------- */
+.req-group{ margin-bottom:var(--sp4); }
+.req-group:last-child{ margin-bottom:0; }
+.req-group h3{ font-size:12px; letter-spacing:.04em; color:var(--ink2); margin-bottom:var(--sp2);
+  display:flex; align-items:center; gap:8px; }
+.req-list{ list-style:none; margin:0; padding:0; }
+.req{ padding:9px var(--sp2); border-bottom:1px solid var(--grid); cursor:pointer; border-radius:6px; }
+.req:last-child{ border-bottom:0; }
+.req:hover{ background:color-mix(in srgb,var(--muted) 7%,transparent); }
+.req-head{ display:flex; align-items:baseline; justify-content:space-between; gap:var(--sp3); }
+.req-title{ font-weight:500; }
+.req-detail{ color:var(--ink2); font-size:12.5px; margin-top:3px; }
+.pipe{ flex:none; font-size:10.5px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted);
+  padding:2px 8px; border-radius:20px; border:1px solid var(--ring); }
+.pipe-approved{ color:var(--st-done); border-color:color-mix(in srgb,var(--st-done) 40%,var(--ring)); }
+.pipe-implemented{ color:var(--st-done); }
+.pipe-in-review{ color:var(--ontrack); }
+.pipe-deferred{ text-decoration:line-through; }
+
+/* ---------- questions ---------- */
+.q-list{ list-style:none; margin:0; padding:0; }
+.q-item{ padding:var(--sp3) var(--sp2); border-bottom:1px solid var(--grid); cursor:pointer; border-radius:6px; }
+.q-item:last-child{ border-bottom:0; }
+.q-item:hover{ background:color-mix(in srgb,var(--muted) 7%,transparent); }
+.q-head{ display:flex; gap:var(--sp2); align-items:baseline; }
+.q-text{ font-weight:500; }
+.q-badge{ flex:none; font-size:9.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  padding:2px 7px; border-radius:5px; }
+.q-open{ background:color-mix(in srgb,var(--st-atrisk) 20%,var(--surface)); color:#7a5600; }
+.q-answered{ background:color-mix(in srgb,var(--st-done) 16%,var(--surface)); color:var(--st-done); }
+.q-meta{ font-size:12px; color:var(--muted); margin-top:4px; }
+.q-ans{ font-size:12.5px; color:var(--ink2); margin-top:5px; padding-left:10px;
+  border-left:2px solid var(--st-done); }
+
+/* ---------- conflicts ---------- */
+.cf-card{ border-color:color-mix(in srgb,var(--st-atrisk) 55%,var(--ring)); }
+.cf-banner{ background:color-mix(in srgb,var(--st-atrisk) 18%,var(--surface));
+  color:#7a5600; font-weight:600; font-size:13px; padding:10px var(--sp3); border-radius:var(--r2);
+  margin-bottom:var(--sp3); border:1px solid color-mix(in srgb,var(--st-atrisk) 45%,var(--ring)); }
+@media (prefers-color-scheme:dark){ .cf-banner,.q-open{ color:#ffd27a; } }
+:root[data-theme="dark"] .cf-banner,:root[data-theme="dark"] .q-open{ color:#ffd27a; }
+:root[data-theme="light"] .cf-banner{ color:#7a5600; }
+.cf-list{ list-style:none; margin:0; padding:0; }
+.cf-item{ padding:var(--sp3); border:1px solid var(--ring); border-radius:var(--r2);
+  margin-bottom:var(--sp2); cursor:pointer; }
+.cf-item:hover{ border-color:var(--st-atrisk); }
+.cf-about{ font-weight:600; margin-bottom:var(--sp2); }
+.cf-cols{ display:grid; grid-template-columns:1fr auto 1fr; gap:var(--sp3); align-items:center; }
+.cf-was,.cf-now{ font-size:13px; }
+.cf-lbl{ display:block; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
+.cf-src{ display:block; font-size:11px; color:var(--muted); margin-top:4px; }
+.cf-was{ color:var(--ink2); }
+.cf-arrow{ color:var(--st-atrisk); font-size:18px; }
+
+/* ---------- artifacts ---------- */
+.art-feed{ list-style:none; margin:0; padding:0; }
+.art-item{ display:flex; align-items:center; gap:var(--sp3); padding:10px var(--sp2);
+  border-bottom:1px solid var(--grid); }
+.art-item:last-child{ border-bottom:0; }
+.art-type{ flex:none; width:88px; font-size:10.5px; font-weight:600; letter-spacing:.03em;
+  text-transform:uppercase; color:var(--ink2); padding:3px 0; text-align:center;
+  border:1px solid var(--ring); border-radius:5px; background:color-mix(in srgb,var(--muted) 8%,transparent); }
+.art-body{ flex:1; min-width:0; }
+.art-file{ font-size:12.5px; font-variant-numeric:tabular-nums; }
+.art-one{ font-size:12.5px; color:var(--ink2); margin-top:2px; }
+.art-date{ flex:none; color:var(--muted); font-size:12px; }
+
+/* ---------- provenance popover ---------- */
+.pop{ position:fixed; z-index:50; max-width:340px; background:var(--surface);
+  border:1px solid var(--axis); border-radius:var(--r2); box-shadow:var(--shadow);
+  padding:var(--sp3); font-size:12.5px; }
+.pop-h{ font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted);
+  margin-bottom:var(--sp2); }
+.pop-src{ display:flex; gap:var(--sp2); padding:7px 0; border-top:1px solid var(--grid); }
+.pop-src:first-of-type{ border-top:0; }
+.pop-type{ flex:none; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+  color:var(--ink2); padding:2px 6px; border-radius:4px; height:fit-content;
+  background:color-mix(in srgb,var(--muted) 12%,transparent); }
+.pop-file{ font-size:12px; font-weight:500; }
+.pop-one{ color:var(--ink2); margin-top:2px; }
+.pop-date{ color:var(--muted); font-size:11px; margin-top:2px; font-variant-numeric:tabular-nums; }
+.pop-none{ color:var(--muted); font-style:italic; }
+
+/* ---------- stakeholders ---------- */
+.stk-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:var(--sp4); }
+.stk-org h3{ font-size:12px; letter-spacing:.04em; color:var(--ink2); margin-bottom:var(--sp2);
+  display:flex; align-items:center; gap:8px; }
+.stk-list{ list-style:none; margin:0; padding:0; }
+.stk{ padding:7px var(--sp2); border-bottom:1px solid var(--grid); cursor:pointer; border-radius:6px;
+  display:flex; align-items:baseline; justify-content:space-between; gap:var(--sp3); }
+.stk:last-child{ border-bottom:0; }
+.stk:hover{ background:color-mix(in srgb,var(--muted) 7%,transparent); }
+.stk-name{ font-weight:500; }
+.stk-role{ font-size:12px; color:var(--muted); text-align:right; }
+
+/* ---------- parking lot ---------- */
+.pk-list{ list-style:none; margin:0; padding:0; }
+.pk-item{ display:flex; gap:var(--sp4); padding:var(--sp3) 0; border-top:1px solid var(--grid); cursor:pointer; }
+.pk-item:first-child{ border-top:0; }
+.pk-date{ flex:none; width:86px; font-size:12px; color:var(--muted); padding-top:2px; }
+.pk-note{ font-weight:500; }
+.pk-ctx{ font-size:12.5px; color:var(--ink2); margin-top:3px; }
+.pk-sug{ font-size:12.5px; color:#7a5600; background:color-mix(in srgb,var(--st-atrisk) 14%,var(--surface));
+  border-radius:var(--r2); padding:4px 8px; margin-top:6px; display:inline-block; }
+.roadmap-none{ padding:2px 0 var(--sp3); }
+
+/* ---------- BDD scenarios (requirements) ---------- */
+.req-head-right{ display:inline-flex; align-items:center; gap:var(--sp2); flex:none; }
+.sc-chip{ display:inline-block; padding:2px 8px; border-radius:20px; font-size:10.5px; font-weight:600;
+  letter-spacing:.01em; color:var(--ink2); background:color-mix(in srgb,var(--muted) 16%,var(--surface)); white-space:nowrap; }
+.sc-list{ margin-top:var(--sp3); display:flex; flex-direction:column; gap:var(--sp2); }
+.sc{ border:1px solid var(--ring); border-radius:var(--r2); padding:10px var(--sp3);
+  background:color-mix(in srgb,var(--muted) 4%,var(--surface)); cursor:pointer; }
+.sc:hover{ border-color:var(--muted); }
+.sc-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--sp3); margin-bottom:7px; }
+.sc-title{ font-weight:600; font-size:12.5px; line-height:1.35; }
+.sc-tag{ flex:none; font-size:9.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  padding:2px 8px; border-radius:20px; border:1px solid var(--ring); color:var(--muted); }
+.sc-draft{ color:#7a5600; background:color-mix(in srgb,var(--st-atrisk) 16%,var(--surface));
+  border-color:color-mix(in srgb,var(--st-atrisk) 40%,var(--ring)); }
+.sc-agreed{ color:var(--ink2); background:color-mix(in srgb,var(--muted) 12%,var(--surface)); }
+.sc-implemented,.sc-passing{ color:var(--st-done); background:color-mix(in srgb,var(--st-done) 14%,var(--surface));
+  border-color:color-mix(in srgb,var(--st-done) 40%,var(--ring)); }
+.sc-failing{ color:var(--st-late); background:color-mix(in srgb,var(--st-late) 13%,var(--surface));
+  border-color:color-mix(in srgb,var(--st-late) 42%,var(--ring)); }
+@media (prefers-color-scheme:dark){ .sc-draft{ color:#ffd27a; } }
+:root[data-theme="dark"] .sc-draft{ color:#ffd27a; }
+:root[data-theme="light"] .sc-draft{ color:#7a5600; }
+.gwt{ display:flex; flex-direction:column; gap:3px; }
+.gwt-row{ display:flex; gap:var(--sp2); align-items:baseline; font-size:12.5px; line-height:1.45; }
+.gwt-kw{ flex:none; width:46px; text-align:left; font-size:10px; font-weight:700; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--muted); }
+.gwt-clause{ color:var(--ink); }
+
+/* ---------- Export .feature control ---------- */
+.rx-bar{ display:flex; justify-content:flex-end; position:relative; margin-bottom:var(--sp3); }
+.rx-btn{ font:inherit; font-size:12.5px; color:var(--ink2); background:transparent; border:1px solid var(--axis);
+  border-radius:var(--r2); padding:7px 12px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
+.rx-btn:hover{ color:var(--ink); border-color:var(--muted); }
+.rx-caret{ width:6px; height:6px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted);
+  transform:rotate(45deg); margin-top:-3px; }
+.rx-menu{ position:absolute; right:0; top:calc(100% + 6px); z-index:20; min-width:240px; max-width:360px;
+  background:var(--surface); border:1px solid var(--axis); border-radius:var(--r2); box-shadow:var(--shadow); padding:var(--sp1); }
+.rx-item{ width:100%; text-align:left; font:inherit; font-size:12.5px; color:var(--ink); background:transparent;
+  border:0; border-radius:6px; padding:8px 10px; cursor:pointer; display:flex; align-items:center;
+  justify-content:space-between; gap:var(--sp3); }
+.rx-item:hover{ background:color-mix(in srgb,var(--muted) 10%,transparent); }
+.rx-all{ border-top:1px solid var(--grid); margin-top:var(--sp1); font-weight:600; }
+.rx-n{ flex:none; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+
+/* ---------- What changed ---------- */
+.wc-range{ display:inline-flex; border:1px solid var(--axis); border-radius:var(--r2); overflow:hidden; margin-bottom:var(--sp4); }
+.wc-r{ font:inherit; font-size:12px; color:var(--ink2); background:transparent; border:0;
+  border-left:1px solid var(--axis); padding:7px 14px; cursor:pointer; }
+.wc-r:first-child{ border-left:0; }
+.wc-r:hover{ color:var(--ink); background:color-mix(in srgb,var(--muted) 8%,transparent); }
+.wc-r.active{ color:var(--ink); background:color-mix(in srgb,var(--ontrack) 12%,var(--surface)); font-weight:600; }
+.wc-group{ margin-bottom:var(--sp4); }
+.wc-group:last-child{ margin-bottom:0; }
+.wc-h{ font-size:12px; letter-spacing:.04em; color:var(--ink2); margin-bottom:var(--sp2);
+  display:flex; align-items:center; gap:8px; }
+.wc-item{ display:flex; gap:var(--sp3); align-items:flex-start; padding:9px var(--sp2);
+  border-bottom:1px solid var(--grid); cursor:pointer; border-radius:6px; }
+.wc-item:last-child{ border-bottom:0; }
+.wc-item:hover{ background:color-mix(in srgb,var(--muted) 7%,transparent); }
+.wc-chip{ flex:none; font-size:9.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--ink2); padding:3px 8px; border-radius:5px; margin-top:1px; min-width:78px; text-align:center;
+  background:color-mix(in srgb,var(--muted) 12%,transparent); border:1px solid var(--ring); }
+.wc-body{ flex:1; min-width:0; }
+.wc-title{ font-weight:500; font-size:13px; }
+.wc-change{ display:flex; flex-wrap:wrap; align-items:center; gap:7px; margin-top:3px; font-size:12px; color:var(--ink2); }
+.wc-field{ text-transform:uppercase; letter-spacing:.04em; font-size:10px; color:var(--muted); }
+.wc-was{ color:var(--muted); text-decoration:line-through; }
+.wc-arrow{ color:var(--ontrack); }
+.wc-now{ color:var(--ink); font-weight:500; }
+.wc-note{ display:block; margin-top:3px; font-size:11.5px; color:var(--st-done); }
+.wc-empty{ color:var(--muted); font-style:italic; margin:2px 0 0; }
+
+/* ---------- Status-report modal ---------- */
+.modal-overlay{ position:fixed; inset:0; z-index:60; background:rgba(11,11,11,.44);
+  display:flex; align-items:center; justify-content:center; padding:var(--sp5); }
+.modal{ width:min(680px,100%); max-height:86vh; display:flex; flex-direction:column;
+  background:var(--surface); border:1px solid var(--axis); border-radius:var(--r); box-shadow:var(--shadow); overflow:hidden; }
+.modal-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--sp3);
+  padding:var(--sp4) var(--sp5); border-bottom:1px solid var(--grid); }
+.modal-title{ font-size:14px; font-weight:600; }
+.modal-x{ font:inherit; font-size:20px; line-height:1; color:var(--muted); background:transparent; border:0;
+  cursor:pointer; padding:0 4px; }
+.modal-x:hover{ color:var(--ink); }
+.modal-pre{ margin:0; overflow:auto; padding:var(--sp4) var(--sp5);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.55; color:var(--ink);
+  white-space:pre-wrap; word-break:break-word; }
+.modal-actions{ display:flex; justify-content:flex-end; gap:var(--sp2);
+  padding:var(--sp3) var(--sp5) var(--sp4); border-top:1px solid var(--grid); }
+.modal-btn{ font:inherit; font-size:12.5px; color:var(--ink2); background:transparent; border:1px solid var(--axis);
+  border-radius:var(--r2); padding:8px 16px; cursor:pointer; }
+.modal-btn:hover{ color:var(--ink); border-color:var(--muted); }
+.modal-btn[data-act="copy"]{ color:#fff; background:var(--ontrack); border-color:var(--ontrack); }
+.modal-btn[data-act="copy"]:hover{ filter:brightness(1.05); color:#fff; }
+
+.foot{ text-align:center; color:var(--muted); font-size:11.5px; margin-top:var(--sp5); }
+@media (max-width:720px){ .raid-grid,.stk-grid{ grid-template-columns:1fr; } .head-main{ flex-direction:column; }
+  .stat-stamp{ margin-left:0; text-align:left; } }
+
+/* ============================ BA MODULE ============================ */
+/* ---------- user stories ---------- */
+.us-list{ list-style:none; margin:0; padding:0; }
+.us{ border:1px solid var(--ring); border-radius:var(--r2); padding:var(--sp4); margin-bottom:var(--sp3);
+  background:var(--surface); }
+.us:last-child{ margin-bottom:0; }
+.us-head{ display:flex; align-items:baseline; justify-content:space-between; gap:var(--sp3); }
+.us-title{ font-weight:600; font-size:14px; line-height:1.3; }
+.us-head-right{ display:inline-flex; align-items:center; gap:var(--sp2); flex:none; }
+.us-tag{ flex:none; font-size:9.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  padding:2px 8px; border-radius:20px; border:1px solid var(--ring); color:var(--muted); white-space:nowrap; }
+.us-draft{ color:#7a5600; background:color-mix(in srgb,var(--st-atrisk) 16%,var(--surface));
+  border-color:color-mix(in srgb,var(--st-atrisk) 40%,var(--ring)); }
+.us-ready{ color:var(--ink2); background:color-mix(in srgb,var(--muted) 12%,var(--surface)); }
+.us-in-review{ color:var(--ontrack); background:color-mix(in srgb,var(--ontrack) 12%,var(--surface));
+  border-color:color-mix(in srgb,var(--ontrack) 40%,var(--ring)); }
+.us-agreed,.us-delivered{ color:var(--st-done); background:color-mix(in srgb,var(--st-done) 14%,var(--surface));
+  border-color:color-mix(in srgb,var(--st-done) 40%,var(--ring)); }
+@media (prefers-color-scheme:dark){ .us-draft{ color:#ffd27a; } }
+:root[data-theme="dark"] .us-draft{ color:#ffd27a; }
+:root[data-theme="light"] .us-draft{ color:#7a5600; }
+.us-narrative{ color:var(--ink2); font-size:12.5px; margin-top:7px; line-height:1.5; }
+.us-nk{ font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
+.us-ws{ margin-top:9px; }
+.us-sub-h{ font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted);
+  font-weight:600; margin:var(--sp4) 0 var(--sp2); }
+.us-rules{ display:flex; flex-direction:column; gap:var(--sp2); }
+.rule{ border:1px solid var(--ring); border-radius:var(--r2); padding:var(--sp3);
+  background:color-mix(in srgb,var(--muted) 4%,var(--surface)); }
+.rule-title{ font-weight:600; font-size:12.5px; margin-bottom:6px; }
+.ex-row{ padding:6px 0; border-top:1px solid var(--grid); }
+.ex-row:first-of-type{ border-top:0; }
+.ex-title{ font-size:12px; font-weight:500; margin-bottom:3px; }
+.ex-line{ display:flex; gap:var(--sp2); align-items:baseline; font-size:12.5px; line-height:1.45; }
+.ex-kw{ flex:none; width:64px; text-align:left; font-size:10px; font-weight:700; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--muted); }
+.ex-clause{ color:var(--ink); min-width:0; }
+.ex-null{ color:var(--muted); font-style:italic; }
+.us-sc-list{ display:flex; flex-direction:column; gap:var(--sp2); }
+.sc-head-right{ display:inline-flex; align-items:center; gap:var(--sp2); flex:none; }
+.us-redcards{ margin-top:var(--sp3); display:flex; flex-direction:column; gap:var(--sp2); }
+.redcard{ display:flex; gap:8px; align-items:baseline; font-size:12.5px; color:var(--ink);
+  border:1px solid color-mix(in srgb,var(--st-late) 45%,var(--ring));
+  background:color-mix(in srgb,var(--st-late) 8%,var(--surface)); border-radius:var(--r2); padding:8px var(--sp3); }
+.redcard-icon{ flex:none; }
+.redcard-q{ font-weight:500; }
+
+/* ---------- RTM ---------- */
+.rtm-bar{ display:flex; justify-content:flex-end; gap:var(--sp2); margin-bottom:var(--sp3); flex-wrap:wrap; }
+.rtm-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+.rtm-table th{ text-align:left; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); font-weight:600; padding:0 var(--sp3) var(--sp2); border-bottom:1px solid var(--grid); white-space:nowrap; }
+.rtm-table td{ padding:9px var(--sp3); border-bottom:1px solid var(--grid); vertical-align:top; }
+.rtm-table th.num,.rtm-table td.num{ text-align:right; }
+.rtm-story{ font-weight:600; }
+.rtm-sub{ font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; margin-top:2px; }
+.rtm-src{ color:var(--ink2); font-size:11.5px; }
+.rtm-chip{ display:inline-block; font-size:10.5px; font-variant-numeric:tabular-nums; padding:2px 7px;
+  border-radius:20px; background:color-mix(in srgb,var(--muted) 14%,var(--surface)); color:var(--ink2); margin:1px 3px 1px 0; }
+
+/* ---------- edit mode ---------- */
+.ba-edit-cluster{ display:inline-flex; align-items:center; gap:var(--sp2); padding:0 0 0 var(--sp2);
+  margin-left:var(--sp1); border-left:1px solid var(--axis); }
+.ba-edit-label{ font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--ontrack); }
+.ba-save,.ba-discard{ font:inherit; font-size:12.5px; border-radius:var(--r2); padding:8px 14px; cursor:pointer; }
+.ba-save{ color:#fff; background:var(--ontrack); border:1px solid var(--ontrack); }
+.ba-save:hover{ filter:brightness(1.05); }
+.ba-discard{ color:var(--ink2); background:transparent; border:1px solid var(--axis); }
+.ba-discard:hover{ color:var(--ink); border-color:var(--muted); }
+#ba-edit-btn.tool-btn,#ba-edit-btn.f-tool{ }
+.ba-ce{ display:inline; min-width:36px; outline:none; border-radius:3px;
+  box-shadow:inset 0 -1px 0 var(--axis); }
+.ba-ce:empty::before{ content:"—"; color:var(--muted); }
+.ba-ce:focus{ box-shadow:inset 0 -1px 0 var(--ontrack);
+  background:color-mix(in srgb,var(--ontrack) 8%,transparent); }
+.ba-sel,.ba-date{ font:inherit; font-size:12px; color:var(--ink); background:var(--surface);
+  border:1px solid var(--axis); border-radius:6px; padding:2px 6px; max-width:100%; vertical-align:middle; }
+.ba-pill{ display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px;
+  background:color-mix(in srgb,var(--muted) 14%,var(--surface)); color:var(--ink2); }
+.ba-del{ display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px;
+  margin-left:6px; padding:0; font-size:14px; line-height:1; vertical-align:middle;
+  color:var(--st-late); background:transparent; border:1px solid color-mix(in srgb,var(--st-late) 40%,var(--ring));
+  border-radius:5px; cursor:pointer; }
+.ba-del:hover{ background:color-mix(in srgb,var(--st-late) 14%,transparent); }
+.ba-del-sm{ width:15px; height:15px; font-size:11px; }
+.ba-confirm{ display:inline-flex; align-items:center; gap:6px; margin-left:6px; vertical-align:middle; }
+.ba-discard-confirm{ display:inline-flex; align-items:center; gap:6px; margin-left:var(--sp1); }
+.ba-confirm-q{ font-size:11px; color:var(--st-late); font-weight:600; }
+.ba-cy,.ba-cn{ font:inherit; font-size:11px; padding:2px 8px; border-radius:5px; cursor:pointer;
+  border:1px solid var(--axis); background:transparent; color:var(--ink2); }
+.ba-cy{ color:#fff; background:var(--st-late); border-color:var(--st-late); }
+.ba-cy:hover{ filter:brightness(1.05); }
+.ba-cn:hover{ border-color:var(--muted); color:var(--ink); }
+.ba-add{ margin-top:var(--sp3); font:inherit; font-size:12px; color:var(--ontrack); background:transparent;
+  border:1px dashed color-mix(in srgb,var(--ontrack) 50%,var(--axis)); border-radius:var(--r2);
+  padding:6px 12px; cursor:pointer; }
+.ba-add:hover{ border-color:var(--ontrack); background:color-mix(in srgb,var(--ontrack) 6%,transparent); }
+.ba-add-sm{ margin-top:0; padding:2px 8px; font-size:11px; }
+.ba-newrow{ background:color-mix(in srgb,var(--ontrack) 5%,transparent); }
+body.ba-editing .sec-head{ cursor:pointer; }
+.ba-banner{ border-radius:var(--r); padding:var(--sp4) var(--sp5); margin-bottom:var(--sp4);
+  border:1px solid color-mix(in srgb,var(--st-late) 55%,var(--ring));
+  background:color-mix(in srgb,var(--st-late) 10%,var(--surface)); box-shadow:var(--shadow); }
+.ba-banner-h{ display:flex; align-items:center; gap:9px; font-size:13.5px; font-weight:600; color:var(--ink); }
+.ba-banner-dot{ width:10px; height:10px; border-radius:50%; flex:none; background:var(--st-late); }
+.ba-banner ul{ margin:var(--sp3) 0 0; padding-left:19px; font-size:12.5px; color:var(--ink2); }
+.ba-banner li{ margin:3px 0; }
+.ba-toast{ position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(12px);
+  background:var(--ink); color:var(--plane); font-size:13px; font-weight:500; padding:11px 20px;
+  border-radius:var(--r2); box-shadow:var(--shadow); opacity:0; transition:opacity .25s, transform .25s;
+  z-index:70; pointer-events:none; }
+.ba-toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="head">
+  <div class="head-main">
+    <div class="head-id">
+      <h1>Atlas CRM Migration</h1>
+      <div class="head-sub">Contoso Financial  ·  NorthPeak Systems · Veridian Consulting</div>
+    </div>
+    <div class="verdict verdict-critical">
+      <span class="verdict-dot"></span>
+      <div class="verdict-txt"><span class="verdict-lbl">Health</span>
+        <span class="verdict-val">Off track</span></div>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><span class="stat-n">9</span><span class="stat-l">Artifacts digested</span></div>
+    <div class="stat"><span class="stat-n">7</span><span class="stat-l">Open actions</span></div>
+    <div class="stat"><span class="stat-n">5</span><span class="stat-l">Open risks</span></div>
+    <div class="stat stat-warn"><span class="stat-n">2</span><span class="stat-l">Open conflicts</span></div>
+    <div class="stat stat-stamp"><span class="stat-l">Last digest</span><span class="stat-stampv">9 Jul 2026, 16:20 UTC</span></div>
+  </div>
+</header>
+<div class="filters" role="group" aria-label="Filters">
+  <label>Workstream<select id="f-ws"><option value="all">All</option><option value="ws-infra">Environments &amp; Integration</option><option value="ws-data">Data Migration</option><option value="ws-config">CRM Configuration</option><option value="ws-uat">Testing &amp; Go-Live</option></select></label>
+  <label>Status<select id="f-status"><option value="all">All</option><option value="planned">Planned</option><option value="on-track">On track</option><option value="at-risk">At risk</option><option value="late">Late</option><option value="done">Done</option><option value="open">Open</option><option value="in-progress">In progress</option></select></label>
+  <label>Owner<select id="f-owner"><option value="all">All</option><option value="stk-rsingh">Raj Singh</option><option value="stk-dkim">David Kim</option><option value="stk-schen">Sophie Chen</option><option value="stk-agarcia">Ana Garcia</option><option value="stk-lnovak">Lena Novak</option><option value="stk-mpatel">Meera Patel</option><option value="unassigned">Unassigned</option></select></label>
+  <button id="f-reset" type="button">Reset</button>
+  <span class="f-spacer"></span>
+  <button id="x-expand" type="button" class="f-tool">Expand all</button>
+  <button id="x-collapse" type="button" class="f-tool">Collapse all</button>
+  <button id="status-report" type="button" class="f-tool">Status report</button>
+  <button id="ba-edit-btn" type="button" class="f-tool">&#9998; Edit</button>
+  <button id="x-theme" type="button" class="f-tool f-theme" aria-label="Toggle light/dark theme" title="Toggle light/dark">◐</button>
+</div>
+<section class="card hero" data-collapsed="true" data-sec="roadmap" data-scheduled="9">
+  <button class="sec-head" aria-expanded="false"><h2>Roadmap</h2>
+    <span class="chev" aria-hidden="true"></span></button>
+  <div class="sec-body">
+    <div class="legend"><span class="lg"><span class="dot mk-planned">○</span>Planned</span><span class="lg"><span class="dot mk-ontrack">●</span>On track</span><span class="lg"><span class="dot mk-atrisk">▲</span>At risk</span><span class="lg"><span class="dot mk-late">!</span>Late</span><span class="lg"><span class="dot mk-done">✓</span>Done</span></div>
+    <div class="roadmap-wrap">
+      
+      <div class="roadmap">
+        <div class="lanes-gutter" style="width:208px"><div class="lane-spacer" style="height:26px"></div><div class="lane-label" data-ws="ws-infra" style="height:44px"><span class="chip-dot" style="background:#4a3aa7"></span><span class="lane-name">Environments &amp; Integration</span></div><div class="lane-label" data-ws="ws-data" style="height:76px"><span class="chip-dot" style="background:#1baf7a"></span><span class="lane-name">Data Migration</span></div><div class="lane-label" data-ws="ws-config" style="height:44px"><span class="chip-dot" style="background:#eb6834"></span><span class="lane-name">CRM Configuration</span></div><div class="lane-label" data-ws="ws-uat" style="height:76px"><span class="chip-dot" style="background:#e87ba4"></span><span class="lane-name">Testing &amp; Go-Live</span></div></div>
+        <div class="plot-wrap"><div class="plot" style="width:1000px;height:266px">
+          <div class="grid-line" style="left:0.0px;top:26px;height:240px"></div><div class="grid-label" style="left:5.0px">May 2026</div><div class="grid-line" style="left:168.48px;top:26px;height:240px"></div><div class="grid-label" style="left:173.48px">Jun</div><div class="grid-line" style="left:331.52px;top:26px;height:240px"></div><div class="grid-label" style="left:336.52px">Jul</div><div class="grid-line" style="left:500.0px;top:26px;height:240px"></div><div class="grid-label" style="left:505.0px">Aug</div><div class="grid-line" style="left:668.48px;top:26px;height:240px"></div><div class="grid-label" style="left:673.48px">Sep</div><div class="grid-line" style="left:831.52px;top:26px;height:240px"></div><div class="grid-label" style="left:836.52px">Oct</div><div class="grid-line" style="left:1000.0px;top:26px;height:240px"></div><div class="grid-label" style="left:1005.0px">Nov</div><div class="lane-band band" data-ws="ws-infra" style="top:26px;height:44px;width:1000px"></div><div class="lane-band band-alt" data-ws="ws-data" style="top:70px;height:76px;width:1000px"></div><div class="lane-band band" data-ws="ws-config" style="top:146px;height:44px;width:1000px"></div><div class="lane-band band-alt" data-ws="ws-uat" style="top:190px;height:76px;width:1000px"></div><div class="today-line" style="left:418.48px;top:22px;height:244px"></div><div class="today-tag" style="left:423.48px">Today</div><button class="pill prov " data-ws="ws-infra" data-status="done" data-kind="ms" data-id="ms-env-provision" data-sources="art-design art-status-0612" style="left:95.76px;top:36px;min-width:223.0px" title="Dev &amp; Test environments provisioned · 20 May 2026 · Done"><span class="dot mk-done" aria-hidden="true">✓</span><span class="pill-t">Dev &amp; Test environments provi…</span></button><button class="pill prov " data-ws="ws-infra" data-status="on-track" data-kind="ms" data-id="ms-integration-api" data-sources="art-design art-steering-0708" style="left:492.5px;top:36px;min-width:210.6px" title="Core-banking API integration · 1 Aug 2026 · On track"><span class="dot mk-ontrack" aria-hidden="true">●</span><span class="pill-t">Core-banking API integration</span></button><button class="pill prov " data-ws="ws-data" data-status="done" data-kind="ms" data-id="ms-data-profiling" data-sources="art-steering-0625 art-migration-plan" style="left:258.8px;top:80px;min-width:223.0px" title="Legacy data profiling complete · 19 Jun 2026 · Done"><span class="dot mk-done" aria-hidden="true">✓</span><span class="pill-t">Legacy data profiling complete</span></button><button class="pill prov " data-ws="ws-data" data-status="at-risk" data-kind="ms" data-id="ms-migration-dryrun" data-sources="art-status-0703 art-migration-plan" style="left:416.41px;top:112px;min-width:192.0px" title="Data migration dry run #1 · 18 Jul 2026 · At risk"><span class="dot mk-atrisk" aria-hidden="true">▲</span><span class="pill-t">Data migration dry run #1</span></button><button class="pill prov " data-ws="ws-config" data-status="done" data-kind="ms" data-id="ms-brd-signoff" data-sources="art-brd art-steering-0625" style="left:182.72px;top:156px;min-width:111.4px" title="BRD sign-off · 5 Jun 2026 · Done"><span class="dot mk-done" aria-hidden="true">✓</span><span class="pill-t">BRD sign-off</span></button><button class="pill prov " data-ws="ws-config" data-status="late" data-kind="ms" data-id="ms-config-sprint1" data-sources="art-status-0703 art-steering-0708" style="left:334.89px;top:156px;min-width:216.8px" title="Config sprint 1 — accounts &amp; contacts · 3 Jul 2026 · Late"><span class="dot mk-late" aria-hidden="true">!</span><span class="pill-t">Config sprint 1 — accounts &amp;…</span></button><button class="pill prov " data-ws="ws-config" data-status="on-track" data-kind="ms" data-id="ms-config-sprint2" data-sources="art-steering-0625 art-steering-0708" style="left:568.59px;top:156px;min-width:216.8px" title="Config sprint 2 — pipeline &amp; reporting · 15 Aug 2026 · On track"><span class="dot mk-ontrack" aria-hidden="true">●</span><span class="pill-t">Config sprint 2 — pipeline &amp;…</span></button><button class="pill prov flip" data-ws="ws-uat" data-status="planned" data-kind="ms" data-id="ms-uat-start" data-sources="art-kickoff art-steering-0708" style="left:615.02px;top:200px;min-width:99.0px" title="UAT begins · 8 Sep 2026 · Planned"><span class="dot mk-planned" aria-hidden="true">○</span><span class="pill-t">UAT begins</span></button><button class="pill prov flip" data-ws="ws-uat" data-status="planned" data-kind="ms" data-id="ms-golive" data-sources="art-steering-0708 art-migration-plan" style="left:712.16px;top:232px;min-width:148.6px" title="Production go-live · 5 Oct 2026 · Planned"><span class="dot mk-planned" aria-hidden="true">○</span><span class="pill-t">Production go-live</span></button>
+        </div></div>
+      </div>
+      <div class="unsched"><span class="unsched-lbl">Unscheduled</span><div class="unsched-pills"><button class="pill prov" data-ws="ws-uat" data-status="planned" data-kind="ms" data-id="ms-training" data-sources="art-steering-0708" title="End-user training · Planned"><span class="dot mk-planned" aria-hidden="true">○</span><span class="pill-t">End-user training</span></button></div></div>
+      <div class="roadmap-empty filter-empty" hidden>No milestones match the current filter.</div>
+    </div>
+  </div>
+</section>
+<section class="card" data-collapsed="true" data-sec="whatchanged">
+  <button class="sec-head" aria-expanded="false"><h2>What changed</h2>
+    <span class="chev" aria-hidden="true"></span></button>
+  <div class="sec-body">
+    <div class="wc-range" role="group" aria-label="Change range">
+      <button class="wc-r active" type="button" data-range="digest">Since last digest</button>
+      <button class="wc-r" type="button" data-range="7">7 days</button>
+      <button class="wc-r" type="button" data-range="30">30 days</button>
+    </div>
+    <div class="wc-list" id="wc-list"></div>
+  </div>
+</section>
+<section class="card" data-collapsed="true" data-sec="milestones">
+  <button class="sec-head" aria-expanded="false"><h2>Milestones</h2><span class="count">10</span>
+    <span class="chev" aria-hidden="true"></span></button>
+  <div class="sec-body"><table class="grid"><thead><tr><th>Milestone</th><th>Workstream</th><th class="num">Due</th><th>Status</th></tr></thead><tbody><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-infra" data-status="done" data-id="ms-env-provision" data-sources="art-design art-status-0612"><td data-ef="title">Dev &amp; Test environments provisioned</td><td><span class="chip"><span class="chip-dot" style="background:#4a3aa7"></span>Environments &amp; Integration</span></td><td class="num" data-ef="due" data-edate="1">20 May 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-done"><span class="dot mk-done">✓</span>Done</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-config" data-status="done" data-id="ms-brd-signoff" data-sources="art-brd art-steering-0625"><td data-ef="title">BRD sign-off</td><td><span class="chip"><span class="chip-dot" style="background:#eb6834"></span>CRM Configuration</span></td><td class="num" data-ef="due" data-edate="1">5 Jun 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-done"><span class="dot mk-done">✓</span>Done</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-data" data-status="done" data-id="ms-data-profiling" data-sources="art-steering-0625 art-migration-plan"><td data-ef="title">Legacy data profiling complete</td><td><span class="chip"><span class="chip-dot" style="background:#1baf7a"></span>Data Migration</span></td><td class="num" data-ef="due" data-edate="1">19 Jun 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-done"><span class="dot mk-done">✓</span>Done</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-config" data-status="late" data-id="ms-config-sprint1" data-sources="art-status-0703 art-steering-0708"><td data-ef="title">Config sprint 1 — accounts &amp; contacts</td><td><span class="chip"><span class="chip-dot" style="background:#eb6834"></span>CRM Configuration</span></td><td class="num" data-ef="due" data-edate="1">3 Jul 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-late"><span class="dot mk-late">!</span>Late</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-data" data-status="at-risk" data-id="ms-migration-dryrun" data-sources="art-status-0703 art-migration-plan"><td data-ef="title">Data migration dry run #1</td><td><span class="chip"><span class="chip-dot" style="background:#1baf7a"></span>Data Migration</span></td><td class="num" data-ef="due" data-edate="1">18 Jul 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-atrisk"><span class="dot mk-atrisk">▲</span>At risk</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-infra" data-status="on-track" data-id="ms-integration-api" data-sources="art-design art-steering-0708"><td data-ef="title">Core-banking API integration</td><td><span class="chip"><span class="chip-dot" style="background:#4a3aa7"></span>Environments &amp; Integration</span></td><td class="num" data-ef="due" data-edate="1">1 Aug 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-ontrack"><span class="dot mk-ontrack">●</span>On track</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-config" data-status="on-track" data-id="ms-config-sprint2" data-sources="art-steering-0625 art-steering-0708"><td data-ef="title">Config sprint 2 — pipeline &amp; reporting</td><td><span class="chip"><span class="chip-dot" style="background:#eb6834"></span>CRM Configuration</span></td><td class="num" data-ef="due" data-edate="1">15 Aug 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-ontrack"><span class="dot mk-ontrack">●</span>On track</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-uat" data-status="planned" data-id="ms-uat-start" data-sources="art-kickoff art-steering-0708"><td data-ef="title">UAT begins</td><td><span class="chip"><span class="chip-dot" style="background:#e87ba4"></span>Testing &amp; Go-Live</span></td><td class="num" data-ef="due" data-edate="1">8 Sep 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-planned"><span class="dot mk-planned">○</span>Planned</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-uat" data-status="planned" data-id="ms-golive" data-sources="art-steering-0708 art-migration-plan"><td data-ef="title">Production go-live</td><td><span class="chip"><span class="chip-dot" style="background:#e87ba4"></span>Testing &amp; Go-Live</span></td><td class="num" data-ef="due" data-edate="1">5 Oct 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-planned"><span class="dot mk-planned">○</span>Planned</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-uat" data-status="planned" data-id="ms-training" data-sources="art-steering-0708"><td data-ef="title">End-user training</td><td><span class="chip"><span class="chip-dot" style="background:#e87ba4"></span>Testing &amp; Go-Live</span></td><td class="num" data-ef="due" data-edate="1">—</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-planned"><span class="dot mk-planned">○</span>Planned</span></td></tr></tbody></table><p class="empty filter-empty" hidden>No milestones match the current filter.</p></div>
+</section>
+<section class="card" data-collapsed="true" data-sec="action-items">
+  <button class="sec-head" aria-expanded="false"><h2>Action items</h2><span class="count">10</span>
+    <span class="chev" aria-hidden="true"></span></button>
+  <div class="sec-body"><table class="grid"><thead><tr><th>Action</th><th>Owner</th><th class="num">Due</th><th>Status</th></tr></thead><tbody><tr class="prov" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-dkim" data-status="done" data-id="act-provision-test" data-sources="art-design art-status-0612"><td data-ef="title">Provision Dynamics test environment</td><td>David Kim</td><td class="num" data-ef="due" data-edate="1">20 May 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-done">Done</span></td></tr><tr class="prov" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-rsingh" data-status="done" data-id="act-finalize-brd" data-sources="art-brd"><td data-ef="title">Finalize BRD and secure sign-off</td><td>Raj Singh</td><td class="num" data-ef="due" data-edate="1">5 Jun 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-done">Done</span></td></tr><tr class="prov" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-schen" data-status="done" data-id="act-profile-legacy" data-sources="art-steering-0625 art-migration-plan"><td data-ef="title">Profile legacy CRM data quality</td><td>Sophie Chen</td><td class="num" data-ef="due" data-edate="1">18 Jun 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-done">Done</span></td></tr><tr class="prov row-overdue" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-agarcia" data-status="in-progress" data-id="act-config-accounts" data-sources="art-status-0703"><td data-ef="title">Complete accounts &amp; contacts configuration<span class="badge overdue">Overdue</span></td><td>Ana Garcia</td><td class="num" data-ef="due" data-edate="1">3 Jul 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-in-progress">In progress</span></td></tr><tr class="prov row-overdue" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-lnovak" data-status="in-progress" data-id="act-fix-dq-issues" data-sources="art-status-0703 art-migration-plan"><td data-ef="title">Remediate 12,400 duplicate customer records<span class="badge overdue">Overdue</span></td><td>Lena Novak</td><td class="num" data-ef="due" data-edate="1">9 Jul 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-in-progress">In progress</span></td></tr><tr class="prov row-overdue" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-mpatel" data-status="open" data-id="act-revise-plan" data-sources="art-steering-0708"><td data-ef="title">Circulate revised project plan to steering committee<span class="badge overdue">Overdue</span></td><td>Meera Patel</td><td class="num" data-ef="due" data-edate="1">14 Jul 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-open">Open</span></td></tr><tr class="prov row-overdue" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-schen" data-status="in-progress" data-id="act-dryrun-prep" data-sources="art-migration-plan"><td data-ef="title">Prepare migration dry-run dataset<span class="badge overdue">Overdue</span></td><td>Sophie Chen</td><td class="num" data-ef="due" data-edate="1">15 Jul 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-in-progress">In progress</span></td></tr><tr class="prov" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-mpatel" data-status="open" data-id="act-api-credentials" data-sources="art-steering-0708"><td data-ef="title">Provide core-banking API sandbox credentials</td><td>Meera Patel</td><td class="num" data-ef="due" data-edate="1">20 Jul 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-open">Open</span></td></tr><tr class="prov" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-rsingh" data-status="open" data-id="act-uat-plan" data-sources="art-steering-0708"><td data-ef="title">Draft UAT test plan and entry criteria</td><td>Raj Singh</td><td class="num" data-ef="due" data-edate="1">10 Aug 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-open">Open</span></td></tr><tr class="prov" tabindex="0" data-kind="act" data-eitem="actions" data-owner="unassigned" data-status="open" data-id="act-training-schedule" data-sources="art-steering-0708"><td data-ef="title">Schedule end-user training sessions</td><td>Unassigned</td><td class="num" data-ef="due" data-edate="1">—</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-open">Open</span></td></tr></tbody></table><p class="empty filter-empty" hidden>No actions match the current filter.</p></div>
+</section>
+<section class="card" data-collapsed="true" data-sec="raid-risks-issues-depend">
+  <button class="sec-head" aria-expanded="false"><h2>RAID — risks, issues &amp; dependencies</h2>
+    <span class="chev" aria-hidden="true"></span></button>
+  <div class="sec-body"><div class="raid-grid"><div class="raid-col"><h3>Risks<span class="count">5</span></h3><div class="raid-item prov" tabindex="0" data-kind="raid" data-eitem="risks" data-id="risk-data-quality" data-sources="art-steering-0625 art-migration-plan art-status-0703"><div class="raid-top"><span data-ef="severity" data-eenum="risk.severity"><span class="sev sev-critical">Critical</span></span><span class="raid-status" data-ef="status" data-eenum="risk.status">open</span></div><div class="raid-title" data-ef="title">Legacy data quality far worse than assumed (duplicates, missing fields)</div><div class="mit" data-ef="mitigation">Dedicated remediation sprint; Veridian dedup tooling; profiling report driving cleanup.</div><div class="raid-meta"><span class="meta">Likelihood: <span data-ef="likelihood" data-eenum="risk.likelihood">high</span></span></div></div><div class="raid-item prov" tabindex="0" data-kind="raid" data-eitem="risks" data-id="risk-api-access" data-sources="art-steering-0708"><div class="raid-top"><span data-ef="severity" data-eenum="risk.severity"><span class="sev sev-high">High</span></span><span class="raid-status" data-ef="status" data-eenum="risk.status">open</span></div><div class="raid-title" data-ef="title">Core-banking API sandbox access delayed by Contoso security review</div><div class="mit" data-ef="mitigation">Escalated to sponsor; provisional mock endpoint for early build.</div><div class="raid-meta"><span class="meta">Likelihood: <span data-ef="likelihood" data-eenum="risk.likelihood">medium</span></span></div></div><div class="raid-item prov" tabindex="0" data-kind="raid" data-eitem="risks" data-id="risk-uat-window" data-sources="art-steering-0708"><div class="raid-top"><span data-ef="severity" data-eenum="risk.severity"><span class="sev sev-high">High</span></span><span class="raid-status" data-ef="status" data-eenum="risk.status">open</span></div><div class="raid-title" data-ef="title">Compressed UAT window threatens go-live quality</div><div class="mit" data-ef="mitigation">UAT shifted to 8 Sep; entry criteria being defined up front.</div><div class="raid-meta"><span class="meta">Likelihood: <span data-ef="likelihood" data-eenum="risk.likelihood">medium</span></span></div></div><div class="raid-item prov" tabindex="0" data-kind="raid" data-eitem="risks" data-id="risk-config-capacity" data-sources="art-status-0703"><div class="raid-top"><span data-ef="severity" data-eenum="risk.severity"><span class="sev sev-medium">Medium</span></span><span class="raid-status" data-ef="status" data-eenum="risk.status">mitigating</span></div><div class="raid-title" data-ef="title">NorthPeak configuration team under-staffed for sprint 2</div><div class="mit" data-ef="mitigation">Additional configurator being onboarded for August.</div><div class="raid-meta"><span class="meta">Likelihood: <span data-ef="likelihood" data-eenum="risk.likelihood">medium</span></span></div></div><div class="raid-item prov" tabindex="0" data-kind="raid" data-eitem="risks" data-id="risk-scope-reporting" data-sources="art-steering-0625"><div class="raid-top"><span data-ef="severity" data-eenum="risk.severity"><span class="sev sev-medium">Medium</span></span><span class="raid-status" data-ef="status" data-eenum="risk.status">mitigating</span></div><div class="raid-title" data-ef="title">Reporting requirements expanding beyond phase 1 scope</div><div class="mit" data-ef="mitigation">Advanced analytics formally deferred to phase 2.</div><div class="raid-meta"><span class="meta">Likelihood: <span data-ef="likelihood" data-eenum="risk.likelihood">low</span></span></div></div></div><div class="raid-col"><h3>Issues<span class="count">2</span></h3><div class="raid-item prov" tabindex="0" data-kind="raid" data-eitem="issues" data-id="iss-duplicate-records" data-sources="art-status-0703 art-migration-plan"><div class="raid-top"><span data-ef="severity" data-eenum="issue.severity"><span class="sev sev-high">High</span></span><span class="raid-status" data-ef="status" data-eenum="issue.status">open</span></div><div class="raid-title" data-ef="title">12,400 duplicate customer records in the legacy extract</div><div class="mit" data-ef="mitigation">Dedup rules defined; remediation in progress under Veridian.</div><div class="raid-meta"></div></div><div class="raid-item prov" tabindex="0" data-kind="raid" data-eitem="issues" data-id="iss-env-latency" data-sources="art-status-0612"><div class="raid-top"><span data-ef="severity" data-eenum="issue.severity"><span class="sev sev-low">Low</span></span><span class="raid-status" data-ef="status" data-eenum="issue.status">resolved</span></div><div class="raid-title" data-ef="title">Test-environment latency during large batch loads</div><div class="mit" data-ef="mitigation">NorthPeak retuned the batch window; acceptable in retest.</div><div class="raid-meta"></div></div></div><div class="raid-col"><h3>Dependencies<span class="count">2</span></h3><div class="raid-item prov" tabindex="0" data-kind="raid" data-id="dep-api-creds" data-sources="art-steering-0708"><div class="raid-top"><span class="raid-status">open</span></div><div class="raid-title">Integration build blocked on core-banking API sandbox credentials</div><div class="mit">On: Contoso IT security approval</div><div class="raid-meta"><span class="meta">Needed by: 20 Jul 2026</span></div></div><div class="raid-item prov" tabindex="0" data-kind="raid" data-id="dep-remediated-extract" data-sources="art-migration-plan"><div class="raid-top"><span class="raid-status">open</span></div><div class="raid-title">Migration dry run depends on the remediated data extract</div><div class="mit">On: Data remediation (Veridian)</div><div class="raid-meta"><span class="meta">Needed by: 15 Jul 2026</span></div></div></div></div></div>
+</section>
+<section class="card" data-collapsed="true" data-sec="decisions-log">
+  <button class="sec-head" aria-expanded="false"><h2>Decisions log</h2><span class="count">6</span>
+    <span class="chev" aria-hidden="true"></span></button>
+  <div class="sec-body"><ul class="d-log"><li class="d-item prov" tabindex="0" data-kind="dec" data-eitem="decisions" data-id="dec-2026-07-08-phased-cutover" data-sources="art-steering-0708"><div class="d-date num" data-ef="date" data-edate="1">8 Jul 2026</div><div class="d-body"><div class="d-sum" data-ef="summary">Adopt a phased regional cutover instead of a single big-bang cutover.</div><div class="d-rat" data-ef="rationale">Reduces go-live blast radius given unresolved data-quality issues.</div></div></li><li class="d-item prov" tabindex="0" data-kind="dec" data-eitem="decisions" data-id="dec-2026-07-08-uat-shift" data-sources="art-steering-0708"><div class="d-date num" data-ef="date" data-edate="1">8 Jul 2026</div><div class="d-body"><div class="d-sum" data-ef="summary">Shift UAT start to 8 September to absorb the config sprint 1 slip.</div><div class="d-rat" data-ef="rationale">Preserves a realistic UAT window rather than compressing testing.</div></div></li><li class="d-item prov" tabindex="0" data-kind="dec" data-eitem="decisions" data-id="dec-2026-06-25-defer-analytics" data-sources="art-steering-0625"><div class="d-date num" data-ef="date" data-edate="1">25 Jun 2026</div><div class="d-body"><div class="d-sum" data-ef="summary">Defer advanced analytics &amp; reporting to phase 2.</div><div class="d-rat" data-ef="rationale">Protects the go-live date; core pipeline reporting is sufficient for launch.</div></div></li><li class="d-item prov" tabindex="0" data-kind="dec" data-eitem="decisions" data-id="dec-2026-06-01-integration-pattern" data-sources="art-design"><div class="d-date num" data-ef="date" data-edate="1">1 Jun 2026</div><div class="d-body"><div class="d-sum" data-ef="summary">Integrate to the core-banking system via nightly batch API rather than real-time.</div><div class="d-rat" data-ef="rationale">Real-time was disproportionate to need and raised the security-review burden.</div></div></li><li class="d-item prov" tabindex="0" data-kind="dec" data-eitem="decisions" data-id="dec-2026-05-15-platform" data-sources="art-brd"><div class="d-date num" data-ef="date" data-edate="1">15 May 2026</div><div class="d-body"><div class="d-sum" data-ef="summary">Target platform confirmed as Microsoft Dynamics 365 Sales.</div><div class="d-rat" data-ef="rationale">Aligns with Contoso&#x27;s existing M365 tenant and licensing.</div></div></li><li class="d-item prov" tabindex="0" data-kind="dec" data-eitem="decisions" data-id="dec-2026-05-02-vendor-split" data-sources="art-kickoff"><div class="d-date num" data-ef="date" data-edate="1">2 May 2026</div><div class="d-body"><div class="d-sum" data-ef="summary">Split delivery — NorthPeak owns configuration &amp; integration, Veridian owns data migration.</div><div class="d-rat" data-ef="rationale">Plays to each vendor&#x27;s strength and isolates the data-migration risk under a specialist.</div></div></li></ul></div>
+</section>
+<section class="card" data-collapsed="true" data-sec="requirements-use-cases">
+  <button class="sec-head" aria-expanded="false"><h2>Requirements &amp; use cases</h2><span class="count">7</span>
+    <span class="chev" aria-hidden="true"></span></button>
+  <div class="sec-body"><div class="rx-bar"><button class="rx-btn" id="req-export-btn" type="button" aria-haspopup="true" aria-expanded="false">Export .feature<span class="rx-caret" aria-hidden="true"></span></button><div class="rx-menu" id="req-export-menu" hidden></div></div><div class="req-group"><h3>Functional<span class="count">3</span></h3><ul class="req-list"><li class="req prov" tabindex="0" data-kind="req" data-eitem="requirements" data-id="req-acct-360" data-sources="art-brd"><div class="req-head"><span class="req-title" data-ef="title">360-degree customer account view</span><span class="req-head-right"><span class="sc-chip">2 scenarios</span><span class="pipe pipe-approved" data-ef="status" data-eenum="requirement.status">approved</span></span></div><div class="req-detail" data-ef="detail">Consolidated view of accounts, contacts, products held and recent interactions.</div><div class="sc-list"><div class="sc prov" tabindex="0" data-kind="sc" data-id="sc-acct360-view" data-sources="art-bdd"><div class="sc-head"><span class="sc-title">RM opens a customer with products across the group</span><span class="sc-tag sc-passing">Passing</span></div><div class="gwt"><div class="gwt-row"><span class="gwt-kw">Given</span><span class="gwt-clause">a relationship manager is signed in</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">the customer Northwind Traders exists in core banking</span></div><div class="gwt-row"><span class="gwt-kw">When</span><span class="gwt-clause">they open the customer account page</span></div><div class="gwt-row"><span class="gwt-kw">Then</span><span class="gwt-clause">the 360 view shows accounts, contacts and products held</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">interactions from the last 90 days are listed</span></div></div></div><div class="sc prov" tabindex="0" data-kind="sc" data-id="sc-acct360-empty" data-sources="art-bdd"><div class="sc-head"><span class="sc-title">Customer with no linked banking products</span><span class="sc-tag sc-implemented">Implemented</span></div><div class="gwt"><div class="gwt-row"><span class="gwt-kw">Given</span><span class="gwt-clause">a relationship manager is signed in</span></div><div class="gwt-row"><span class="gwt-kw">When</span><span class="gwt-clause">they open an account that has no linked products</span></div><div class="gwt-row"><span class="gwt-kw">Then</span><span class="gwt-clause">the products panel shows an empty-state message</span></div></div></div></div></li><li class="req prov" tabindex="0" data-kind="req" data-eitem="requirements" data-id="req-pipeline" data-sources="art-brd"><div class="req-head"><span class="req-title" data-ef="title">Sales pipeline &amp; opportunity management</span><span class="req-head-right"><span class="pipe pipe-approved" data-ef="status" data-eenum="requirement.status">approved</span></span></div><div class="req-detail" data-ef="detail">Stage-based pipeline with forecasting for relationship managers.</div></li><li class="req prov" tabindex="0" data-kind="req" data-eitem="requirements" data-id="req-batch-sync" data-sources="art-brd art-design"><div class="req-head"><span class="req-title" data-ef="title">Nightly batch synchronisation with core-banking</span><span class="req-head-right"><span class="sc-chip">2 scenarios</span><span class="pipe pipe-in-review" data-ef="status" data-eenum="requirement.status">in review</span></span></div><div class="req-detail" data-ef="detail">Overnight sync of account balances and product holdings via batch API.</div><div class="sc-list"><div class="sc prov" tabindex="0" data-kind="sc" data-id="sc-batch-nightly" data-sources="art-bdd"><div class="sc-head"><span class="sc-title">Nightly sync reconciles balances and holdings</span><span class="sc-tag sc-agreed">Agreed</span></div><div class="gwt"><div class="gwt-row"><span class="gwt-kw">Given</span><span class="gwt-clause">the nightly batch window has opened</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">core-banking has published the daily balance file</span></div><div class="gwt-row"><span class="gwt-kw">When</span><span class="gwt-clause">the synchronisation job runs</span></div><div class="gwt-row"><span class="gwt-kw">Then</span><span class="gwt-clause">account balances in the CRM match core banking</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">product holdings are updated</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">a sync summary is written to the audit log</span></div></div></div><div class="sc prov" tabindex="0" data-kind="sc" data-id="sc-batch-failure" data-sources="art-bdd"><div class="sc-head"><span class="sc-title">Sync retries when the core-banking sandbox is unreachable</span><span class="sc-tag sc-failing">Failing</span></div><div class="gwt"><div class="gwt-row"><span class="gwt-kw">Given</span><span class="gwt-clause">the nightly batch window has opened</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">the core-banking API sandbox is unreachable</span></div><div class="gwt-row"><span class="gwt-kw">When</span><span class="gwt-clause">the synchronisation job runs</span></div><div class="gwt-row"><span class="gwt-kw">Then</span><span class="gwt-clause">the job retries three times</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">an alert is raised to the integration team</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">the previous balances are retained</span></div></div></div></div></li></ul></div><div class="req-group"><h3>Non-functional<span class="count">2</span></h3><ul class="req-list"><li class="req prov" tabindex="0" data-kind="req" data-eitem="requirements" data-id="req-rbac" data-sources="art-brd art-steering-0708"><div class="req-head"><span class="req-title" data-ef="title">Role-based access control aligned to Contoso security policy</span><span class="req-head-right"><span class="pipe pipe-approved" data-ef="status" data-eenum="requirement.status">approved</span></span></div><div class="req-detail" data-ef="detail">MFA for all users; least-privilege roles mapped to Contoso&#x27;s IAM standard.</div></li><li class="req prov" tabindex="0" data-kind="req" data-eitem="requirements" data-id="req-perf" data-sources="art-design"><div class="req-head"><span class="req-title" data-ef="title">Account view loads in under 3 seconds at 50k accounts</span><span class="req-head-right"><span class="pipe pipe-proposed" data-ef="status" data-eenum="requirement.status">proposed</span></span></div><div class="req-detail" data-ef="detail">Performance target for the primary relationship-manager view.</div></li></ul></div><div class="req-group"><h3>Use cases<span class="count">2</span></h3><ul class="req-list"><li class="req prov" tabindex="0" data-kind="req" data-eitem="requirements" data-id="uc-onboard-customer" data-sources="art-brd"><div class="req-head"><span class="req-title" data-ef="title">Relationship manager onboards a new corporate customer</span><span class="req-head-right"><span class="sc-chip">2 scenarios</span><span class="pipe pipe-approved" data-ef="status" data-eenum="requirement.status">approved</span></span></div><div class="req-detail" data-ef="detail">RM captures the customer, links banking products, and creates an onboarding opportunity.</div><div class="sc-list"><div class="sc prov" tabindex="0" data-kind="sc" data-id="sc-onboard-corp" data-sources="art-bdd"><div class="sc-head"><span class="sc-title">Onboard a new corporate customer with product linkage</span><span class="sc-tag sc-agreed">Agreed</span></div><div class="gwt"><div class="gwt-row"><span class="gwt-kw">Given</span><span class="gwt-clause">a relationship manager is signed in</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">the customer does not yet exist in the CRM</span></div><div class="gwt-row"><span class="gwt-kw">When</span><span class="gwt-clause">they create a new corporate customer</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">they link the customer&#x27;s banking products</span></div><div class="gwt-row"><span class="gwt-kw">Then</span><span class="gwt-clause">an onboarding opportunity is created</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">a KYC review task is assigned to the RM</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">the customer appears in the RM&#x27;s book of business</span></div></div></div><div class="sc prov" tabindex="0" data-kind="sc" data-id="sc-onboard-existing" data-sources="art-steering-0708"><div class="sc-head"><span class="sc-title">Prospect already holds a mortgage in core banking</span><span class="sc-tag sc-draft">Draft</span></div><div class="gwt"><div class="gwt-row"><span class="gwt-kw">Given</span><span class="gwt-clause">a relationship manager is signed in</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">the prospect already holds a mortgage in core banking</span></div><div class="gwt-row"><span class="gwt-kw">When</span><span class="gwt-clause">they start onboarding the prospect</span></div><div class="gwt-row"><span class="gwt-kw">Then</span><span class="gwt-clause">the existing mortgage is surfaced automatically</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">the RM is prompted to confirm the linkage</span></div></div></div></div></li><li class="req prov" tabindex="0" data-kind="req" data-eitem="requirements" data-id="uc-migrate-book" data-sources="art-migration-plan"><div class="req-head"><span class="req-title" data-ef="title">Migrate a relationship manager&#x27;s existing book of business</span><span class="req-head-right"><span class="pipe pipe-in-review" data-ef="status" data-eenum="requirement.status">in review</span></span></div><div class="req-detail" data-ef="detail">Bulk-migrate an RM&#x27;s accounts, contacts and open opportunities with data lineage preserved.</div></li></ul></div></div>
+</section>
+<section class="card" data-collapsed="true" data-sec="userstories" id="ba-us-sec" hidden>
+  <button class="sec-head" aria-expanded="false"><h2>User stories</h2><span class="count" id="ba-us-count">0</span>
+    <span class="chev" aria-hidden="true"></span></button>
+  <div class="sec-body"><div id="ba-us-body"></div></div>
+</section>
+<section class="card" data-collapsed="true" data-sec="rtm" id="ba-rtm-sec" hidden>
+  <button class="sec-head" aria-expanded="false"><h2>Traceability (RTM)</h2>
+    <span class="chev" aria-hidden="true"></span></button>
+  <div class="sec-body"><div id="ba-rtm-body"></div></div>
+</section>
+<section class="card" data-collapsed="true" data-sec="open-questions">
+  <button class="sec-head" aria-expanded="false"><h2>Open questions</h2><span class="count">4</span>
+    <span class="chev" aria-hidden="true"></span></button>
+  <div class="sec-body"><ul class="q-list"><li class="q-item prov" tabindex="0" data-kind="oq" data-eitem="openQuestions" data-id="oq-data-retention" data-sources="art-design"><div class="q-head"><span class="q-badge q-open" data-ef="status" data-eenum="question.status">Open</span><span class="q-text" data-ef="question">What is the data-retention policy for migrated closed accounts?</span></div><div class="q-meta">Raised by Ana Garcia · 1 Jun 2026</div></li><li class="q-item prov" tabindex="0" data-kind="oq" data-eitem="openQuestions" data-id="oq-mfa-scope" data-sources="art-steering-0625 art-steering-0708"><div class="q-head"><span class="q-badge q-answered" data-ef="status" data-eenum="question.status">Answered</span><span class="q-text" data-ef="question">Is MFA required for all CRM users or only privileged roles?</span></div><div class="q-meta">Raised by David Kim · 25 Jun 2026</div><div class="q-ans">All users — confirmed at steering committee on 8 July.</div></li><li class="q-item prov" tabindex="0" data-kind="oq" data-eitem="openQuestions" data-id="oq-cutover-window" data-sources="art-steering-0708 art-migration-plan"><div class="q-head"><span class="q-badge q-open" data-ef="status" data-eenum="question.status">Open</span><span class="q-text" data-ef="question">What production cutover downtime window is acceptable to the business?</span></div><div class="q-meta">Raised by Lena Novak · 8 Jul 2026</div></li><li class="q-item prov" tabindex="0" data-kind="oq" data-eitem="openQuestions" data-id="oq-reassign-threshold" data-sources="art-steering-0708"><div class="q-head"><span class="q-badge q-open" data-ef="status" data-eenum="question.status">Open</span><span class="q-text" data-ef="question">What approval threshold applies to bulk reassignments above 500 accounts?</span></div><div class="q-meta">Raised by Ana Garcia · 8 Jul 2026</div></li></ul></div>
+</section>
+<section class="card cf-card" data-collapsed="true" data-sec="conflicts">
+  <button class="sec-head" aria-expanded="false"><h2>Conflicts</h2>
+    <span class="count">2</span><span class="chev" aria-hidden="true"></span></button>
+  <div class="sec-body"><div class="cf-banner">2 open conflicts need review</div><ul class="cf-list"><li class="cf-item prov" tabindex="0" data-kind="cf" data-id="cf-uat-date" data-sources="art-kickoff art-steering-0708"><div class="cf-about">UAT start date</div><div class="cf-cols"><div class="cf-was"><span class="cf-lbl">Was</span>24 August 2026 (kickoff plan)<span class="cf-src">transcript · 2 May 2026</span></div><div class="cf-arrow" aria-hidden="true">→</div><div class="cf-now"><span class="cf-lbl">Now</span>8 September 2026 (steering committee, 8 July)<span class="cf-src">transcript · 8 Jul 2026</span></div></div></li><li class="cf-item prov" tabindex="0" data-kind="cf" data-id="cf-cutover-approach" data-sources="art-brd art-steering-0708"><div class="cf-about">Production cutover approach</div><div class="cf-cols"><div class="cf-was"><span class="cf-lbl">Was</span>Single big-bang cutover (BRD)<span class="cf-src">brd · 15 May 2026</span></div><div class="cf-arrow" aria-hidden="true">→</div><div class="cf-now"><span class="cf-lbl">Now</span>Phased regional cutover (steering committee, 8 July)<span class="cf-src">transcript · 8 Jul 2026</span></div></div></li></ul></div>
+</section>
+
+<section class="card" data-collapsed="true" data-sec="artifact-feed">
+  <button class="sec-head" aria-expanded="false"><h2>Artifact feed</h2><span class="count">9</span>
+    <span class="chev" aria-hidden="true"></span></button>
+  <div class="sec-body"><ul class="art-feed"><li class="art-item" data-id="art-bdd"><span class="art-type type-bdd">bdd</span><div class="art-body"><div class="art-file">2026-07-09-bdd-crm-scenarios.feature</div><div class="art-one">Imported BDD/Gherkin spec — agreed acceptance scenarios for account view, batch sync and onboarding.</div></div><div class="art-date num">9 Jul 2026</div></li><li class="art-item" data-id="art-steering-0708"><span class="art-type type-transcript">transcript</span><div class="art-body"><div class="art-file">2026-07-08-transcript-steering-committee-2.vtt</div><div class="art-one">Steering committee #2 — UAT moved to 8 Sep, phased cutover adopted, MFA scope confirmed.</div></div><div class="art-date num">8 Jul 2026</div></li><li class="art-item" data-id="art-migration-plan"><span class="art-type type-design-doc">design-doc</span><div class="art-body"><div class="art-file">2026-07-06-design-doc-migration-plan.pdf</div><div class="art-one">Veridian data-migration plan &amp; runbook — dry-run approach and remediation.</div></div><div class="art-date num">6 Jul 2026</div></li><li class="art-item" data-id="art-status-0703"><span class="art-type type-email">email</span><div class="art-body"><div class="art-file">2026-07-03-email-weekly-status.txt</div><div class="art-one">Weekly status — sprint 1 slipped, dry run at risk, data quality escalated.</div></div><div class="art-date num">3 Jul 2026</div></li><li class="art-item" data-id="art-steering-0625"><span class="art-type type-transcript">transcript</span><div class="art-body"><div class="art-file">2026-06-25-transcript-steering-committee-1.vtt</div><div class="art-one">Steering committee #1 — profiling complete, risks reviewed, analytics deferred.</div></div><div class="art-date num">25 Jun 2026</div></li><li class="art-item" data-id="art-status-0612"><span class="art-type type-email">email</span><div class="art-body"><div class="art-file">2026-06-12-email-weekly-status.txt</div><div class="art-one">Weekly status — environments live, profiling underway, sprint 1 starting.</div></div><div class="art-date num">12 Jun 2026</div></li><li class="art-item" data-id="art-design"><span class="art-type type-design-doc">design-doc</span><div class="art-body"><div class="art-file">2026-06-01-design-doc-solution-architecture.pdf</div><div class="art-one">Solution design — environments, integration pattern and data model.</div></div><div class="art-date num">1 Jun 2026</div></li><li class="art-item" data-id="art-brd"><span class="art-type type-brd">brd</span><div class="art-body"><div class="art-file">2026-05-15-brd-atlas-requirements-v1.docx</div><div class="art-one">Business Requirements Document v1.0 — functional, non-functional and use-case requirements.</div></div><div class="art-date num">15 May 2026</div></li><li class="art-item" data-id="art-kickoff"><span class="art-type type-transcript">transcript</span><div class="art-body"><div class="art-file">2026-05-02-transcript-kickoff.txt</div><div class="art-one">Project kickoff — scope, vendor split, teams and initial timeline agreed.</div></div><div class="art-date num">2 May 2026</div></li></ul></div>
+</section>
+<section class="card" data-collapsed="true" data-sec="team-stakeholders">
+  <button class="sec-head" aria-expanded="false"><h2>Team &amp; stakeholders</h2><span class="count">8</span>
+    <span class="chev" aria-hidden="true"></span></button>
+  <div class="sec-body"><div class="stk-grid"><div class="stk-org"><h3>Contoso Financial<span class="count">3</span></h3><ul class="stk-list"><li class="stk prov" tabindex="0" data-kind="stk" data-id="stk-jchen" data-sources="art-kickoff"><span class="stk-name">Jordan Chen</span><span class="stk-role">Program Sponsor</span></li><li class="stk prov" tabindex="0" data-kind="stk" data-id="stk-mpatel" data-sources="art-kickoff art-steering-0708"><span class="stk-name">Meera Patel</span><span class="stk-role">Project Manager</span></li><li class="stk prov" tabindex="0" data-kind="stk" data-id="stk-rsingh" data-sources="art-kickoff art-brd"><span class="stk-name">Raj Singh</span><span class="stk-role">CRM Product Owner</span></li></ul></div><div class="stk-org"><h3>NorthPeak Systems<span class="count">3</span></h3><ul class="stk-list"><li class="stk prov" tabindex="0" data-kind="stk" data-id="stk-twolfe" data-sources="art-kickoff"><span class="stk-name">Tom Wolfe</span><span class="stk-role">Engagement Lead</span></li><li class="stk prov" tabindex="0" data-kind="stk" data-id="stk-agarcia" data-sources="art-kickoff art-design"><span class="stk-name">Ana Garcia</span><span class="stk-role">Solution Architect</span></li><li class="stk prov" tabindex="0" data-kind="stk" data-id="stk-dkim" data-sources="art-design"><span class="stk-name">David Kim</span><span class="stk-role">Integration Engineer</span></li></ul></div><div class="stk-org"><h3>Veridian Consulting<span class="count">2</span></h3><ul class="stk-list"><li class="stk prov" tabindex="0" data-kind="stk" data-id="stk-lnovak" data-sources="art-kickoff art-migration-plan"><span class="stk-name">Lena Novak</span><span class="stk-role">Data Migration Lead</span></li><li class="stk prov" tabindex="0" data-kind="stk" data-id="stk-schen" data-sources="art-migration-plan"><span class="stk-name">Sophie Chen</span><span class="stk-role">Data Engineer</span></li></ul></div></div></div>
+</section>
+<div class="foot">Rendered 17 Jul 2026 · AI PM · state validated against schema.json</div>
+</div>
+<script>window.__ARTIFACTS__ = {"art-kickoff": {"file": "2026-05-02-transcript-kickoff.txt", "type": "transcript", "date": "2 May 2026", "oneLiner": "Project kickoff — scope, vendor split, teams and initial timeline agreed."}, "art-brd": {"file": "2026-05-15-brd-atlas-requirements-v1.docx", "type": "brd", "date": "15 May 2026", "oneLiner": "Business Requirements Document v1.0 — functional, non-functional and use-case requirements."}, "art-design": {"file": "2026-06-01-design-doc-solution-architecture.pdf", "type": "design-doc", "date": "1 Jun 2026", "oneLiner": "Solution design — environments, integration pattern and data model."}, "art-status-0612": {"file": "2026-06-12-email-weekly-status.txt", "type": "email", "date": "12 Jun 2026", "oneLiner": "Weekly status — environments live, profiling underway, sprint 1 starting."}, "art-steering-0625": {"file": "2026-06-25-transcript-steering-committee-1.vtt", "type": "transcript", "date": "25 Jun 2026", "oneLiner": "Steering committee #1 — profiling complete, risks reviewed, analytics deferred."}, "art-migration-plan": {"file": "2026-07-06-design-doc-migration-plan.pdf", "type": "design-doc", "date": "6 Jul 2026", "oneLiner": "Veridian data-migration plan & runbook — dry-run approach and remediation."}, "art-status-0703": {"file": "2026-07-03-email-weekly-status.txt", "type": "email", "date": "3 Jul 2026", "oneLiner": "Weekly status — sprint 1 slipped, dry run at risk, data quality escalated."}, "art-steering-0708": {"file": "2026-07-08-transcript-steering-committee-2.vtt", "type": "transcript", "date": "8 Jul 2026", "oneLiner": "Steering committee #2 — UAT moved to 8 Sep, phased cutover adopted, MFA scope confirmed."}, "art-bdd": {"file": "2026-07-09-bdd-crm-scenarios.feature", "type": "bdd", "date": "9 Jul 2026", "oneLiner": "Imported BDD/Gherkin spec — agreed acceptance scenarios for account view, batch sync and onboarding."}}; window.__PROJECT_ID__ = "demo-atlas";
+window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration", "client": "Contoso Financial", "description": "Migrate Contoso Financial's legacy CRM to Dynamics 365 Sales, with NorthPeak Systems delivering configuration + core-banking integration and Veridian Consulting delivering the data migration.", "vendors": ["NorthPeak Systems", "Veridian Consulting"], "lastDigest": "2026-07-09T16:20:00Z"}, "stakeholders": [{"id": "stk-jchen", "name": "Jordan Chen", "org": "Contoso Financial", "role": "Program Sponsor", "sources": ["art-kickoff"]}, {"id": "stk-mpatel", "name": "Meera Patel", "org": "Contoso Financial", "role": "Project Manager", "sources": ["art-kickoff", "art-steering-0708"]}, {"id": "stk-rsingh", "name": "Raj Singh", "org": "Contoso Financial", "role": "CRM Product Owner", "sources": ["art-kickoff", "art-brd"]}, {"id": "stk-twolfe", "name": "Tom Wolfe", "org": "NorthPeak Systems", "role": "Engagement Lead", "sources": ["art-kickoff"]}, {"id": "stk-agarcia", "name": "Ana Garcia", "org": "NorthPeak Systems", "role": "Solution Architect", "sources": ["art-kickoff", "art-design"]}, {"id": "stk-dkim", "name": "David Kim", "org": "NorthPeak Systems", "role": "Integration Engineer", "sources": ["art-design"]}, {"id": "stk-lnovak", "name": "Lena Novak", "org": "Veridian Consulting", "role": "Data Migration Lead", "sources": ["art-kickoff", "art-migration-plan"]}, {"id": "stk-schen", "name": "Sophie Chen", "org": "Veridian Consulting", "role": "Data Engineer", "sources": ["art-migration-plan"]}], "workstreams": [{"id": "ws-infra", "name": "Environments & Integration", "color": "#4a3aa7"}, {"id": "ws-data", "name": "Data Migration", "color": "#1baf7a"}, {"id": "ws-config", "name": "CRM Configuration", "color": "#eb6834"}, {"id": "ws-uat", "name": "Testing & Go-Live", "color": "#e87ba4"}], "milestones": [{"id": "ms-env-provision", "title": "Dev & Test environments provisioned", "workstream": "ws-infra", "due": "2026-05-20", "status": "done", "confidence": "high", "notes": "Dynamics sandboxes stood up by NorthPeak.", "sources": ["art-design", "art-status-0612"], "history": []}, {"id": "ms-brd-signoff", "title": "BRD sign-off", "workstream": "ws-config", "due": "2026-06-05", "status": "done", "confidence": "high", "notes": "Business Requirements Document v1.0 approved by Contoso.", "sources": ["art-brd", "art-steering-0625"], "history": []}, {"id": "ms-data-profiling", "title": "Legacy data profiling complete", "workstream": "ws-data", "due": "2026-06-19", "status": "done", "confidence": "high", "notes": "Profiling surfaced significant duplicate/quality issues.", "sources": ["art-steering-0625", "art-migration-plan"], "history": []}, {"id": "ms-config-sprint1", "title": "Config sprint 1 — accounts & contacts", "workstream": "ws-config", "due": "2026-07-03", "status": "late", "confidence": "high", "notes": "Slipped: dependent on remediated data and API sandbox access.", "sources": ["art-status-0703", "art-steering-0708"], "history": [{"field": "status", "old": "on-track", "date": "2026-07-03", "source": "art-status-0703"}]}, {"id": "ms-migration-dryrun", "title": "Data migration dry run #1", "workstream": "ws-data", "due": "2026-07-18", "status": "at-risk", "confidence": "medium", "notes": "At risk pending duplicate-record remediation.", "sources": ["art-status-0703", "art-migration-plan"], "history": [{"field": "due", "old": "2026-07-15", "date": "2026-07-06", "source": "art-migration-plan"}]}, {"id": "ms-integration-api", "title": "Core-banking API integration", "workstream": "ws-infra", "due": "2026-08-01", "status": "on-track", "confidence": "medium", "notes": "Nightly batch pattern; blocked-adjacent on sandbox credentials.", "sources": ["art-design", "art-steering-0708"], "history": [{"field": "status", "old": "planned", "date": "2026-07-09", "source": "art-steering-0708"}]}, {"id": "ms-config-sprint2", "title": "Config sprint 2 — pipeline & reporting", "workstream": "ws-config", "due": "2026-08-15", "status": "on-track", "confidence": "medium", "notes": "Advanced analytics deferred to phase 2.", "sources": ["art-steering-0625", "art-steering-0708"], "history": []}, {"id": "ms-uat-start", "title": "UAT begins", "workstream": "ws-uat", "due": "2026-09-08", "status": "planned", "confidence": "medium", "notes": "Shifted later to absorb the config sprint 1 slip.", "sources": ["art-kickoff", "art-steering-0708"], "history": [{"field": "due", "old": "2026-08-24", "date": "2026-07-08", "source": "art-kickoff"}]}, {"id": "ms-golive", "title": "Production go-live", "workstream": "ws-uat", "due": "2026-10-05", "status": "planned", "confidence": "low", "notes": "Phased regional cutover.", "sources": ["art-steering-0708", "art-migration-plan"], "history": []}, {"id": "ms-training", "title": "End-user training", "workstream": "ws-uat", "due": null, "status": "planned", "confidence": null, "notes": "Not yet scheduled — pending confirmed UAT and go-live dates.", "sources": ["art-steering-0708"], "history": []}], "actions": [{"id": "act-finalize-brd", "title": "Finalize BRD and secure sign-off", "owner": "stk-rsingh", "due": "2026-06-05", "status": "done", "notes": null, "sources": ["art-brd"], "history": []}, {"id": "act-provision-test", "title": "Provision Dynamics test environment", "owner": "stk-dkim", "due": "2026-05-20", "status": "done", "notes": null, "sources": ["art-design", "art-status-0612"], "history": []}, {"id": "act-profile-legacy", "title": "Profile legacy CRM data quality", "owner": "stk-schen", "due": "2026-06-18", "status": "done", "notes": "Report delivered to steering committee.", "sources": ["art-steering-0625", "art-migration-plan"], "history": []}, {"id": "act-config-accounts", "title": "Complete accounts & contacts configuration", "owner": "stk-agarcia", "due": "2026-07-03", "status": "in-progress", "notes": "Blocked-adjacent on data remediation.", "sources": ["art-status-0703"], "history": [{"field": "status", "old": "open", "date": "2026-06-25", "source": "art-steering-0625"}]}, {"id": "act-fix-dq-issues", "title": "Remediate 12,400 duplicate customer records", "owner": "stk-lnovak", "due": "2026-07-09", "status": "in-progress", "notes": "Dedup rules applied; validation ongoing.", "sources": ["art-status-0703", "art-migration-plan"], "history": []}, {"id": "act-api-credentials", "title": "Provide core-banking API sandbox credentials", "owner": "stk-mpatel", "due": "2026-07-20", "status": "open", "notes": "Awaiting Contoso security review.", "sources": ["art-steering-0708"], "history": []}, {"id": "act-dryrun-prep", "title": "Prepare migration dry-run dataset", "owner": "stk-schen", "due": "2026-07-15", "status": "in-progress", "notes": null, "sources": ["art-migration-plan"], "history": []}, {"id": "act-uat-plan", "title": "Draft UAT test plan and entry criteria", "owner": "stk-rsingh", "due": "2026-08-10", "status": "open", "notes": null, "sources": ["art-steering-0708"], "history": []}, {"id": "act-revise-plan", "title": "Circulate revised project plan to steering committee", "owner": "stk-mpatel", "due": "2026-07-14", "status": "open", "notes": null, "sources": ["art-steering-0708"], "history": []}, {"id": "act-training-schedule", "title": "Schedule end-user training sessions", "owner": null, "due": null, "status": "open", "notes": "Owner not yet assigned.", "sources": ["art-steering-0708"], "history": []}], "decisions": [{"id": "dec-2026-05-02-vendor-split", "date": "2026-05-02", "summary": "Split delivery — NorthPeak owns configuration & integration, Veridian owns data migration.", "rationale": "Plays to each vendor's strength and isolates the data-migration risk under a specialist.", "sources": ["art-kickoff"], "history": []}, {"id": "dec-2026-05-15-platform", "date": "2026-05-15", "summary": "Target platform confirmed as Microsoft Dynamics 365 Sales.", "rationale": "Aligns with Contoso's existing M365 tenant and licensing.", "sources": ["art-brd"], "history": []}, {"id": "dec-2026-06-01-integration-pattern", "date": "2026-06-01", "summary": "Integrate to the core-banking system via nightly batch API rather than real-time.", "rationale": "Real-time was disproportionate to need and raised the security-review burden.", "sources": ["art-design"], "history": []}, {"id": "dec-2026-06-25-defer-analytics", "date": "2026-06-25", "summary": "Defer advanced analytics & reporting to phase 2.", "rationale": "Protects the go-live date; core pipeline reporting is sufficient for launch.", "sources": ["art-steering-0625"], "history": []}, {"id": "dec-2026-07-08-phased-cutover", "date": "2026-07-08", "summary": "Adopt a phased regional cutover instead of a single big-bang cutover.", "rationale": "Reduces go-live blast radius given unresolved data-quality issues.", "sources": ["art-steering-0708"], "history": []}, {"id": "dec-2026-07-08-uat-shift", "date": "2026-07-08", "summary": "Shift UAT start to 8 September to absorb the config sprint 1 slip.", "rationale": "Preserves a realistic UAT window rather than compressing testing.", "sources": ["art-steering-0708"], "history": []}], "risks": [{"id": "risk-data-quality", "title": "Legacy data quality far worse than assumed (duplicates, missing fields)", "severity": "critical", "likelihood": "high", "mitigation": "Dedicated remediation sprint; Veridian dedup tooling; profiling report driving cleanup.", "status": "open", "sources": ["art-steering-0625", "art-migration-plan", "art-status-0703"], "history": [{"field": "severity", "old": "high", "date": "2026-07-03", "source": "art-status-0703"}]}, {"id": "risk-api-access", "title": "Core-banking API sandbox access delayed by Contoso security review", "severity": "high", "likelihood": "medium", "mitigation": "Escalated to sponsor; provisional mock endpoint for early build.", "status": "open", "sources": ["art-steering-0708"], "history": []}, {"id": "risk-config-capacity", "title": "NorthPeak configuration team under-staffed for sprint 2", "severity": "medium", "likelihood": "medium", "mitigation": "Additional configurator being onboarded for August.", "status": "mitigating", "sources": ["art-status-0703"], "history": []}, {"id": "risk-uat-window", "title": "Compressed UAT window threatens go-live quality", "severity": "high", "likelihood": "medium", "mitigation": "UAT shifted to 8 Sep; entry criteria being defined up front.", "status": "open", "sources": ["art-steering-0708"], "history": []}, {"id": "risk-scope-reporting", "title": "Reporting requirements expanding beyond phase 1 scope", "severity": "medium", "likelihood": "low", "mitigation": "Advanced analytics formally deferred to phase 2.", "status": "mitigating", "sources": ["art-steering-0625"], "history": []}], "issues": [{"id": "iss-duplicate-records", "title": "12,400 duplicate customer records in the legacy extract", "severity": "high", "mitigation": "Dedup rules defined; remediation in progress under Veridian.", "status": "open", "sources": ["art-status-0703", "art-migration-plan"], "history": []}, {"id": "iss-env-latency", "title": "Test-environment latency during large batch loads", "severity": "low", "mitigation": "NorthPeak retuned the batch window; acceptable in retest.", "status": "resolved", "sources": ["art-status-0612"], "history": []}], "dependencies": [{"id": "dep-api-creds", "title": "Integration build blocked on core-banking API sandbox credentials", "on": "Contoso IT security approval", "neededBy": "2026-07-20", "status": "open", "sources": ["art-steering-0708"], "history": []}, {"id": "dep-remediated-extract", "title": "Migration dry run depends on the remediated data extract", "on": "Data remediation (Veridian)", "neededBy": "2026-07-15", "status": "open", "sources": ["art-migration-plan"], "history": []}], "requirements": [{"id": "req-acct-360", "kind": "functional", "title": "360-degree customer account view", "detail": "Consolidated view of accounts, contacts, products held and recent interactions.", "status": "approved", "sources": ["art-brd"], "history": [], "scenarios": [{"id": "sc-acct360-view", "title": "RM opens a customer with products across the group", "given": ["a relationship manager is signed in", "the customer Northwind Traders exists in core banking"], "when": ["they open the customer account page"], "then": ["the 360 view shows accounts, contacts and products held", "interactions from the last 90 days are listed"], "status": "passing", "sources": ["art-bdd"], "history": []}, {"id": "sc-acct360-empty", "title": "Customer with no linked banking products", "given": ["a relationship manager is signed in"], "when": ["they open an account that has no linked products"], "then": ["the products panel shows an empty-state message"], "status": "implemented", "sources": ["art-bdd"], "history": []}]}, {"id": "req-pipeline", "kind": "functional", "title": "Sales pipeline & opportunity management", "detail": "Stage-based pipeline with forecasting for relationship managers.", "status": "approved", "sources": ["art-brd"], "history": []}, {"id": "req-batch-sync", "kind": "functional", "title": "Nightly batch synchronisation with core-banking", "detail": "Overnight sync of account balances and product holdings via batch API.", "status": "in-review", "sources": ["art-brd", "art-design"], "history": [], "scenarios": [{"id": "sc-batch-nightly", "title": "Nightly sync reconciles balances and holdings", "given": ["the nightly batch window has opened", "core-banking has published the daily balance file"], "when": ["the synchronisation job runs"], "then": ["account balances in the CRM match core banking", "product holdings are updated", "a sync summary is written to the audit log"], "status": "agreed", "sources": ["art-bdd"], "history": []}, {"id": "sc-batch-failure", "title": "Sync retries when the core-banking sandbox is unreachable", "given": ["the nightly batch window has opened", "the core-banking API sandbox is unreachable"], "when": ["the synchronisation job runs"], "then": ["the job retries three times", "an alert is raised to the integration team", "the previous balances are retained"], "status": "failing", "sources": ["art-bdd"], "history": []}]}, {"id": "req-rbac", "kind": "non-functional", "title": "Role-based access control aligned to Contoso security policy", "detail": "MFA for all users; least-privilege roles mapped to Contoso's IAM standard.", "status": "approved", "sources": ["art-brd", "art-steering-0708"], "history": []}, {"id": "req-perf", "kind": "non-functional", "title": "Account view loads in under 3 seconds at 50k accounts", "detail": "Performance target for the primary relationship-manager view.", "status": "proposed", "sources": ["art-design"], "history": []}, {"id": "uc-onboard-customer", "kind": "use-case", "title": "Relationship manager onboards a new corporate customer", "detail": "RM captures the customer, links banking products, and creates an onboarding opportunity.", "status": "approved", "sources": ["art-brd"], "history": [], "scenarios": [{"id": "sc-onboard-corp", "title": "Onboard a new corporate customer with product linkage", "given": ["a relationship manager is signed in", "the customer does not yet exist in the CRM"], "when": ["they create a new corporate customer", "they link the customer's banking products"], "then": ["an onboarding opportunity is created", "a KYC review task is assigned to the RM", "the customer appears in the RM's book of business"], "status": "agreed", "sources": ["art-bdd"], "history": []}, {"id": "sc-onboard-existing", "title": "Prospect already holds a mortgage in core banking", "given": ["a relationship manager is signed in", "the prospect already holds a mortgage in core banking"], "when": ["they start onboarding the prospect"], "then": ["the existing mortgage is surfaced automatically", "the RM is prompted to confirm the linkage"], "status": "draft", "sources": ["art-steering-0708"], "history": []}]}, {"id": "uc-migrate-book", "kind": "use-case", "title": "Migrate a relationship manager's existing book of business", "detail": "Bulk-migrate an RM's accounts, contacts and open opportunities with data lineage preserved.", "status": "in-review", "sources": ["art-migration-plan"], "history": []}], "openQuestions": [{"id": "oq-data-retention", "question": "What is the data-retention policy for migrated closed accounts?", "raisedBy": "stk-agarcia", "date": "2026-06-01", "status": "open", "answer": null, "sources": ["art-design"], "history": []}, {"id": "oq-mfa-scope", "question": "Is MFA required for all CRM users or only privileged roles?", "raisedBy": "stk-dkim", "date": "2026-06-25", "status": "answered", "answer": "All users — confirmed at steering committee on 8 July.", "sources": ["art-steering-0625", "art-steering-0708"], "history": [{"field": "status", "old": "open", "date": "2026-07-08", "source": "art-steering-0708"}]}, {"id": "oq-cutover-window", "question": "What production cutover downtime window is acceptable to the business?", "raisedBy": "stk-lnovak", "date": "2026-07-08", "status": "open", "answer": null, "sources": ["art-steering-0708", "art-migration-plan"], "history": []}, {"id": "oq-reassign-threshold", "question": "What approval threshold applies to bulk reassignments above 500 accounts?", "raisedBy": "stk-agarcia", "date": "2026-07-08", "status": "open", "answer": null, "sources": ["art-steering-0708"], "history": [], "storyRef": "us-bulk-reassign"}], "conflicts": [{"id": "cf-uat-date", "about": "UAT start date", "was": "24 August 2026 (kickoff plan)", "now": "8 September 2026 (steering committee, 8 July)", "sourceOld": "art-kickoff", "sourceNew": "art-steering-0708", "status": "open"}, {"id": "cf-cutover-approach", "about": "Production cutover approach", "was": "Single big-bang cutover (BRD)", "now": "Phased regional cutover (steering committee, 8 July)", "sourceOld": "art-brd", "sourceNew": "art-steering-0708", "status": "open"}], "artifacts": [{"id": "art-kickoff", "file": "2026-05-02-transcript-kickoff.txt", "type": "transcript", "date": "2026-05-02", "digestedAt": "2026-05-03T09:10:00Z", "oneLiner": "Project kickoff — scope, vendor split, teams and initial timeline agreed."}, {"id": "art-brd", "file": "2026-05-15-brd-atlas-requirements-v1.docx", "type": "brd", "date": "2026-05-15", "digestedAt": "2026-05-16T11:40:00Z", "oneLiner": "Business Requirements Document v1.0 — functional, non-functional and use-case requirements."}, {"id": "art-design", "file": "2026-06-01-design-doc-solution-architecture.pdf", "type": "design-doc", "date": "2026-06-01", "digestedAt": "2026-06-02T14:05:00Z", "oneLiner": "Solution design — environments, integration pattern and data model."}, {"id": "art-status-0612", "file": "2026-06-12-email-weekly-status.txt", "type": "email", "date": "2026-06-12", "digestedAt": "2026-06-12T17:30:00Z", "oneLiner": "Weekly status — environments live, profiling underway, sprint 1 starting."}, {"id": "art-steering-0625", "file": "2026-06-25-transcript-steering-committee-1.vtt", "type": "transcript", "date": "2026-06-25", "digestedAt": "2026-06-26T08:50:00Z", "oneLiner": "Steering committee #1 — profiling complete, risks reviewed, analytics deferred."}, {"id": "art-migration-plan", "file": "2026-07-06-design-doc-migration-plan.pdf", "type": "design-doc", "date": "2026-07-06", "digestedAt": "2026-07-06T19:15:00Z", "oneLiner": "Veridian data-migration plan & runbook — dry-run approach and remediation."}, {"id": "art-status-0703", "file": "2026-07-03-email-weekly-status.txt", "type": "email", "date": "2026-07-03", "digestedAt": "2026-07-03T17:22:00Z", "oneLiner": "Weekly status — sprint 1 slipped, dry run at risk, data quality escalated."}, {"id": "art-steering-0708", "file": "2026-07-08-transcript-steering-committee-2.vtt", "type": "transcript", "date": "2026-07-08", "digestedAt": "2026-07-09T09:05:00Z", "oneLiner": "Steering committee #2 — UAT moved to 8 Sep, phased cutover adopted, MFA scope confirmed."}, {"id": "art-bdd", "file": "2026-07-09-bdd-crm-scenarios.feature", "type": "bdd", "date": "2026-07-09", "digestedAt": "2026-07-09T09:30:00Z", "oneLiner": "Imported BDD/Gherkin spec — agreed acceptance scenarios for account view, batch sync and onboarding."}], "userStories": [{"id": "us-account-360", "title": "Relationship-manager 360 customer view", "narrative": {"asA": "relationship manager", "iWant": "a single 360 view of a customer across all their Atlas accounts", "soThat": "I can advise them without switching between the core-banking screens"}, "workstream": "ws-config", "status": "in-review", "rules": [{"id": "rule-360-consolidation", "title": "All of a customer's linked accounts appear on one screen", "examples": [{"id": "ex-360-household", "title": "Retail + mortgage in one household", "context": "Household H-4471 holds a Contoso retail current account and a mortgage", "action": "An RM opens the customer record", "outcome": "Both accounts are listed together under the household"}, {"id": "ex-360-joint", "title": "Joint account holders", "context": "A joint savings account is held by Priya and Sam Okafor", "action": "An RM opens either holder", "outcome": "Both holders' names are shown against the joint account"}, {"id": "ex-360-closed", "title": "Recently closed account", "context": "A current account was closed 3 months ago", "action": "An RM opens the customer", "outcome": "The closed account is shown greyed with a 'Closed' badge, not hidden"}]}, {"id": "rule-360-freshness", "title": "Balances reflect core-banking within the sync SLA and never show stale data silently", "examples": [{"id": "ex-360-asof", "title": "Balances after the nightly batch", "context": "The nightly batch completed at 02:00", "action": "An RM opens the customer at 08:00", "outcome": "Balances show an 'as of 02:00' timestamp"}, {"id": "ex-360-intraday", "title": "Intraday transfer not yet synced", "context": "A GBP 5,000 transfer posted at 10:00 has not synced", "action": "An RM opens the customer at 10:05", "outcome": "The last-sync time is shown so the RM knows the figure may lag"}, {"id": "ex-360-batchfail", "title": "Batch failed overnight", "context": "The 02:00 batch failed and did not complete", "action": "An RM opens the customer", "outcome": "A banner warns 'Balances may be delayed' instead of showing yesterday's data as current"}]}, {"id": "rule-360-permissions", "title": "An RM only sees customers and data they are authorised for", "examples": [{"id": "ex-360-inbook", "title": "Customer in the RM's book", "context": "RM Meera is assigned to household H-4471", "action": "Meera opens that customer", "outcome": "Access is allowed and the full 360 view loads"}, {"id": "ex-360-outbook", "title": "Customer outside the RM's book", "context": "A customer is assigned to a different RM's book", "action": "Meera attempts to open that customer", "outcome": "Access is blocked with a 'not authorised' message"}, {"id": "ex-360-private", "title": "Private-banking flagged customer", "context": "A customer is flagged private-banking and the RM lacks clearance", "action": "The RM opens the record", "outcome": "Sensitive fields are masked while basic contact details remain"}]}], "scenarios": [{"id": "sc-360-household", "title": "Linked accounts appear together for a household", "given": ["a household holds a retail current account and a mortgage"], "when": ["a relationship manager opens the customer record"], "then": ["both accounts appear together on one screen"], "status": "agreed", "sources": ["art-bdd"], "history": []}, {"id": "sc-360-asof", "title": "Balances are stamped with their sync time", "given": ["the nightly balance batch completed at 02:00"], "when": ["a relationship manager opens the customer at 08:00"], "then": ["each balance shows an 'as of 02:00' timestamp"], "status": "draft", "sources": ["art-steering-0708"], "history": []}, {"id": "sc-360-outside-book", "title": "Access outside the assigned book is blocked", "given": ["a relationship manager is not assigned to a customer's book"], "when": ["the relationship manager attempts to open that customer"], "then": ["access is blocked with a not-authorised message"], "status": "implemented", "sources": ["art-design", "art-bdd"], "history": []}], "sources": ["art-brd", "art-design", "art-bdd"], "history": []}, {"id": "us-bulk-reassign", "title": "Bulk-reassign a departing RM's book of business", "narrative": {"asA": "sales operations lead", "iWant": "to reassign a departing relationship manager's accounts in bulk", "soThat": "customer coverage continues without manual one-by-one edits"}, "workstream": "ws-config", "status": "draft", "rules": [{"id": "rule-reassign-bulk", "title": "A whole book can be moved to another RM in a single action", "examples": [{"id": "ex-reassign-basic", "title": "Move an entire book", "context": "RM Tom Wolfe is leaving with 180 assigned accounts", "action": "Ops selects Tom's book and reassigns it to RM Ana Garcia", "outcome": "All 180 accounts show Ana as the owning RM"}, {"id": "ex-reassign-audit", "title": "Reassignment is auditable", "context": "A bulk reassignment of 180 accounts is performed", "action": "Compliance later reviews the change", "outcome": "An audit entry records who reassigned what, when, and from/to whom"}]}], "scenarios": [], "sources": ["art-steering-0708"], "history": []}]}; window.__RENDER_NOW__ = "2026-07-18T00:19:17Z";</script>
+<script>
+(function(){
+  var ART = window.__ARTIFACTS__ || {};
+  var PID = window.__PROJECT_ID__ || 'default';
+  var SEC_KEY = 'aipm-sections-' + PID;
+
+  // ---- collapsible sections (collapsed by default; user layout persisted) ----
+  function store(){ try{ return JSON.parse(localStorage.getItem(SEC_KEY) || '{}'); }catch(e){ return {}; } }
+  function save(m){ try{ localStorage.setItem(SEC_KEY, JSON.stringify(m)); }catch(e){} }
+  function setCard(card, expanded){
+    card.setAttribute('data-collapsed', expanded ? 'false' : 'true');
+    var h = card.querySelector('.sec-head');
+    if(h) h.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  }
+  var saved = store();
+  document.querySelectorAll('.card[data-sec]').forEach(function(card){
+    var id = card.getAttribute('data-sec');
+    if(saved[id] === true) setCard(card, true);
+  });
+  document.querySelectorAll('.sec-head').forEach(function(h){
+    h.addEventListener('click', function(){
+      var card = h.closest('.card');
+      var expanded = card.getAttribute('data-collapsed') === 'true'; // will expand
+      setCard(card, expanded);
+      var m = store(); m[card.getAttribute('data-sec')] = expanded; save(m);
+    });
+  });
+  function setAll(expanded){
+    var m = store();
+    document.querySelectorAll('.card[data-sec]').forEach(function(card){
+      setCard(card, expanded);
+      m[card.getAttribute('data-sec')] = expanded;
+    });
+    save(m);
+  }
+  var xe = document.getElementById('x-expand');
+  var xc = document.getElementById('x-collapse');
+  if(xe) xe.addEventListener('click', function(){ setAll(true); });
+  if(xc) xc.addEventListener('click', function(){ setAll(false); });
+
+  // ---- light/dark toggle (persisted; default follows the system) ----
+  var xt = document.getElementById('x-theme');
+  function effectiveTheme(){
+    var t = document.documentElement.getAttribute('data-theme');
+    if(t === 'dark' || t === 'light') return t;
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  if(xt) xt.addEventListener('click', function(){
+    var next = effectiveTheme() === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try{ localStorage.setItem('aipm-theme', next); }catch(e){}
+  });
+
+  // ---- filters ----
+  var fWs = document.getElementById('f-ws');
+  var fSt = document.getElementById('f-status');
+  var fOw = document.getElementById('f-owner');
+  function apply(){
+    var ws = fWs.value, st = fSt.value, ow = fOw.value;
+    // milestones (pills + table rows)
+    document.querySelectorAll('[data-kind="ms"]').forEach(function(el){
+      var okWs = ws === 'all' || el.getAttribute('data-ws') === ws;
+      var okSt = st === 'all' || el.getAttribute('data-status') === st;
+      el.hidden = !(okWs && okSt);
+    });
+    // roadmap lanes follow the workstream filter
+    document.querySelectorAll('.lane-band[data-ws], .lane-label[data-ws]').forEach(function(el){
+      el.style.display = (ws === 'all' || el.getAttribute('data-ws') === ws) ? '' : 'none';
+    });
+    // actions
+    document.querySelectorAll('[data-kind="act"]').forEach(function(el){
+      var okOw = ow === 'all' || el.getAttribute('data-owner') === ow;
+      var okSt = st === 'all' || el.getAttribute('data-status') === st;
+      el.hidden = !(okOw && okSt);
+    });
+    // empty-state lines — the "no match" text is only ever about ACTIVE filters;
+    // a dataset with nothing to show in the first place must not claim a filter did it.
+    toggleEmpty('.hero .plot', '[data-kind="ms"]', '.hero .filter-empty');
+    document.querySelectorAll('table.grid').forEach(function(tbl){
+      var all = tbl.querySelectorAll('tbody tr').length;
+      var vis = tbl.querySelectorAll('tbody tr:not([hidden])').length;
+      var e = tbl.parentNode.querySelector('.filter-empty');
+      if(e) e.hidden = !(all > 0 && vis === 0);
+    });
+  }
+  function toggleEmpty(scope, sel, emptySel){
+    var s = document.querySelector(scope); if(!s) return;
+    var all = s.querySelectorAll(sel).length;
+    var vis = s.querySelectorAll(sel + ':not([hidden])').length;
+    var e = document.querySelector(emptySel); if(e) e.hidden = !(all > 0 && vis === 0);
+  }
+  [fWs,fSt,fOw].forEach(function(s){ if(s) s.addEventListener('change', apply); });
+  var reset = document.getElementById('f-reset');
+  if(reset) reset.addEventListener('click', function(){ fWs.value='all'; fSt.value='all'; fOw.value='all'; apply(); });
+
+  // ---- provenance popover ----
+  var pop = null;
+  function closePop(){ if(pop){ pop.remove(); pop = null; } }
+  function openPop(el, x, y){
+    closePop();
+    var ids = (el.getAttribute('data-sources') || '').trim();
+    pop = document.createElement('div');
+    pop.className = 'pop';
+    var html = '<div class="pop-h">Provenance — sources</div>';
+    var list = ids ? ids.split(/\s+/) : [];
+    if(!list.length){
+      html += '<div class="pop-none">No source recorded.</div>';
+    } else {
+      list.forEach(function(id){
+        var a = ART[id];
+        if(!a){ html += '<div class="pop-src"><div class="pop-file">'+id+'</div></div>'; return; }
+        html += '<div class="pop-src"><span class="pop-type">'+esc(a.type)+'</span>'
+             + '<div><div class="pop-file">'+esc(a.file)+'</div>'
+             + (a.oneLiner?'<div class="pop-one">'+esc(a.oneLiner)+'</div>':'')
+             + '<div class="pop-date">'+esc(a.date)+'</div></div></div>';
+      });
+    }
+    pop.innerHTML = html;
+    document.body.appendChild(pop);
+    var w = pop.offsetWidth, h = pop.offsetHeight;
+    var px = Math.min(x, window.innerWidth - w - 12);
+    var py = y + 14;
+    if(py + h > window.innerHeight - 12) py = Math.max(12, y - h - 14);
+    pop.style.left = Math.max(12, px) + 'px';
+    pop.style.top = py + 'px';
+  }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  function wireProvenance(root){
+    (root || document).querySelectorAll('.prov').forEach(function(el){
+      if(el.__provWired) return; el.__provWired = true;
+      el.addEventListener('click', function(e){ e.stopPropagation(); openPop(el, e.clientX, e.clientY); });
+      el.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' '){ e.preventDefault();
+          var r = el.getBoundingClientRect(); openPop(el, r.left + 20, r.bottom); }
+      });
+    });
+  }
+  wireProvenance(document);
+  document.addEventListener('click', function(e){ if(pop && !pop.contains(e.target)) closePop(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closePop(); });
+  window.addEventListener('resize', closePop, true);
+
+  /* ====================================================================== *
+   *  FEATURE BLOCK — BDD .feature export · What changed · Status report.    *
+   *  Kept BYTE-IDENTICAL between render.py and viewer.html. Depends only on *
+   *  host functions openPop(el,x,y) and wireProvenance(root).              *
+   * ====================================================================== */
+  function fEsc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#x27;'}[c]; }); }
+  var F_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function fFmtDate(s){
+    if(!s) return "—";
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
+    if(!m) return String(s);
+    return (+m[3]) + " " + F_MONTHS[(+m[2])-1] + " " + m[1];
+  }
+  function fDatePart(s){ var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(s||"")); return m?m[0]:null; }
+  function fStampMs(s){ if(!s) return NaN; var t=Date.parse(s); if(isFinite(t)) return t;
+    var d=fDatePart(s); return d?Date.parse(d+"T00:00:00Z"):NaN; }
+  var F_SEV_ORDER = {critical:0, high:1, medium:2, low:3};
+
+  function fArtMap(state){ var m={}; (state.artifacts||[]).forEach(function(a){ m[a.id]=a; }); return m; }
+  function fMaxDigestDate(state){ var mx=null; (state.artifacts||[]).forEach(function(a){
+    var d=fDatePart(a.digestedAt); if(d && (mx===null || d>mx)) mx=d; }); return mx; }
+  function fStampInRange(stamp, range, nowMs, maxDate){
+    if(!stamp) return false;
+    if(range==='digest'){ var d=fDatePart(stamp); return d!==null && d===maxDate; }
+    var t=fStampMs(stamp); return isFinite(t) && t >= nowMs - (+range)*86400000;
+  }
+  function fEarliest(sources, artMap){ var min=null; (sources||[]).forEach(function(s){
+    var a=artMap[s]; if(a && a.digestedAt){ if(min===null || a.digestedAt<min) min=a.digestedAt; } }); return min; }
+
+  function fEntities(state){
+    var out=[];
+    function push(coll,label,titleKey){ (state[coll]||[]).forEach(function(it){
+      out.push({kind:label, id:it.id, title:it[titleKey], item:it, sources:it.sources||[], history:it.history||[]}); }); }
+    push('milestones','milestone','title');
+    push('actions','action','title');
+    push('risks','risk','title');
+    push('issues','issue','title');
+    push('dependencies','dependency','title');
+    push('requirements','requirement','title');
+    push('decisions','decision','summary');
+    push('openQuestions','question','question');
+    (state.requirements||[]).forEach(function(r){ (r.scenarios||[]).forEach(function(sc){
+      out.push({kind:'scenario', id:sc.id, title:sc.title, item:sc, sources:sc.sources||[], history:sc.history||[]}); }); });
+    return out;
+  }
+
+  function fDeriveChanges(state, range, nowMs){
+    var artMap=fArtMap(state), maxDate=fMaxDigestDate(state);
+    function inR(stamp){ return fStampInRange(stamp, range, nowMs, maxDate); }
+    function srcInR(id){ var a=artMap[id]; return a ? inR(a.digestedAt) : false; }
+    var ents=fEntities(state), news=[], changes=[], resolved=[];
+    ents.forEach(function(e){ var earliest=fEarliest(e.sources, artMap); if(earliest && inR(earliest)) news.push(e); });
+    ents.forEach(function(e){
+      (e.history||[]).forEach(function(h){
+        if(!h || !h.source || !srcInR(h.source)) return;
+        if(e.kind==='question' && h.field==='status') return;
+        if(e.kind==='action' && h.field==='status' && e.item.status==='done') return;
+        var field=h.field, now=e.item ? e.item[field] : undefined;
+        var dateField=(field==='due' || field==='neededBy' || field==='date');
+        var wasV=dateField ? fFmtDate(h.old) : (h.old==null ? "—" : String(h.old));
+        var nowV=dateField ? fFmtDate(now) : (now==null ? "—" : String(now));
+        changes.push({kind:e.kind, id:e.id, title:e.title, sources:e.sources, field:field, was:wasV, now:nowV});
+      });
+    });
+    (state.openQuestions||[]).forEach(function(q){
+      if(q.status!=='answered') return;
+      var hit=(q.history||[]).some(function(h){ return h.field==='status' && srcInR(h.source); });
+      if(!hit) hit=(q.sources||[]).some(srcInR);
+      if(hit) resolved.push({kind:'question', id:q.id, title:q.question, sources:q.sources||[], note:'answered'});
+    });
+    (state.actions||[]).forEach(function(a){
+      if(a.status!=='done') return;
+      if((a.history||[]).some(function(h){ return h.field==='status' && srcInR(h.source); }))
+        resolved.push({kind:'action', id:a.id, title:a.title, sources:a.sources||[], note:'done'});
+    });
+    (state.conflicts||[]).forEach(function(c){
+      if(c.status==='open') return;
+      var srcs=[c.sourceOld, c.sourceNew].filter(Boolean);
+      if(srcs.some(srcInR)) resolved.push({kind:'conflict', id:c.id, title:c.about, sources:srcs, note:c.status});
+    });
+    return {news:news, changes:changes, resolved:resolved};
+  }
+
+  function fWcItem(kind, title, sources, extra){
+    var srcs=(sources||[]).join(" ");
+    return '<div class="wc-item prov" tabindex="0"' + (srcs ? ' data-sources="'+fEsc(srcs)+'"' : '') + '>' +
+      '<span class="wc-chip">' + fEsc(kind) + '</span>' +
+      '<div class="wc-body"><span class="wc-title">' + fEsc(title) + '</span>' + (extra||'') + '</div></div>';
+  }
+  function fRenderWhatChanged(state, range, nowMs){
+    var d=fDeriveChanges(state, range, nowMs);
+    function group(name, arr, render){
+      if(!arr.length) return '';
+      return '<div class="wc-group"><h3 class="wc-h">' + name + '<span class="count">' + arr.length + '</span></h3>' +
+        arr.map(render).join('') + '</div>';
+    }
+    var newH=group('New', d.news, function(e){ return fWcItem(e.kind, e.title, e.sources, ''); });
+    var chgH=group('Changed', d.changes, function(c){
+      var ex='<div class="wc-change"><span class="wc-field">' + fEsc(c.field) + '</span>' +
+        '<span class="wc-was">' + fEsc(c.was) + '</span><span class="wc-arrow" aria-hidden="true">→</span>' +
+        '<span class="wc-now">' + fEsc(c.now) + '</span></div>';
+      return fWcItem(c.kind, c.title, c.sources, ex);
+    });
+    var resH=group('Resolved', d.resolved, function(r){
+      var ex=r.note ? '<span class="wc-note">' + fEsc(r.note) + '</span>' : '';
+      return fWcItem(r.kind, r.title, r.sources, ex);
+    });
+    var body=newH + chgH + resH;
+    if(!body) body='<p class="wc-empty">Nothing changed in this range.</p>';
+    return body;
+  }
+
+  function fSlug(s){ return String(s||'feature').toLowerCase().replace(/[^a-z0-9]+/g,'-')
+    .replace(/^-+|-+$/g,'').slice(0,50) || 'feature'; }
+  function fGherkin(req){
+    var lines=['Feature: ' + (req.title||'Untitled')];
+    if(req.detail){ String(req.detail).split(/\n/).forEach(function(l){ lines.push('  ' + l); }); }
+    (req.scenarios||[]).forEach(function(sc){
+      lines.push('');
+      if((sc.status||'draft')==='draft') lines.push('  @draft');
+      lines.push('  Scenario: ' + (sc.title||'Untitled'));
+      function steps(kw, arr){ var first=true; (arr||[]).forEach(function(c){
+        lines.push('    ' + (first?kw:'And') + ' ' + c); first=false; }); }
+      steps('Given', sc.given); steps('When', sc.when); steps('Then', sc.then);
+    });
+    return lines.join('\n') + '\n';
+  }
+  function fDownload(filename, text, mime){
+    var a=document.createElement('a');
+    a.href='data:' + (mime||'text/plain') + ';charset=utf-8,' + encodeURIComponent(text);
+    a.download=filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+  function fWireExport(state){
+    var btn=document.getElementById('req-export-btn'), menu=document.getElementById('req-export-menu');
+    if(!btn || !menu) return;
+    var reqs=(state.requirements||[]).filter(function(r){ return (r.scenarios||[]).length; });
+    var items=reqs.map(function(r,i){
+      return '<button class="rx-item" type="button" data-idx="'+i+'">' + fEsc(r.title) +
+        '<span class="rx-n">' + (r.scenarios||[]).length + '</span></button>'; }).join('');
+    var allLabel='All (' + reqs.length + ' file' + (reqs.length===1?'':'s') + ')';
+    menu.innerHTML=items + '<button class="rx-item rx-all" type="button" data-idx="all">' + fEsc(allLabel) + '</button>';
+    function close(){ menu.hidden=true; btn.setAttribute('aria-expanded','false'); }
+    function toggle(){ var willOpen=menu.hidden; menu.hidden=!willOpen; btn.setAttribute('aria-expanded', willOpen?'true':'false'); }
+    btn.addEventListener('click', function(e){ e.stopPropagation(); toggle(); });
+    menu.addEventListener('click', function(e){
+      var t=e.target.closest('.rx-item'); if(!t) return;
+      e.stopPropagation();
+      var idx=t.getAttribute('data-idx');
+      if(idx==='all'){ reqs.forEach(function(r,i){ setTimeout(function(){
+        fDownload(fSlug(r.title)+'.feature', fGherkin(r), 'text/plain'); }, i*250); }); }
+      else { var r=reqs[+idx]; if(r) fDownload(fSlug(r.title)+'.feature', fGherkin(r), 'text/plain'); }
+      close();
+    });
+    document.addEventListener('click', function(e){
+      if(!menu.hidden && !menu.contains(e.target) && e.target!==btn) close(); });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
+  }
+
+  function fResolveOwner(state, id){
+    if(!id) return 'Unassigned';
+    var hit=(state.stakeholders||[]).filter(function(x){ return x.id===id; })[0];
+    return hit ? hit.name : id;
+  }
+  function fHealth(state){
+    var ms=state.milestones||[], raid=(state.risks||[]).concat(state.issues||[]), cf=state.conflicts||[];
+    function live(x){ return x.status!=='resolved' && x.status!=='closed'; }
+    if(ms.some(function(m){ return m.status==='late'; }) ||
+       raid.some(function(x){ return x.severity==='critical' && live(x); })) return 'Off track';
+    if(raid.some(function(x){ return x.severity==='high' && live(x); }) ||
+       ms.some(function(m){ return m.status==='at-risk'; }) ||
+       cf.some(function(c){ return c.status==='open'; })) return 'Needs attention';
+    return 'On track';
+  }
+  function fIsoDate(d){ return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2); }
+  function fReport(state, nowDate){
+    var nowMs=nowDate.getTime(), iso=fIsoDate(nowDate), p=state.project||{}, L=[];
+    L.push((p.name||'Project') + ' — status ' + fFmtDate(iso) + '   (' + fHealth(state) + ')');
+    L.push('');
+    var d=fDeriveChanges(state, 7, nowMs), cl=[];
+    L.push('CHANGES THIS WEEK');
+    d.news.slice(0,6).forEach(function(e){ cl.push('- NEW ' + e.kind + ': ' + e.title); });
+    d.changes.slice(0,6).forEach(function(c){ cl.push('- ' + c.kind + ' ' + c.title + ' — ' + c.field + ': ' + c.was + ' -> ' + c.now); });
+    d.resolved.slice(0,6).forEach(function(r){ cl.push('- RESOLVED ' + r.kind + ': ' + r.title); });
+    if(!cl.length) cl.push('- (nothing recorded this week)');
+    cl.forEach(function(x){ L.push(x); });
+    L.push('');
+    L.push('MILESTONES NEXT 4 WEEKS');
+    var horizon=nowMs + 28*86400000;
+    var mnext=(state.milestones||[]).filter(function(m){ var t=fStampMs(m.due);
+      return isFinite(t) && t>=nowMs && t<=horizon && m.status!=='done'; })
+      .sort(function(a,b){ return fStampMs(a.due) - fStampMs(b.due); });
+    if(!mnext.length) L.push('- (none scheduled)');
+    mnext.forEach(function(m){ L.push('- ' + m.title + ' — ' + fFmtDate(m.due) + ' — ' + m.status); });
+    L.push('');
+    L.push('OVERDUE ACTIONS');
+    var od=(state.actions||[]).filter(function(a){ var t=fStampMs(a.due);
+      return isFinite(t) && t<nowMs && (a.status==='open' || a.status==='in-progress'); })
+      .sort(function(a,b){ return fStampMs(a.due) - fStampMs(b.due); });
+    if(!od.length) L.push('- (none)');
+    od.forEach(function(a){ L.push('- ' + a.title + ' — ' + fResolveOwner(state, a.owner) + ' — due ' + fFmtDate(a.due)); });
+    L.push('');
+    L.push('TOP RISKS');
+    var risks=(state.risks||[]).filter(function(r){ return r.status==='open' || r.status==='mitigating'; })
+      .sort(function(a,b){ var A=F_SEV_ORDER[a.severity], B=F_SEV_ORDER[b.severity];
+        return (A==null?9:A) - (B==null?9:B); }).slice(0,3);
+    if(!risks.length) L.push('- (none open)');
+    risks.forEach(function(r){ L.push('- [' + r.severity + '] ' + r.title + ' — ' + r.status); });
+    L.push('');
+    L.push('NEEDS DECISION');
+    var nd=[];
+    (state.conflicts||[]).filter(function(c){ return c.status==='open'; }).forEach(function(c){
+      nd.push('- conflict: ' + c.about + ' (' + c.was + ' -> ' + c.now + ')'); });
+    (state.openQuestions||[]).filter(function(q){ return q.status==='open'; }).forEach(function(q){
+      nd.push('- question: ' + q.question); });
+    nd=nd.slice(0,3);
+    if(!nd.length) nd.push('- (none)');
+    nd.forEach(function(x){ L.push(x); });
+    return L.join('\n') + '\n';
+  }
+
+  var fModal=null;
+  function fCloseModal(){ if(fModal){ fModal.remove(); fModal=null; document.removeEventListener('keydown', fModalKey); } }
+  function fModalKey(e){ if(e.key==='Escape') fCloseModal(); }
+  function fCopyFallback(text, ok){
+    var ta=document.createElement('textarea'); ta.value=text;
+    ta.style.position='fixed'; ta.style.top='0'; ta.style.left='0'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try{ document.execCommand('copy'); if(ok) ok(); }catch(e){}
+    document.body.removeChild(ta);
+  }
+  function fCopy(text, btn){
+    function ok(){ if(btn){ var o=btn.textContent; btn.textContent='Copied'; setTimeout(function(){ btn.textContent=o; }, 1200); } }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(ok, function(){ fCopyFallback(text, ok); });
+    } else { fCopyFallback(text, ok); }
+  }
+  function fOpenReport(state, nowDate){
+    fCloseModal();
+    var text=fReport(state, nowDate), iso=fIsoDate(nowDate);
+    var pid=(state.project && state.project.id) || 'project';
+    fModal=document.createElement('div');
+    fModal.className='modal-overlay';
+    fModal.innerHTML='<div class="modal" role="dialog" aria-modal="true" aria-label="Status report">' +
+      '<div class="modal-head"><span class="modal-title">Status report</span>' +
+      '<button class="modal-x" type="button" aria-label="Close">×</button></div>' +
+      '<pre class="modal-pre"></pre>' +
+      '<div class="modal-actions">' +
+      '<button class="modal-btn" data-act="dl" type="button">Download .md</button>' +
+      '<button class="modal-btn" data-act="copy" type="button">Copy</button></div></div>';
+    fModal.querySelector('.modal-pre').textContent=text;
+    document.body.appendChild(fModal);
+    fModal.addEventListener('click', function(e){ if(e.target===fModal) fCloseModal(); });
+    fModal.querySelector('.modal-x').addEventListener('click', fCloseModal);
+    fModal.querySelector('[data-act="dl"]').addEventListener('click', function(){ fDownload(pid+'-status-'+iso+'.md', text, 'text/markdown'); });
+    fModal.querySelector('[data-act="copy"]').addEventListener('click', function(){ fCopy(text, this); });
+    document.addEventListener('keydown', fModalKey);
+  }
+
+  function wireFeatures(state, nowDate){
+    if(!state) return;
+    var nowMs=nowDate.getTime();
+    var list=document.getElementById('wc-list'), rangeWrap=document.querySelector('.wc-range');
+    if(list && rangeWrap){
+      function draw(range){ list.innerHTML=fRenderWhatChanged(state, range, nowMs); wireProvenance(list); }
+      rangeWrap.querySelectorAll('.wc-r').forEach(function(b){
+        b.addEventListener('click', function(){
+          rangeWrap.querySelectorAll('.wc-r').forEach(function(x){ x.classList.remove('active'); });
+          b.classList.add('active');
+          draw(b.getAttribute('data-range'));
+        });
+      });
+      draw('digest');
+    }
+    fWireExport(state);
+    var rep=document.getElementById('status-report');
+    if(rep) rep.addEventListener('click', function(e){ e.stopPropagation(); fOpenReport(state, nowDate); });
+  }
+
+  /* ====================================================================== *
+   *  BA MODULE — User stories · Example Mapping · RTM · UAT · Edit mode.    *
+   *  Kept BYTE-IDENTICAL between render.py and viewer.html. Depends only on *
+   *  host function wireProvenance(root). Entry point: baInit(state, host).  *
+   *  host = { afterSave(state), discard(pristine) } (both optional).        *
+   * ====================================================================== */
+  var BA = { state:null, pristine:null, host:null, editing:false, dirty:false, idmap:null };
+  var baFileHandle = null;
+
+  function baEsc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#x27;'}[c]; }); }
+  var BA_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function baFmtDate(s){
+    if(!s) return "—";
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
+    if(!m) return String(s);
+    return (+m[3]) + " " + BA_MONTHS[(+m[2])-1] + " " + m[1];
+  }
+  function baToday(){
+    var d = new Date();
+    function p(n){ return (n<10?"0":"") + n; }
+    return d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate());
+  }
+  function baClone(o){ return JSON.parse(JSON.stringify(o)); }
+  function baSlug(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-')
+    .replace(/^-+|-+$/g,'').slice(0,40); }
+
+  /* ---- id helpers ---- */
+  function baAllIds(state){
+    var ids = {};
+    function add(o){ if(o && o.id) ids[o.id] = true; }
+    var top = ["stakeholders","workstreams","milestones","actions","decisions","risks",
+      "issues","dependencies","requirements","openQuestions","conflicts","artifacts","parkingLot"];
+    top.forEach(function(k){ (state[k]||[]).forEach(add); });
+    (state.requirements||[]).forEach(function(r){ (r.scenarios||[]).forEach(add); });
+    (state.userStories||[]).forEach(function(us){
+      add(us);
+      (us.rules||[]).forEach(function(ru){ add(ru); (ru.examples||[]).forEach(add); });
+      (us.scenarios||[]).forEach(add);
+    });
+    return ids;
+  }
+  function baUid(prefix, title){
+    var ids = baAllIds(BA.state);
+    var base = prefix + (baSlug(title) || 'item');
+    if(!ids[base]) return base;
+    var n = 2;
+    while(ids[base + '-' + n]) n++;
+    return base + '-' + n;
+  }
+  function baBuildIdMap(){
+    var map = {};
+    function idx(o){ if(o && o.id) map[o.id] = o; }
+    var top = ["stakeholders","workstreams","milestones","actions","decisions","risks",
+      "issues","dependencies","requirements","openQuestions","conflicts","artifacts","parkingLot"];
+    top.forEach(function(k){ (BA.state[k]||[]).forEach(idx); });
+    (BA.state.requirements||[]).forEach(function(r){ (r.scenarios||[]).forEach(idx); });
+    (BA.state.userStories||[]).forEach(function(us){
+      idx(us);
+      (us.rules||[]).forEach(function(ru){ idx(ru); (ru.examples||[]).forEach(idx); });
+      (us.scenarios||[]).forEach(idx);
+    });
+    BA.idmap = map;
+  }
+  function baFind(id){ if(!BA.idmap) baBuildIdMap(); return BA.idmap[id]; }
+  function baPushHist(obj, field, old){
+    obj.history = obj.history || [];
+    obj.history.push({ field: field, old: (old===undefined ? null : old),
+      date: baToday(), source: "manual-edit" });
+  }
+
+  /* ---- enum vocabularies for edit dropdowns ---- */
+  var BA_ENUMS = {
+    "milestone.status": ["planned","on-track","at-risk","late","done"],
+    "action.status": ["open","in-progress","done","dropped"],
+    "risk.severity": ["low","medium","high","critical"],
+    "risk.likelihood": ["","low","medium","high"],
+    "risk.status": ["open","mitigating","resolved","closed"],
+    "issue.severity": ["low","medium","high","critical"],
+    "issue.status": ["open","mitigating","resolved","closed"],
+    "dependency.status": ["open","met","blocked"],
+    "requirement.kind": ["functional","non-functional","use-case"],
+    "requirement.status": ["proposed","in-review","approved","implemented","deferred"],
+    "question.status": ["open","answered"],
+    "story.status": ["draft","ready","in-review","agreed","delivered"],
+    "scenario.status": ["draft","agreed","implemented","passing","failing"]
+  };
+
+  /* ---- edit-aware field controls (used by BA sections + legacy decoration) ---- */
+  function baText(coll, id, field, val, cls){
+    var v = (val==null ? "" : String(val));
+    if(!BA.editing) return baEsc(val==null ? "" : val);
+    return '<span class="ba-ce ' + (cls||'') + '" contenteditable="true" spellcheck="false" ' +
+      'data-ecoll="' + baEsc(coll) + '" data-eid="' + baEsc(id) + '" data-ef="' + baEsc(field) + '">' +
+      baEsc(v) + '</span>';
+  }
+  function baArrText(id, field, idx, val){
+    if(!BA.editing) return baEsc(val);
+    return '<span class="ba-ce" contenteditable="true" spellcheck="false" ' +
+      'data-eid="' + baEsc(id) + '" data-ef="' + baEsc(field) + '" data-eidx="' + idx + '">' +
+      baEsc(val==null?"":val) + '</span>';
+  }
+  function baEnumCtl(coll, id, field, enumKey, val){
+    var opts = (BA_ENUMS[enumKey]||[]).map(function(o){
+      var lbl = o===""? "—" : o;
+      return '<option value="' + baEsc(o) + '"' + (o===(val==null?"":val)?' selected':'') + '>' + baEsc(lbl) + '</option>';
+    }).join('');
+    return '<select class="ba-sel" data-ecoll="' + baEsc(coll) + '" data-eid="' + baEsc(id) +
+      '" data-ef="' + baEsc(field) + '" data-enull="' + ((BA_ENUMS[enumKey]||[])[0]===""?'1':'0') + '">' + opts + '</select>';
+  }
+  function baDateCtl(coll, id, field, val){
+    var iso = (val && /^\d{4}-\d{2}-\d{2}/.test(String(val))) ? String(val).slice(0,10) : "";
+    return '<input type="date" class="ba-date" value="' + baEsc(iso) + '" data-ecoll="' + baEsc(coll) +
+      '" data-eid="' + baEsc(id) + '" data-ef="' + baEsc(field) + '">';
+  }
+  function baDelBtn(coll, id){
+    return '<button class="ba-del" type="button" title="Delete" data-del-coll="' + baEsc(coll) +
+      '" data-del-id="' + baEsc(id) + '" aria-label="Delete item">&#215;</button>';
+  }
+  function baAddBtn(kind, ownerId, label){
+    return '<button class="ba-add" type="button" data-add="' + baEsc(kind) + '"' +
+      (ownerId!=null ? ' data-owner="' + baEsc(ownerId) + '"' : '') + '>' + baEsc(label) + '</button>';
+  }
+
+  /* ====================== USER STORIES (read + edit) ====================== */
+  var BA_STORY_TAG = { draft:"Draft", ready:"Ready", "in-review":"In review", agreed:"Agreed", delivered:"Delivered" };
+  var BA_SC_STATUS = { draft:"Draft", agreed:"Agreed", implemented:"Implemented", passing:"Passing", failing:"Failing" };
+
+  function baStoryTag(us){
+    var st = us.status || "draft";
+    if(BA.editing) return baEnumCtl("userStories", us.id, "status", "story.status", st);
+    return '<span class="us-tag us-' + baEsc(st) + '">' + baEsc(BA_STORY_TAG[st] || st) + '</span>';
+  }
+  function baWsChip(state, wsId){
+    if(!wsId && !BA.editing) return "";
+    var ws = null; (state.workstreams||[]).forEach(function(w){ if(w.id===wsId) ws = w; });
+    var color = baEsc((ws && ws.color) || "#898781");
+    var name = ws ? ws.name : "—";
+    return '<span class="chip"><span class="chip-dot" style="background:' + color + '"></span>' + baEsc(name) + '</span>';
+  }
+  function baNarrative(us){
+    var n = us.narrative || {};
+    if(BA.editing){
+      return '<div class="us-narrative">' +
+        '<span class="us-nk">As a</span> ' + baText("userStories", us.id, "narrative.asA", n.asA) +
+        ' <span class="us-nk">I want</span> ' + baText("userStories", us.id, "narrative.iWant", n.iWant) +
+        ' <span class="us-nk">so that</span> ' + baText("userStories", us.id, "narrative.soThat", n.soThat) + '</div>';
+    }
+    var parts = [];
+    if(n.asA) parts.push('<span class="us-nk">As a</span> ' + baEsc(n.asA));
+    if(n.iWant) parts.push('<span class="us-nk">I want</span> ' + baEsc(n.iWant));
+    if(n.soThat) parts.push('<span class="us-nk">so that</span> ' + baEsc(n.soThat));
+    if(!parts.length) return "";
+    return '<div class="us-narrative">' + parts.join(' ') + '</div>';
+  }
+  function baExampleRow(ru, ex){
+    function line(kw, coll, field, val){
+      var body = BA.editing ? baText("examples", ex.id, field, val) : (val==null ? '<span class="ex-null">—</span>' : baEsc(val));
+      return '<div class="ex-line"><span class="ex-kw">' + kw + '</span><span class="ex-clause">' + body + '</span></div>';
+    }
+    var del = BA.editing ? baDelBtn("examples", ex.id) : "";
+    return '<div class="ex-row prov" tabindex="0" data-kind="ex" data-id="' + baEsc(ex.id) + '"' +
+      ((ex.sources&&ex.sources.length)?' data-sources="' + baEsc(ex.sources.join(" ")) + '"':'') + '>' +
+      '<div class="ex-title">' + baText("examples", ex.id, "title", ex.title) + del + '</div>' +
+      line("Context", "examples", "context", ex.context) +
+      line("Action", "examples", "action", ex.action) +
+      line("Outcome", "examples", "outcome", ex.outcome) + '</div>';
+  }
+  function baRuleCard(us, ru){
+    var exs = (ru.examples||[]).map(function(ex){ return baExampleRow(ru, ex); }).join('') ||
+      (BA.editing ? '' : '<div class="ex-line"><span class="ex-clause ex-null">No examples yet.</span></div>');
+    var del = BA.editing ? baDelBtn("rules", ru.id) : "";
+    var add = BA.editing ? baAddBtn("example", ru.id, "+ Example") : "";
+    return '<div class="rule prov" tabindex="0" data-kind="rule" data-id="' + baEsc(ru.id) + '"' +
+      '>' +
+      '<div class="rule-title">' + baText("rules", ru.id, "title", ru.title) + del + '</div>' +
+      exs + add + '</div>';
+  }
+  function baScenario(sc){
+    var st = sc.status || "draft";
+    var rows = [];
+    function add(keyword, field){
+      var arr = sc[field] || [];
+      if(BA.editing){
+        for(var i=0;i<arr.length;i++){
+          rows.push('<div class="gwt-row"><span class="gwt-kw">' + (i===0?keyword:"And") + '</span>' +
+            '<span class="gwt-clause">' + baArrText(sc.id, field, i, arr[i]) +
+            ' <button class="ba-del ba-del-sm" type="button" data-delclause="' + baEsc(sc.id) + '" data-df="' + field + '" data-di="' + i + '">&#215;</button></span></div>');
+        }
+        rows.push('<div class="gwt-row"><span class="gwt-kw"></span><span class="gwt-clause">' +
+          '<button class="ba-add ba-add-sm" type="button" data-addclause="' + baEsc(sc.id) + '" data-df="' + field + '">+ ' + keyword + '</button></span></div>');
+      } else {
+        var first = true;
+        arr.forEach(function(c){ rows.push('<div class="gwt-row"><span class="gwt-kw">' + (first?keyword:"And") + '</span>' +
+          '<span class="gwt-clause">' + baEsc(c) + '</span></div>'); first = false; });
+      }
+    }
+    add("Given","given"); add("When","when"); add("Then","then");
+    var tag = BA.editing ? baEnumCtl("scenarios", sc.id, "status", "scenario.status", st)
+      : '<span class="sc-tag sc-' + baEsc(st) + '">' + baEsc(BA_SC_STATUS[st] || st) + '</span>';
+    var del = BA.editing ? baDelBtn("scenarios", sc.id) : "";
+    return '<div class="sc prov" tabindex="0" data-kind="sc" data-id="' + baEsc(sc.id) + '"' +
+      ((sc.sources&&sc.sources.length)?' data-sources="' + baEsc(sc.sources.join(" ")) + '"':'') + '>' +
+      '<div class="sc-head"><span class="sc-title">' + baText("scenarios", sc.id, "title", sc.title) + '</span>' +
+      '<span class="sc-head-right">' + tag + del + '</span></div>' +
+      '<div class="gwt">' + rows.join('') + '</div></div>';
+  }
+  function baRedCards(us){
+    var qs = (BA.state.openQuestions||[]).filter(function(q){ return q.storyRef === us.id; });
+    if(!qs.length) return "";
+    var items = qs.map(function(q){
+      return '<div class="redcard prov" tabindex="0" data-kind="oq" data-id="' + baEsc(q.id) + '"' +
+        ((q.sources&&q.sources.length)?' data-sources="' + baEsc(q.sources.join(" ")) + '"':'') + '>' +
+        '<span class="redcard-icon" aria-hidden="true">&#10067;</span>' +
+        '<span class="redcard-q">' + baText("openQuestions", q.id, "question", q.question) + '</span></div>';
+    }).join('');
+    return '<div class="us-redcards">' + items + '</div>';
+  }
+  function baStoryCard(us){
+    var rules = (us.rules||[]).map(function(ru){ return baRuleCard(us, ru); }).join('');
+    var addRule = BA.editing ? baAddBtn("rule", us.id, "+ Rule") : "";
+    var scen = (us.scenarios||[]).map(baScenario).join('');
+    var addSc = BA.editing ? baAddBtn("scenario", us.id, "+ Scenario") : "";
+    var del = BA.editing ? baDelBtn("userStories", us.id) : "";
+    var rulesBlock = (rules || BA.editing) ? ('<div class="us-sub-h">Rules &amp; examples</div><div class="us-rules">' + rules + addRule + '</div>') : "";
+    var scBlock = (scen || BA.editing) ? ('<div class="us-sub-h">Formulated scenarios</div><div class="us-sc-list">' + scen + addSc + '</div>') : "";
+    return '<div class="us prov" tabindex="0" data-kind="us" data-id="' + baEsc(us.id) + '"' +
+      ((us.sources&&us.sources.length)?' data-sources="' + baEsc(us.sources.join(" ")) + '"':'') + '>' +
+      '<div class="us-head"><span class="us-title">' + baText("userStories", us.id, "title", us.title) + '</span>' +
+      '<span class="us-head-right">' + baStoryTag(us) + del + '</span></div>' +
+      baNarrative(us) +
+      '<div class="us-ws">' + baWsChip(BA.state, us.workstream) + '</div>' +
+      rulesBlock + scBlock + baRedCards(us) + '</div>';
+  }
+  function baStoriesBody(){
+    var stories = BA.state.userStories || [];
+    if(!stories.length && !BA.editing) return "";
+    var html = stories.map(baStoryCard).join('');
+    if(BA.editing) html += baAddBtn("userStories", null, "+ Story");
+    return html || '<p class="empty">No user stories yet.</p>';
+  }
+
+  /* ====================== RTM + UAT (derived) ====================== */
+  function baRTMBody(){
+    var stories = BA.state.userStories || [];
+    var bar = '<div class="rtm-bar">' +
+      '<button class="rx-btn" type="button" id="ba-rtm-csv">Export RTM (CSV)</button>' +
+      '<button class="rx-btn" type="button" id="ba-uat-csv">Export UAT (CSV)</button>' +
+      '<button class="rx-btn" type="button" id="ba-uat-md">Export UAT (MD)</button></div>';
+    if(!stories.length) return bar + '<p class="empty">No user stories to trace yet.</p>';
+    var rows = "";
+    stories.forEach(function(us){
+      var rules = us.rules || [];
+      var scen = (us.scenarios||[]).map(function(s){ return '<span class="rtm-chip">' + baEsc(s.id) + '</span>'; }).join('') || '<span class="ex-null">—</span>';
+      var srcs = (us.sources||[]).join(", ") || "—";
+      var span = Math.max(rules.length, 1);
+      var storyCell = '<td rowspan="' + span + '"><div class="rtm-story">' + baEsc(us.title) + '</div>' +
+        '<div class="rtm-sub">' + baEsc(us.id) + '</div></td>';
+      var scCell = '<td rowspan="' + span + '">' + scen + '</td>';
+      var stCell = '<td rowspan="' + span + '"><span class="us-tag us-' + baEsc(us.status||'draft') + '">' +
+        baEsc(BA_STORY_TAG[us.status||'draft'] || us.status) + '</span></td>';
+      var srcCell = '<td rowspan="' + span + '" class="rtm-src">' + baEsc(srcs) + '</td>';
+      if(!rules.length){
+        rows += '<tr>' + storyCell + '<td class="ex-null">—</td><td class="num">0</td>' + scCell + stCell + srcCell + '</tr>';
+      } else {
+        rules.forEach(function(ru, i){
+          rows += '<tr>' + (i===0 ? storyCell : '') +
+            '<td>' + baEsc(ru.title) + '</td>' +
+            '<td class="num">' + (ru.examples||[]).length + '</td>' +
+            (i===0 ? scCell + stCell + srcCell : '') + '</tr>';
+        });
+      }
+    });
+    return bar + '<div style="overflow-x:auto"><table class="rtm-table"><thead><tr>' +
+      '<th>Story</th><th>Rule</th><th class="num">Examples</th><th>Scenarios</th><th>Status</th><th>Sources</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+  }
+
+  function baCsvField(v){ return '"' + String(v==null?"":v).replace(/"/g,'""') + '"'; }
+  function baCsv(rows){
+    return "﻿" + rows.map(function(r){ return r.map(baCsvField).join(","); }).join("\r\n") + "\r\n";
+  }
+  function baDownload(filename, text, mime){
+    var a = document.createElement('a');
+    a.href = 'data:' + (mime||'text/plain') + ';charset=utf-8,' + encodeURIComponent(text);
+    a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+  function baPid(){ return (BA.state.project && BA.state.project.id) || 'project'; }
+
+  function baExportRTM(){
+    var rows = [["Story ID","Story","Rule","Examples","Scenario IDs","Status","Sources"]];
+    (BA.state.userStories||[]).forEach(function(us){
+      var scIds = (us.scenarios||[]).map(function(s){ return s.id; }).join(" ");
+      var srcs = (us.sources||[]).join(" ");
+      var rules = us.rules || [];
+      if(!rules.length){
+        rows.push([us.id, us.title, "", 0, scIds, us.status||"", srcs]);
+      } else {
+        rules.forEach(function(ru){
+          rows.push([us.id, us.title, ru.title, (ru.examples||[]).length, scIds, us.status||"", srcs]);
+        });
+      }
+    });
+    baDownload(baPid() + "-rtm.csv", baCsv(rows), "text/csv");
+  }
+
+  function baUatCases(){
+    var cases = [];
+    function join(a){ return (a||[]).join("; "); }
+    (BA.state.userStories||[]).forEach(function(us){
+      (us.scenarios||[]).forEach(function(sc){
+        cases.push({ caseId: sc.id, group: us.title, groupId: us.id, groupKind: "Story",
+          title: sc.title, pre: join(sc.given), steps: join(sc.when), expect: join(sc.then),
+          status: sc.status||"draft" });
+      });
+    });
+    (BA.state.requirements||[]).forEach(function(r){
+      (r.scenarios||[]).forEach(function(sc){
+        cases.push({ caseId: sc.id, group: r.title, groupId: r.id, groupKind: "Requirement",
+          title: sc.title, pre: join(sc.given), steps: join(sc.when), expect: join(sc.then),
+          status: sc.status||"draft" });
+      });
+    });
+    return cases;
+  }
+  function baExportUatCsv(){
+    var rows = [["Case ID","Type","Story / Requirement","Test title","Preconditions","Steps","Expected","Status"]];
+    baUatCases().forEach(function(c){
+      rows.push([c.caseId, c.groupKind, c.group, c.title, c.pre, c.steps, c.expect, c.status]);
+    });
+    baDownload(baPid() + "-uat.csv", baCsv(rows), "text/csv");
+  }
+  function baExportUatMd(){
+    var cases = baUatCases();
+    var p = BA.state.project || {};
+    var L = ["# UAT script — " + (p.name || "Project"), "", "_Generated " + baFmtDate(baToday()) +
+      " · " + cases.length + " test case" + (cases.length===1?"":"s") + " · derived from scenarios (not stored)._", ""];
+    var groups = [], seen = {};
+    cases.forEach(function(c){ var k = c.groupKind + "::" + c.groupId;
+      if(!seen[k]){ seen[k] = { kind:c.groupKind, name:c.group, id:c.groupId, items:[] }; groups.push(seen[k]); }
+      seen[k].items.push(c); });
+    groups.forEach(function(g){
+      L.push("## " + g.name + "  \n_" + g.kind + " · " + g.id + "_", "");
+      g.items.forEach(function(c){
+        L.push("### " + c.caseId + " — " + c.title);
+        L.push("- **Status:** " + c.status);
+        L.push("- **Preconditions:** " + (c.pre || "—"));
+        L.push("- **Steps:** " + (c.steps || "—"));
+        L.push("- **Expected:** " + (c.expect || "—"));
+        L.push("");
+      });
+    });
+    if(!cases.length) L.push("_No scenarios to derive UAT cases from yet._");
+    baDownload(baPid() + "-uat.md", L.join("\n") + "\n", "text/markdown");
+  }
+
+  /* ====================== painting ====================== */
+  function baPaintStories(){
+    var sec = document.getElementById('ba-us-sec');
+    var body = document.getElementById('ba-us-body');
+    if(!sec || !body) return;
+    var stories = BA.state.userStories || [];
+    var show = stories.length > 0 || BA.editing;
+    sec.hidden = !show;
+    var cnt = document.getElementById('ba-us-count'); if(cnt) cnt.textContent = stories.length;
+    body.innerHTML = baStoriesBody();
+    wireProvenance(body);
+  }
+  function baPaintRTM(){
+    var sec = document.getElementById('ba-rtm-sec');
+    var body = document.getElementById('ba-rtm-body');
+    if(!sec || !body) return;
+    var stories = BA.state.userStories || [];
+    sec.hidden = !(stories.length > 0);
+    body.innerHTML = baRTMBody();
+    var b1 = document.getElementById('ba-rtm-csv'); if(b1) b1.addEventListener('click', function(e){ e.stopPropagation(); baExportRTM(); });
+    var b2 = document.getElementById('ba-uat-csv'); if(b2) b2.addEventListener('click', function(e){ e.stopPropagation(); baExportUatCsv(); });
+    var b3 = document.getElementById('ba-uat-md'); if(b3) b3.addEventListener('click', function(e){ e.stopPropagation(); baExportUatMd(); });
+  }
+  function baRepaint(){ baBuildIdMap(); baPaintStories(); baPaintRTM(); }
+
+  /* ====================== legacy-section decoration ====================== */
+  function baLegacyReadonly(el, obj){
+    var ef = el.getAttribute('data-ef');
+    var val = obj ? obj[ef] : null;
+    if(el.hasAttribute('data-edate')) el.innerHTML = baFmtDate(val);
+    else if(el.hasAttribute('data-eenum')) el.innerHTML = '<span class="ba-pill">' + baEsc(val==null?"—":val) + '</span>';
+    else el.innerHTML = baEsc(val==null?"":val);
+  }
+  function baLegacyControl(el, coll, obj){
+    var ef = el.getAttribute('data-ef');
+    var val = obj ? obj[ef] : null;
+    if(el.hasAttribute('data-edate')) el.innerHTML = baDateCtl(coll, obj.id, ef, val);
+    else if(el.hasAttribute('data-eenum')) el.innerHTML = baEnumCtl(coll, obj.id, ef, el.getAttribute('data-eenum'), val);
+    else el.innerHTML = baText(coll, obj.id, ef, val);
+  }
+  function baBlankLegacy(coll){
+    var ids = baAllIds(BA.state), obj, prefix, label;
+    if(coll==='actions'){ obj = { id: baUid('act-','new action'), title:"New action", owner:null, due:null, status:"open", sources:[], history:[] }; }
+    else if(coll==='risks'){ obj = { id: baUid('risk-','new risk'), title:"New risk", severity:"medium", likelihood:null, mitigation:null, status:"open", sources:[], history:[] }; }
+    else if(coll==='openQuestions'){ obj = { id: baUid('q-','new question'), question:"New question", raisedBy:null, date:baToday(), status:"open", answer:null, sources:[], history:[] }; }
+    else if(coll==='parkingLot'){ obj = { id: baUid('pk-','new note'), note:"New parked note", context:null, date:baToday(), suggestion:null, sources:[] }; }
+    else return null;
+    BA.state[coll] = BA.state[coll] || [];
+    BA.state[coll].push(obj);
+    return obj;
+  }
+  function baLegacyRowHtml(coll, obj){
+    if(coll==='actions'){
+      return '<tr class="prov ba-newrow" data-eitem="actions" data-id="' + baEsc(obj.id) + '">' +
+        '<td data-ef="title">' + baText("actions", obj.id, "title", obj.title) + baDelBtn("actions", obj.id) + '</td>' +
+        '<td>' + baEsc("Unassigned") + '</td>' +
+        '<td class="num" data-ef="due" data-edate="1">' + baDateCtl("actions", obj.id, "due", obj.due) + '</td>' +
+        '<td data-ef="status" data-eenum="action.status">' + baEnumCtl("actions", obj.id, "status", "action.status", obj.status) + '</td></tr>';
+    }
+    if(coll==='risks'){
+      return '<div class="raid-item prov ba-newrow" data-eitem="risks" data-id="' + baEsc(obj.id) + '">' +
+        '<div class="raid-top"><span data-ef="severity" data-eenum="risk.severity">' + baEnumCtl("risks", obj.id, "severity", "risk.severity", obj.severity) + '</span>' +
+        '<span class="raid-status" data-ef="status" data-eenum="risk.status">' + baEnumCtl("risks", obj.id, "status", "risk.status", obj.status) + '</span></div>' +
+        '<div class="raid-title" data-ef="title">' + baText("risks", obj.id, "title", obj.title) + baDelBtn("risks", obj.id) + '</div></div>';
+    }
+    if(coll==='openQuestions'){
+      return '<li class="q-item prov ba-newrow" data-eitem="openQuestions" data-id="' + baEsc(obj.id) + '">' +
+        '<div class="q-head"><span class="q-badge q-open" data-ef="status" data-eenum="question.status">' + baEnumCtl("openQuestions", obj.id, "status", "question.status", obj.status) + '</span>' +
+        '<span class="q-text" data-ef="question">' + baText("openQuestions", obj.id, "question", obj.question) + baDelBtn("openQuestions", obj.id) + '</span></div></li>';
+    }
+    if(coll==='parkingLot'){
+      return '<li class="pk-item prov ba-newrow" data-eitem="parkingLot" data-id="' + baEsc(obj.id) + '">' +
+        '<div class="pk-date num" data-ef="date" data-edate="1">' + baDateCtl("parkingLot", obj.id, "date", obj.date) + '</div>' +
+        '<div class="pk-body"><div class="pk-note" data-ef="note">' + baText("parkingLot", obj.id, "note", obj.note) + baDelBtn("parkingLot", obj.id) + '</div></div></li>';
+    }
+    return "";
+  }
+  function baDecorateItem(el, decorate){
+    var coll = el.getAttribute('data-eitem');
+    var id = el.getAttribute('data-id');
+    var obj = baFind(id);
+    if(!obj) return;
+    el.querySelectorAll('[data-ef]').forEach(function(f){
+      if(f.closest('[data-eitem]') !== el) return;
+      if(decorate) baLegacyControl(f, coll, obj);
+      else baLegacyReadonly(f, obj);
+    });
+    if(decorate){
+      if(!el.querySelector('.ba-del')){
+        var host = el.querySelector('[data-ef]') || el;
+        host.insertAdjacentHTML('beforeend', ' ' + baDelBtn(coll, id));
+      }
+    }
+  }
+  function baDecorate(on){
+    document.querySelectorAll('[data-eitem]').forEach(function(el){ baDecorateItem(el, on); });
+    // per-section add buttons for legacy collections; locate the section via an
+    // existing item's marker so it works regardless of data-sec slug (differs per renderer)
+    var adds = [["actions","+ Action"],["risks","+ Risk"],
+      ["openQuestions","+ Question"],["parkingLot","+ Parking item"]];
+    adds.forEach(function(a){
+      var item = document.querySelector('[data-eitem="' + a[0] + '"]');
+      var card = item ? item.closest('.card') : null;
+      var sec = card ? card.querySelector('.sec-body') : null;
+      if(!sec) return;
+      var existing = sec.querySelector('.ba-add[data-add="' + a[0] + '"]');
+      if(on){ if(!existing) sec.insertAdjacentHTML('beforeend', baAddBtn(a[0], null, a[1])); }
+      else if(existing) existing.remove();
+    });
+  }
+
+  /* ====================== validation (port, incl. userStories) ====================== */
+  function baValidate(state){
+    var errors = [], DATE = /^\d{4}-\d{2}-\d{2}$/;
+    function isObj(o){ return o!==null && typeof o==='object' && !Array.isArray(o); }
+    function need(o, f, w){ if(!isObj(o) || o[f]==null || o[f]==="") errors.push(w + ": missing required '" + f + "'"); }
+    function enun(o, f, key, w, an){ if(!isObj(o) || !(f in o)) return; var v=o[f];
+      if((v==null) && an) return; if((BA_ENUMS[key]||[]).indexOf(v)===-1) errors.push(w + ": '" + f + "'=" + JSON.stringify(v) + " invalid"); }
+    function date(o, f, w){ if(!isObj(o)) return; var v=o[f]; if(v==null) return;
+      if(typeof v!=='string' || !DATE.test(v)) errors.push(w + ": '" + f + "'=" + JSON.stringify(v) + " not YYYY-MM-DD"); }
+    var ids = {}, artIds = {};
+    var top = ["stakeholders","workstreams","milestones","actions","decisions","risks","issues",
+      "dependencies","requirements","openQuestions","conflicts","artifacts","parkingLot"];
+    function reg(coll){ (state[coll]||[]).forEach(function(it, i){ if(!isObj(it)){ errors.push(coll+"["+i+"] not object"); return; }
+      if(!it.id){ errors.push(coll+"["+i+"] missing id"); return; }
+      if(it.id in ids) errors.push("duplicate id '" + it.id + "'"); else ids[it.id] = coll; }); }
+    top.forEach(reg);
+    (state.artifacts||[]).forEach(function(a){ if(isObj(a) && a.id) artIds[a.id] = true; });
+    function src(it, w){ var s = it.sources; if(s==null) return; if(!Array.isArray(s)){ errors.push(w+": sources not array"); return; }
+      s.forEach(function(x){ if(!(x in artIds)) errors.push(w + ": source '" + x + "' unknown"); }); }
+    (state.milestones||[]).forEach(function(it,i){ var w="milestones["+i+"]"; need(it,"title",w); need(it,"status",w); enun(it,"status","milestone.status",w); date(it,"due",w); if(isObj(it)) src(it,w); });
+    (state.actions||[]).forEach(function(it,i){ var w="actions["+i+"]"; need(it,"title",w); need(it,"status",w); enun(it,"status","action.status",w); date(it,"due",w); if(isObj(it)) src(it,w); });
+    (state.decisions||[]).forEach(function(it,i){ var w="decisions["+i+"]"; need(it,"summary",w); date(it,"date",w); if(isObj(it)) src(it,w); });
+    (state.risks||[]).forEach(function(it,i){ var w="risks["+i+"]"; need(it,"title",w); enun(it,"severity","risk.severity",w); enun(it,"likelihood","risk.likelihood",w,true); enun(it,"status","risk.status",w); if(isObj(it)) src(it,w); });
+    (state.issues||[]).forEach(function(it,i){ var w="issues["+i+"]"; need(it,"title",w); enun(it,"severity","issue.severity",w); enun(it,"status","issue.status",w); if(isObj(it)) src(it,w); });
+    (state.dependencies||[]).forEach(function(it,i){ var w="dependencies["+i+"]"; need(it,"title",w); enun(it,"status","dependency.status",w); date(it,"neededBy",w); if(isObj(it)) src(it,w); });
+    (state.requirements||[]).forEach(function(it,i){ var w="requirements["+i+"]"; need(it,"title",w); enun(it,"kind","requirement.kind",w); enun(it,"status","requirement.status",w); if(isObj(it)) src(it,w);
+      (it.scenarios||[]).forEach(function(sc,j){ var sw=w+".scenarios["+j+"]"; need(sc,"title",sw); enun(sc,"status","scenario.status",sw); if(isObj(sc)) src(sc,sw);
+        if(sc.id){ if(sc.id in ids) errors.push("duplicate id '" + sc.id + "'"); else ids[sc.id]="scenarios"; } }); });
+    (state.openQuestions||[]).forEach(function(it,i){ var w="openQuestions["+i+"]"; need(it,"question",w); enun(it,"status","question.status",w); date(it,"date",w); if(isObj(it)) src(it,w); });
+    (state.parkingLot||[]).forEach(function(it,i){ var w="parkingLot["+i+"]"; need(it,"note",w); date(it,"date",w); if(isObj(it)) src(it,w); });
+    (state.userStories||[]).forEach(function(us,i){ var w="userStories["+i+"]"; if(!isObj(us)){ errors.push(w+" not object"); return; }
+      need(us,"title",w); enun(us,"status","story.status",w); if(isObj(us)) src(us,w);
+      if(us.id){ if(us.id in ids) errors.push("duplicate id '" + us.id + "'"); else ids[us.id]="userStories"; }
+      var ws = us.workstream; if(ws!=null && !(ws in ids)) errors.push(w+": workstream '" + ws + "' unknown");
+      (us.rules||[]).forEach(function(ru,r){ var rw=w+".rules["+r+"]"; need(ru,"title",rw);
+        if(ru.id){ if(ru.id in ids) errors.push("duplicate id '" + ru.id + "'"); else ids[ru.id]="rules"; }
+        (ru.examples||[]).forEach(function(ex,e){ var ew=rw+".examples["+e+"]"; need(ex,"title",ew);
+          if(ex.id){ if(ex.id in ids) errors.push("duplicate id '" + ex.id + "'"); else ids[ex.id]="examples"; } }); });
+      (us.scenarios||[]).forEach(function(sc,j){ var sw=w+".scenarios["+j+"]"; need(sc,"title",sw); enun(sc,"status","scenario.status",sw); if(isObj(sc)) src(sc,sw);
+        if(sc.id){ if(sc.id in ids) errors.push("duplicate id '" + sc.id + "'"); else ids[sc.id]="scenarios"; } }); });
+    (state.openQuestions||[]).forEach(function(q,i){ var ref=isObj(q)?q.storyRef:null;
+      if(ref!=null && ids[ref]!=="userStories") errors.push("openQuestions["+i+"]: storyRef '" + ref + "' not a user story"); });
+    return errors;
+  }
+
+  /* ====================== edit toolbar + lifecycle ====================== */
+  function baShowBanner(errors){
+    baClearBanner();
+    var wrap = document.querySelector('.wrap') || document.body;
+    var div = document.createElement('div');
+    div.className = 'ba-banner';
+    div.id = 'ba-banner';
+    div.innerHTML = '<div class="ba-banner-h"><span class="ba-banner-dot"></span>' + errors.length +
+      ' validation ' + (errors.length===1?'issue':'issues') + ' — fix before saving</div><ul>' +
+      errors.slice(0,12).map(function(e){ return '<li>' + baEsc(e) + '</li>'; }).join('') +
+      (errors.length>12 ? '<li>… ' + (errors.length-12) + ' more</li>' : '') + '</ul>';
+    wrap.insertBefore(div, wrap.firstChild);
+    div.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+  function baClearBanner(){ var b = document.getElementById('ba-banner'); if(b) b.remove(); }
+  function baToast(msg){
+    var t = document.createElement('div'); t.className = 'ba-toast'; t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function(){ t.classList.add('show'); }, 10);
+    setTimeout(function(){ t.classList.remove('show'); setTimeout(function(){ if(t.parentNode) t.remove(); }, 300); }, 2600);
+  }
+
+  function baSetTools(){
+    var btn = document.getElementById('ba-edit-btn');
+    if(!btn) return;
+    var cluster = document.getElementById('ba-edit-cluster');
+    if(BA.editing){
+      btn.style.display = 'none';
+      if(!cluster){
+        cluster = document.createElement('span');
+        cluster.id = 'ba-edit-cluster';
+        cluster.className = 'ba-edit-cluster';
+        cluster.innerHTML = '<span class="ba-edit-label">Editing</span>' +
+          '<button class="ba-save" id="ba-save-btn" type="button">Save</button>' +
+          '<button class="ba-discard" id="ba-discard-btn" type="button">Discard</button>';
+        btn.parentNode.insertBefore(cluster, btn.nextSibling);
+        document.getElementById('ba-save-btn').addEventListener('click', function(e){ e.stopPropagation(); baSave(); });
+        document.getElementById('ba-discard-btn').addEventListener('click', function(e){ e.stopPropagation(); baDiscardRequest(); });
+      }
+    } else {
+      btn.style.display = '';
+      if(cluster) cluster.remove();
+    }
+  }
+  function baEnterEdit(){
+    if(BA.editing) return;
+    BA.editing = true; BA.dirty = false;
+    document.body.classList.add('ba-editing');
+    baBuildIdMap();
+    baDecorate(true);
+    baPaintStories(); baPaintRTM();
+    baSetTools();
+  }
+  function baExitEditVisual(){
+    BA.editing = false;
+    document.body.classList.remove('ba-editing');
+    baClearBanner();
+    baSetTools();
+  }
+  function baDiscardRequest(){
+    // leaving edit mode without saving: inline confirm (never window.confirm)
+    if(!BA.dirty){ baDiscard(); return; }
+    var cluster = document.getElementById('ba-edit-cluster');
+    if(!cluster || cluster.querySelector('.ba-discard-confirm')){ return; }
+    var d = document.getElementById('ba-discard-btn'); if(d) d.style.display = 'none';
+    var span = document.createElement('span');
+    span.className = 'ba-discard-confirm';
+    span.innerHTML = '<span class="ba-confirm-q">Discard changes?</span>' +
+      '<button class="ba-cy" type="button" id="ba-discard-yes">Discard</button>' +
+      '<button class="ba-cn" type="button" id="ba-discard-no">Keep editing</button>';
+    cluster.appendChild(span);
+    document.getElementById('ba-discard-yes').addEventListener('click', function(e){ e.stopPropagation(); baDiscard(); });
+    document.getElementById('ba-discard-no').addEventListener('click', function(e){ e.stopPropagation(); span.remove(); if(d) d.style.display = ''; });
+  }
+  function baDiscard(){
+    baExitEditVisual();
+    if(BA.host.discard){ BA.host.discard(baClone(BA.pristine)); return; }
+    // default (render.py static): reload restores the embedded pristine state
+    location.reload();
+  }
+  function baApplyReadonly(){
+    // render.py fallback: convert decorated legacy items to read-only in place,
+    // drop new-row markers, and repaint BA sections.
+    baBuildIdMap();
+    document.querySelectorAll('[data-eitem]').forEach(function(el){
+      var id = el.getAttribute('data-id'), obj = baFind(id);
+      if(!obj){ el.remove(); return; }
+      el.classList.remove('ba-newrow');
+      el.querySelectorAll('.ba-del').forEach(function(x){ x.remove(); });
+      el.querySelectorAll('[data-ef]').forEach(function(f){ if(f.closest('[data-eitem]')===el) baLegacyReadonly(f, obj); });
+    });
+    baDecorate(false);
+    baPaintStories(); baPaintRTM();
+  }
+  function baSave(){
+    baCommitActive();
+    var errors = baValidate(BA.state);
+    if(errors.length){ baShowBanner(errors); return; }
+    baClearBanner();
+    if(!BA.state.project) BA.state.project = {};
+    BA.state.project.lastEdited = baToday();
+    var text = JSON.stringify(BA.state, null, 2);
+    baWriteFile(text).then(function(method){
+      if(method === null) return; // user cancelled picker
+      BA.pristine = baClone(BA.state);
+      baExitEditVisual();
+      if(BA.host.afterSave){ BA.host.afterSave(baClone(BA.state)); }
+      else { baApplyReadonly(); }
+      baToast(method === 'download' ? 'Downloaded state.json' : 'Saved state.json (' + method + ')');
+    });
+  }
+  function baWriteFile(text){
+    return (async function(){
+      if(baFileHandle && baFileHandle.createWritable){
+        try { var w = await baFileHandle.createWritable(); await w.write(text); await w.close(); return 'in place'; }
+        catch(e){ /* fall through */ }
+      }
+      if(window.showSaveFilePicker){
+        try {
+          var h = await window.showSaveFilePicker({ suggestedName: 'state.json',
+            types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
+          baFileHandle = h;
+          var w2 = await h.createWritable(); await w2.write(text); await w2.close();
+          return 'saved';
+        } catch(e){ if(e && e.name === 'AbortError') return null; }
+      }
+      baDownload('state.json', text, 'application/json');
+      return 'download';
+    })();
+  }
+
+  /* ---- delegated edit listeners (wired once) ---- */
+  function baCommitActive(){ var a = document.activeElement; if(a && a.classList && a.classList.contains('ba-ce')) baCommitText(a); }
+  function baSetField(obj, ef, val){
+    if(ef.indexOf('.') > -1){
+      var parts = ef.split('.'), o = obj;
+      for(var i=0;i<parts.length-1;i++){ if(o[parts[i]]==null) o[parts[i]] = {}; o = o[parts[i]]; }
+      var last = parts[parts.length-1], old = o[last];
+      if(old !== val){ baPushHist(obj, ef, old); o[last] = val; BA.dirty = true; }
+      return;
+    }
+    var oldv = obj[ef];
+    if(oldv !== val){ baPushHist(obj, ef, oldv); obj[ef] = val; BA.dirty = true; }
+  }
+  function baCommitText(el){
+    var id = el.getAttribute('data-eid'), ef = el.getAttribute('data-ef');
+    var obj = baFind(id); if(!obj) return;
+    var nv = el.textContent.replace(/\s+$/,'').replace(/^\s+/,'');
+    var idx = el.getAttribute('data-eidx');
+    if(idx != null){ obj[ef] = obj[ef] || []; obj[ef][+idx] = nv; BA.dirty = true; return; }
+    var required = (ef==='title' || ef==='question' || ef==='note' || ef==='summary' || ef==='name');
+    var val = (nv === "" && !required) ? null : nv;
+    baSetField(obj, ef, val);
+  }
+  function baOnFocusout(e){
+    var el = e.target;
+    if(el && el.classList && el.classList.contains('ba-ce')) baCommitText(el);
+  }
+  function baOnChange(e){
+    var el = e.target;
+    if(!el || !el.classList) return;
+    if(el.classList.contains('ba-sel')){
+      var obj = baFind(el.getAttribute('data-eid')); if(!obj) return;
+      var v = el.value; if(el.getAttribute('data-enull')==='1' && v==='') v = null;
+      baSetField(obj, el.getAttribute('data-ef'), v);
+    } else if(el.classList.contains('ba-date')){
+      var o2 = baFind(el.getAttribute('data-eid')); if(!o2) return;
+      baSetField(o2, el.getAttribute('data-ef'), el.value || null);
+    }
+  }
+  function baOnClick(e){
+    var t = e.target;
+    // while editing, stop clicks on edit controls from reaching provenance handlers
+    // (keeps the caret / native control behaviour, suppresses the popover)
+    if(BA.editing && t.closest && t.closest('.ba-ce,.ba-sel,.ba-date,.ba-del,.ba-add,.ba-confirm,[data-addclause],[data-delclause]')){
+      e.stopPropagation();
+    }
+    // inline delete-confirm
+    var del = t.closest ? t.closest('.ba-del') : null;
+    if(del && !del.classList.contains('ba-del-sm') && del.hasAttribute('data-del-id')){
+      e.preventDefault(); e.stopPropagation();
+      baConfirmDelete(del); return;
+    }
+    var delc = t.closest ? t.closest('[data-baconfirm]') : null;
+    if(delc){ e.preventDefault(); e.stopPropagation();
+      if(delc.getAttribute('data-baconfirm')==='yes') baDoDelete(delc);
+      else { var host = delc.parentNode; host.innerHTML = baDelBtn(host.getAttribute('data-cc'), host.getAttribute('data-ci')); }
+      return; }
+    // clause add/remove for scenarios
+    var dc = t.closest ? t.closest('[data-delclause]') : null;
+    if(dc){ e.preventDefault(); e.stopPropagation();
+      var sc = baFind(dc.getAttribute('data-delclause')); if(sc){ var f=dc.getAttribute('data-df'); (sc[f]||[]).splice(+dc.getAttribute('data-di'),1); baRepaint(); } return; }
+    var ac = t.closest ? t.closest('[data-addclause]') : null;
+    if(ac){ e.preventDefault(); e.stopPropagation();
+      var sc2 = baFind(ac.getAttribute('data-addclause')); if(sc2){ var f2=ac.getAttribute('data-df'); sc2[f2]=sc2[f2]||[]; sc2[f2].push(""); baRepaint(); } return; }
+    // add-item
+    var add = t.closest ? t.closest('.ba-add') : null;
+    if(add && add.hasAttribute('data-add')){ e.preventDefault(); e.stopPropagation(); baAddItem(add); return; }
+  }
+  function baConfirmDelete(del){
+    var coll = del.getAttribute('data-del-coll'), id = del.getAttribute('data-del-id');
+    var span = document.createElement('span');
+    span.className = 'ba-confirm'; span.setAttribute('data-cc', coll); span.setAttribute('data-ci', id);
+    span.innerHTML = '<span class="ba-confirm-q">Delete?</span>' +
+      '<button class="ba-cy" type="button" data-baconfirm="yes">Yes</button>' +
+      '<button class="ba-cn" type="button" data-baconfirm="no">No</button>';
+    del.replaceWith(span);
+  }
+  function baRemoveById(coll, id){
+    var arr = BA.state[coll];
+    if(arr){ for(var i=0;i<arr.length;i++){ if(arr[i].id===id){ arr.splice(i,1); return true; } } }
+    // nested: rules, examples, scenarios
+    if(coll==='rules' || coll==='examples' || coll==='scenarios'){
+      (BA.state.userStories||[]).forEach(function(us){
+        if(coll==='scenarios'){ us.scenarios = (us.scenarios||[]).filter(function(s){ return s.id!==id; }); }
+        (us.rules||[]).forEach(function(ru){
+          if(coll==='rules'){ /* handled below */ }
+          if(coll==='examples'){ ru.examples = (ru.examples||[]).filter(function(x){ return x.id!==id; }); }
+        });
+        if(coll==='rules'){ us.rules = (us.rules||[]).filter(function(r){ return r.id!==id; }); }
+      });
+    }
+    return false;
+  }
+  function baDoDelete(btn){
+    var host = btn.parentNode;
+    var coll = host.getAttribute('data-cc'), id = host.getAttribute('data-ci');
+    baRemoveById(coll, id);
+    BA.dirty = true;
+    var legacy = document.querySelector('[data-eitem][data-id="' + id + '"]');
+    if(legacy) legacy.remove();
+    baRepaint();
+  }
+  function baAddItem(add){
+    var kind = add.getAttribute('data-add');
+    if(kind==='userStories'){
+      BA.state.userStories = BA.state.userStories || [];
+      BA.state.userStories.push({ id: baUid('us-','new story'), title:"New story",
+        narrative:{ asA:null, iWant:null, soThat:null }, workstream:null, status:"draft",
+        rules:[], scenarios:[], sources:[], history:[] });
+      baRepaint(); return;
+    }
+    if(kind==='rule'){
+      var us = baFind(add.getAttribute('data-owner')); if(us){ us.rules = us.rules||[];
+        us.rules.push({ id: baUid('rule-','new rule'), title:"New rule", examples:[] }); baRepaint(); } return;
+    }
+    if(kind==='example'){
+      var ru = baFind(add.getAttribute('data-owner')); if(ru){ ru.examples = ru.examples||[];
+        ru.examples.push({ id: baUid('ex-','new example'), title:"New example", context:null, action:null, outcome:null }); baRepaint(); } return;
+    }
+    if(kind==='scenario'){
+      var us2 = baFind(add.getAttribute('data-owner')); if(us2){ us2.scenarios = us2.scenarios||[];
+        us2.scenarios.push({ id: baUid('sc-','new scenario'), title:"New scenario", given:[], when:[], then:[], status:"draft", sources:[], history:[] }); baRepaint(); } return;
+    }
+    // legacy adds: append editable row/card
+    var obj = baBlankLegacy(kind);
+    if(!obj) return;
+    baBuildIdMap();
+    var html = baLegacyRowHtml(kind, obj);
+    var container = null;
+    var anchor = document.querySelector('[data-eitem="' + kind + '"]');
+    if(anchor) container = anchor.parentNode;  // tbody / raid-col / q-list / pk-list
+    if(container){ container.insertAdjacentHTML('beforeend', html);
+      var node = container.lastElementChild; var fe = node.querySelector('.ba-ce'); if(fe) fe.focus(); }
+    BA.dirty = true;
+  }
+
+  function baWireEditButton(){
+    var btn = document.getElementById('ba-edit-btn');
+    if(btn && !btn.__baWired){ btn.__baWired = true;
+      btn.addEventListener('click', function(e){ e.stopPropagation(); baEnterEdit(); }); }
+  }
+  var baListenersOn = false;
+  function baInit(state, host){
+    BA.state = state;
+    BA.pristine = baClone(state);
+    BA.host = host || {};
+    BA.editing = false; BA.dirty = false;
+    document.body.classList.remove('ba-editing');
+    baBuildIdMap();
+    baPaintStories();
+    baPaintRTM();
+    baWireEditButton();
+    baSetTools();
+    if(!baListenersOn){
+      baListenersOn = true;
+      document.addEventListener('focusout', baOnFocusout, true);
+      document.addEventListener('change', baOnChange, true);
+      document.addEventListener('click', baOnClick, true);
+    }
+  }
+  /* ---------------------- end BA MODULE ---------------------- */
+
+  apply();
+  if(window.__STATE__) wireFeatures(window.__STATE__, window.__RENDER_NOW__ ? new Date(window.__RENDER_NOW__) : new Date());
+  if(window.__STATE__) baInit(window.__STATE__, {});
+})();
+</script>
+</body>
+</html>
