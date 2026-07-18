@@ -484,8 +484,8 @@ tr:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
    lanes, cross-project tables, multi-file drop zone tweaks).
    ========================================================================== */
 
-/* tools-only bar (expand/collapse all + theme toggle), no filters here */
-.tools-bar{ display:flex; align-items:center; margin-bottom:var(--sp4); }
+/* tools bar — project picker (left) + expand/collapse all + theme toggle (right) */
+.tools-bar{ display:flex; align-items:center; flex-wrap:wrap; gap:var(--sp3); margin-bottom:var(--sp4); }
 .tools-bar .filter-tools{ margin-left:auto; }
 
 /* ---------- health strip (the hero — always visible) ---------- */
@@ -549,6 +549,31 @@ tr:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
 .dz-files div{ padding:3px 0; font-variant-numeric:tabular-nums; }
 
 .foot-files{ margin-top:6px; color:var(--muted); font-size:11px; word-break:break-word; }
+
+/* ---------- project picker (toggle projects in/out of the whole rollup) ---------- */
+.picker{ display:flex; align-items:center; flex-wrap:wrap; gap:var(--sp2); flex:1 1 auto; min-width:0; }
+.picker-lbl{ font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); margin-right:var(--sp1); flex:none; }
+.pj-chip{ display:inline-flex; align-items:center; gap:8px; font:inherit; font-size:12.5px; color:var(--ink);
+  background:var(--surface); border:1px solid var(--axis); border-radius:20px; padding:6px 12px 6px 11px;
+  cursor:pointer; white-space:nowrap; transition:border-color .15s, background .15s, opacity .15s; }
+.pj-chip:hover{ border-color:var(--muted); }
+.pj-chip:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.pj-chip-dot{ width:11px; height:11px; border-radius:3px; flex:none; box-shadow:0 0 0 1px var(--ring); }
+.pj-chip-name{ overflow:hidden; text-overflow:ellipsis; max-width:180px; }
+.pj-chip-check{ width:16px; height:16px; border-radius:50%; flex:none; border:1.5px solid var(--axis);
+  display:inline-flex; align-items:center; justify-content:center; font-size:10px; line-height:1;
+  color:transparent; transition:background .15s, border-color .15s, color .15s; }
+.pj-chip[aria-pressed="true"]{ background:color-mix(in srgb,var(--accent) 10%,var(--surface));
+  border-color:color-mix(in srgb,var(--accent) 45%,var(--axis)); }
+.pj-chip[aria-pressed="true"] .pj-chip-check{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+.pj-chip[aria-pressed="false"]{ background:transparent; opacity:.62; }
+.pj-chip[aria-pressed="false"]:hover{ opacity:.85; }
+.pj-chip[aria-pressed="false"] .pj-chip-dot{ opacity:.7; }
+@keyframes pj-chip-shake{ 0%,100%{transform:translateX(0)} 15%{transform:translateX(-3px)} 30%{transform:translateX(3px)}
+  45%{transform:translateX(-2px)} 60%{transform:translateX(2px)} 75%{transform:translateX(-1px)} }
+.pj-chip.shake{ animation:pj-chip-shake .36s ease; border-color:var(--st-atrisk); }
+@media (max-width:720px){ .picker{ flex-basis:100%; } }
 
 </style>
 </head>
@@ -1185,10 +1210,15 @@ function renderHeader(records, programName){
   stat(sum.overdue, plural(sum.overdue, "Overdue action"), true);
   if(errored) stat(errored, plural(errored, "Project") + " unreadable", true);
 
+  var total = ALL_RECORDS.length;
+  var sel = records.length;
+  var subtitle = (sel < total)
+    ? ('Program rollup · showing ' + sel + ' of ' + total + ' ' + plural(total, "project"))
+    : ('Program rollup · ' + loaded.length + ' of ' + records.length + ' ' + plural(records.length, "project") + ' loaded');
   return '<header class="head">' +
     '<div class="head-main"><div class="head-id">' +
     '<h1>' + esc(programName) + '</h1>' +
-    '<div class="head-sub">Program rollup · ' + loaded.length + ' of ' + records.length + ' ' + plural(records.length, "project") + ' loaded</div></div>' +
+    '<div class="head-sub">' + subtitle + '</div></div>' +
     '<div class="verdict verdict-' + level + '"><span class="verdict-dot"></span>' +
     '<div class="verdict-txt"><span class="verdict-lbl">Worst-of health</span>' +
     '<span class="verdict-val">' + esc(verdict) + '</span></div></div></div>' +
@@ -1199,14 +1229,78 @@ function renderHeader(records, programName){
 /*  ASSEMBLE + WIRE                                                            */
 /* ========================================================================== */
 var PROGRAM_NAME = "Program rollup";
+
+/* ---- project picker: keep ALL loaded records, filter the view by a selected set --- */
+var ALL_RECORDS = [];   // every loaded record (decorated once), regardless of selection
+var META = null;        // {loadedAt}
+var SELECTED = {};       // selId -> true for projects currently shown
+
+/* Stable per-project identity for selection/persistence. Loaded projects key on
+   state.project.id (what gets persisted); unreadable records fall back to their
+   file/folder so they can still be toggled out of the view. */
+function selId(pr){
+  if(pr.state && pr.state.project && pr.state.project.id != null && pr.state.project.id !== "")
+    return String(pr.state.project.id);
+  return "file:" + String(pr.stateFile || pr.folder || pr.name || "?");
+}
+function selectedCount(){
+  var n = 0; for(var k in SELECTED){ if(SELECTED[k]) n++; } return n;
+}
+function selectedRecords(){
+  return ALL_RECORDS.filter(function(pr){ return SELECTED[selId(pr)]; });
+}
+function loadSelection(records){
+  var ids = records.map(selId), sel = {}, stored = null;
+  try { var raw = localStorage.getItem("aipm-program-selection"); if(raw) stored = JSON.parse(raw); } catch(e){}
+  if(Array.isArray(stored)){
+    stored.forEach(function(id){ if(ids.indexOf(String(id)) !== -1) sel[String(id)] = true; });
+  }
+  // No persisted selection, or every stored id is stale -> show all (never empty).
+  if(Object.keys(sel).length === 0){ ids.forEach(function(id){ sel[id] = true; }); }
+  return sel;
+}
+function saveSelection(){
+  try {
+    var arr = ALL_RECORDS.filter(function(pr){ return SELECTED[selId(pr)]; }).map(selId);
+    localStorage.setItem("aipm-program-selection", JSON.stringify(arr));
+  } catch(e){}
+}
+function renderPicker(){
+  if(ALL_RECORDS.length < 2) return "";   // nothing to pick between
+  var chips = ALL_RECORDS.map(function(pr){
+    var id = selId(pr), on = !!SELECTED[id];
+    return '<button type="button" class="pj-chip" data-sel-id="' + esc(id) + '" ' +
+      'aria-pressed="' + (on ? "true" : "false") + '" ' +
+      'title="' + esc((on ? "Hide " : "Show ") + pr.name) + '">' +
+      '<span class="pj-chip-dot" style="background:' + esc(safeColor(pr.color)) + '"></span>' +
+      '<span class="pj-chip-name">' + esc(pr.name) + '</span>' +
+      '<span class="pj-chip-check" aria-hidden="true">✓</span></button>';
+  }).join("");
+  return '<div class="picker" role="group" aria-label="Show or hide projects">' +
+    '<span class="picker-lbl">Projects</span>' + chips + '</div>';
+}
+
+/* Entry point from the loaders — store everything once, then render the view. */
 function renderProgram(records, meta){
+  ALL_RECORDS = records || [];
+  META = meta || {loadedAt: nowStr()};
+  decorate(ALL_RECORDS, todayUTC());       // color/health/counts/name — assigned once, stable
+  SELECTED = loadSelection(ALL_RECORDS);
+  renderView(false);
+}
+
+/* Rebuild the whole rollup over the currently-selected records. */
+function renderView(keepScroll){
+  var scrollY = keepScroll ? window.scrollY : 0;
   var today = todayUTC();
   EXPANDED = loadSections();
-  decorate(records, today);
+  var records = selectedRecords();
 
   var parts = [];
   parts.push(renderHeader(records, PROGRAM_NAME));
-  parts.push('<div class="filters tools-bar" role="group" aria-label="View controls"><div class="filter-tools">' +
+  parts.push('<div class="filters tools-bar" role="group" aria-label="View controls">' +
+    renderPicker() +
+    '<div class="filter-tools">' +
     '<button class="tool-btn" id="expand-all" type="button">Expand all</button>' +
     '<button class="tool-btn" id="collapse-all" type="button">Collapse all</button>' +
     '<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle light or dark theme"></button>' +
@@ -1217,10 +1311,10 @@ function renderProgram(records, meta){
   parts.push(renderConflicts(records));
   parts.push(renderActions(records, today));
 
-  var files = records.map(function(pr){ return esc(pr.stateFile || (pr.folder ? pr.folder + "/state.json" : pr.name)); }).join(" · ");
+  var files = ALL_RECORDS.map(function(pr){ return esc(pr.stateFile || (pr.folder ? pr.folder + "/state.json" : pr.name)); }).join(" · ");
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) + ' · AI PM program rollup · states validated against schema.json' +
-    '<div class="foot-priv">Rendered in your browser — data never leaves this page · loaded ' + esc(meta.loadedAt) + '</div>' +
+    '<div class="foot-priv">Rendered in your browser — data never leaves this page · loaded ' + esc(META.loadedAt) + '</div>' +
     '<div class="foot-files">State files: ' + files + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load different projects</button></div></div>');
 
@@ -1228,7 +1322,7 @@ function renderProgram(records, meta){
   app.innerHTML = '<div class="wrap">' + parts.join("\n") + '</div>';
   wireInteractivity();
   probeDashboards();
-  window.scrollTo(0, 0);
+  window.scrollTo(0, keepScroll ? scrollY : 0);
 }
 
 function wireInteractivity(){
@@ -1269,6 +1363,25 @@ function wireInteractivity(){
 
   var rb = document.getElementById("reload-btn");
   if(rb) rb.addEventListener("click", function(){ showDropZone(null); });
+
+  // project picker — toggle a project in/out of the whole rollup (min one stays on)
+  function shakeChip(chip){
+    chip.classList.remove("shake"); void chip.offsetWidth; chip.classList.add("shake");
+    setTimeout(function(){ chip.classList.remove("shake"); }, 420);
+  }
+  document.querySelectorAll(".pj-chip").forEach(function(chip){
+    chip.addEventListener("click", function(){
+      var id = chip.getAttribute("data-sel-id");
+      if(SELECTED[id]){
+        if(selectedCount() <= 1){ shakeChip(chip); return; }  // refuse to empty the view
+        delete SELECTED[id];
+      } else {
+        SELECTED[id] = true;
+      }
+      saveSelection();
+      renderView(true);   // recompute everything over the new selection, keep scroll
+    });
+  });
 }
 
 /* Dashboard link: default to <folder>/dashboard.aspx; if that 404s, fall back
