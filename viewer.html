@@ -3443,9 +3443,78 @@ function renderState(state, name){
    that vanished. */
 var LAST_STATE = null;
 var PASTE_WARN = null;
+var PASTE_INFO = null;
 var OMISSION_SECTIONS = ["stakeholders","workstreams","milestones","actions","decisions",
   "risks","issues","dependencies","requirements","openQuestions","conflicts","artifacts",
   "userStories","okrs","parkingLot"];
+var DELTA_SECTIONS = OMISSION_SECTIONS;
+
+/* Delta merge — M365 Copilot can't reliably emit a full large state.json (it
+   silently trims arrays), so the agent may instead reply with a DELTA object:
+   {delta:true, project:{...changed fields...}, newArtifact:{...}, updates:{section:[items]}}.
+   We merge it locally into a deep copy of LAST_STATE. */
+function mergeDelta(base, delta){
+  if(!base){
+    showPasteError("This is a delta reply — first load the current state.json " +
+      "(Choose file or paste it), then paste the delta.");
+    return;
+  }
+  var bid = base.project && base.project.id, did = delta.project && delta.project.id;
+  if(bid && did && bid !== did){
+    showPasteError("This delta is for project '" + did + "' but the loaded state is '" +
+      bid + "' — load the right state.json first.");
+    return;
+  }
+  var merged = JSON.parse(JSON.stringify(base));
+  var nUpdated = 0, nAdded = 0, nArtifact = 0, nIgnored = 0;
+
+  // project: shallow-merge provided fields over base.project
+  if(delta.project && typeof delta.project === "object"){
+    merged.project = merged.project || {};
+    for(var k in delta.project){
+      if(Object.prototype.hasOwnProperty.call(delta.project, k)) merged.project[k] = delta.project[k];
+    }
+  }
+
+  // newArtifact: upsert into artifacts[] by id
+  if(delta.newArtifact && delta.newArtifact.id){
+    if(!Array.isArray(merged.artifacts)) merged.artifacts = [];
+    var ai = -1;
+    for(var i = 0; i < merged.artifacts.length; i++){
+      if(merged.artifacts[i] && merged.artifacts[i].id === delta.newArtifact.id){ ai = i; break; }
+    }
+    if(ai >= 0) merged.artifacts[ai] = delta.newArtifact; else merged.artifacts.push(delta.newArtifact);
+    nArtifact++;
+  }
+
+  // updates: per whitelisted section, replace-by-id or append
+  var upd = delta.updates || {};
+  for(var sec in upd){
+    if(!Object.prototype.hasOwnProperty.call(upd, sec)) continue;
+    if(DELTA_SECTIONS.indexOf(sec) === -1){ nIgnored++; continue; }
+    var items = upd[sec];
+    if(!Array.isArray(items)) continue;
+    if(!Array.isArray(merged[sec])) merged[sec] = [];
+    (function(arr){
+      items.forEach(function(item){
+        if(item && item.id){
+          var idx = -1;
+          for(var j = 0; j < arr.length; j++){ if(arr[j] && arr[j].id === item.id){ idx = j; break; } }
+          if(idx >= 0){ arr[idx] = item; nUpdated++; } else { arr.push(item); nAdded++; }
+        } else { arr.push(item); nAdded++; }
+      });
+    })(merged[sec]);
+  }
+
+  var bits = [nUpdated + " item" + (nUpdated === 1 ? "" : "s") + " updated", nAdded + " added"];
+  if(nArtifact) bits.push(nArtifact + " new artifact" + (nArtifact === 1 ? "" : "s"));
+  if(nIgnored) bits.push(nIgnored + " unknown section" + (nIgnored === 1 ? "" : "s") + " ignored");
+  PASTE_INFO = "Delta merged — " + bits.join(", ") + " — verify below, then Download state.json.";
+  PASTE_WARN = null;
+  PASTED = true;
+  pasteBarDismissed = false;
+  renderState(merged, "pasted delta");
+}
 function omissionCheck(prev, next){
   if(!prev || !next) return null;
   var pid = prev.project && prev.project.id, nid = next.project && next.project.id;
@@ -3484,7 +3553,9 @@ function mountPasteBar(state){
     ? '<strong>Items are MISSING from this reply</strong> (' + esc(PASTE_WARN) + ') — the ' +
       'agent omitted existing data. Don’t save this; tell it: “Incomplete — resend ' +
       'the COMPLETE JSON with every key and every existing item from my input.”'
-    : 'Loaded from pasted JSON — verify below, then save it to SharePoint as <code>state.json</code>';
+    : (PASTE_INFO
+        ? esc(PASTE_INFO)
+        : 'Loaded from pasted JSON — verify below, then save it to SharePoint as <code>state.json</code>');
   bar.innerHTML =
     '<span class="pastebar-txt">' + txt + '</span>' +
     '<button type="button" class="pastebar-dl" id="pastebar-dl">Download state.json</button>' +
@@ -3520,7 +3591,9 @@ function loadFromPaste(raw){
       return;
     }
   }
+  if(state && state.delta === true){ mergeDelta(LAST_STATE, state); return; }
   PASTE_WARN = omissionCheck(LAST_STATE, state);
+  PASTE_INFO = null;
   PASTED = true;
   pasteBarDismissed = false;
   renderState(state, "pasted JSON");
