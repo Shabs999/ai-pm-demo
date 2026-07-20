@@ -593,6 +593,22 @@ tr:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
 .rtm-chip{ display:inline-block; font-size:10.5px; font-variant-numeric:tabular-nums; padding:2px 7px;
   border-radius:20px; background:color-mix(in srgb,var(--muted) 14%,var(--surface)); color:var(--ink2); margin:1px 3px 1px 0; }
 
+/* ---------- UAT (derived) ---------- */
+.uatcase{ border:1px solid var(--ring); border-radius:var(--r2); padding:var(--sp3) var(--sp4);
+  margin-bottom:var(--sp3); background:color-mix(in srgb,var(--muted) 4%,var(--surface)); }
+.uatcase:last-child{ margin-bottom:0; }
+.uatcase-head{ display:flex; align-items:baseline; gap:var(--sp2); margin-bottom:var(--sp2); }
+.uatcase-id{ flex:none; font-size:11px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--muted); }
+.uatcase-title{ font-weight:600; font-size:13px; line-height:1.3; }
+.uat-row{ display:flex; gap:var(--sp3); align-items:baseline; padding:3px 0; font-size:12.5px; line-height:1.45; }
+.uat-lbl{ flex:none; width:66px; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+.uat-val{ color:var(--ink); min-width:0; }
+.uat-arrow{ color:var(--muted); }
+.uat-steps{ margin:0; padding-left:1.2em; }
+.uat-steps li{ margin:1px 0; }
+.uat-exp-line{ margin:1px 0; }
+.uatcase-trace{ margin-top:var(--sp2); font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+
 /* ---------- edit mode ---------- */
 .ba-edit-cluster{ display:inline-flex; align-items:center; gap:var(--sp2); padding:0 0 0 var(--sp2);
   margin-left:var(--sp1); border-left:1px solid var(--axis); }
@@ -1628,6 +1644,7 @@ function assembleDashboard(state, meta){
   parts.push(section("requirements", "Requirements & use cases", renderRequirements(state), (state.requirements || []).length, "No requirements recorded yet."));
   parts.push("<section class=\"card\" data-collapsed=\"true\" data-sec=\"userstories\" id=\"ba-us-sec\" hidden>\n  <button class=\"sec-head\" aria-expanded=\"false\"><h2>User stories</h2><span class=\"count\" id=\"ba-us-count\">0</span>\n    <span class=\"chev\" aria-hidden=\"true\"></span></button>\n  <div class=\"sec-body\"><div id=\"ba-us-body\"></div></div>\n</section>");
   parts.push("<section class=\"card\" data-collapsed=\"true\" data-sec=\"rtm\" id=\"ba-rtm-sec\" hidden>\n  <button class=\"sec-head\" aria-expanded=\"false\"><h2>Traceability (RTM)</h2>\n    <span class=\"chev\" aria-hidden=\"true\"></span></button>\n  <div class=\"sec-body\"><div id=\"ba-rtm-body\"></div></div>\n</section>");
+  parts.push("<section class=\"card\" data-collapsed=\"true\" data-sec=\"uat\" id=\"ba-uat-sec\" hidden>\n  <button class=\"sec-head\" aria-expanded=\"false\"><h2>UAT script</h2><span class=\"count\" id=\"ba-uat-count\">0</span>\n    <span class=\"chev\" aria-hidden=\"true\"></span></button>\n  <div class=\"sec-body\"><div id=\"ba-uat-body\"></div></div>\n</section>");
   parts.push(section("questions", "Open questions", renderQuestions(state), (state.openQuestions || []).length, "No open questions."));
   parts.push(renderConflicts(state));
   var pk = renderParkingLot(state);
@@ -2277,9 +2294,10 @@ function openHashSection(){
   function baStoriesBody(){
     var stories = BA.state.userStories || [];
     if(!stories.length && !BA.editing) return "";
+    var bar = stories.length ? '<div class="rtm-bar"><button class="rx-btn" type="button" id="ba-xls-btn">Export Excel workbook</button></div>' : "";
     var html = stories.map(baStoryCard).join('');
     if(BA.editing) html += baAddBtn("userStories", null, "+ Story");
-    return html || '<p class="empty">No user stories yet.</p>';
+    return bar + (html || '<p class="empty">No user stories yet.</p>');
   }
 
   /* ====================== RTM + UAT (derived) ====================== */
@@ -2395,6 +2413,445 @@ function openHashSection(){
     });
     if(!cases.length) L.push("_No scenarios to derive UAT cases from yet._");
     baDownload(baPid() + "-uat.md", L.join("\n") + "\n", "text/markdown");
+  }
+
+  /* ====================== UAT (derived) + Excel export ====================== */
+  /* Derives one UAT case per user-story scenario (rich trace). Story scenarios
+     are the workbook spine; requirement scenarios remain covered by the CSV/MD
+     exports above. All rendering is derived at view time — nothing is stored.   */
+  function baRuleTitleIn(us, ruleId){
+    if(!ruleId) return null;
+    var hit = null;
+    (us.rules||[]).forEach(function(ru){ if(ru.id === ruleId) hit = ru.title; });
+    return hit;
+  }
+  function baStoryUatCases(){
+    var out = [];
+    (BA.state.userStories||[]).forEach(function(us){
+      (us.scenarios||[]).forEach(function(sc){
+        var ruleId = sc.ruleRef || null;
+        out.push({ caseId: sc.id, scenarioId: sc.id, title: sc.title || "",
+          storyId: us.id, storyTitle: us.title || "",
+          ruleId: ruleId, ruleTitle: baRuleTitleIn(us, ruleId),
+          exampleId: sc.exampleRef || null,
+          given: sc.given || [], when: sc.when || [], then: sc.then || [] });
+      });
+    });
+    return out;
+  }
+  function baDeconj(v){
+    var w = String(v||"");
+    if(/ies$/i.test(w)) return w.slice(0,-3) + "y";
+    if(/(ss|sh|ch|x|z|o)es$/i.test(w)) return w.slice(0,-2);
+    if(/s$/i.test(w) && !/ss$/i.test(w)) return w.slice(0,-1);
+    return w;
+  }
+  function baCap(s){ s = String(s||""); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+  function baImperative(s){
+    var t = String(s||"").trim();
+    if(!t) return "";
+    var m = /^(?:the|a|an)\s+([a-z][a-z' -]*?)\s+([a-z]+(?:ies|es|s))\s+(.+)$/i.exec(t);
+    if(m) return baCap(baDeconj(m[2])) + " " + m[3];
+    m = /^(?:i|we|they|you)\s+([a-z]+)\s+(.+)$/i.exec(t);
+    if(m) return baCap(m[1]) + " " + m[2];
+    return baCap(t);
+  }
+  function baExpectPhrase(s){
+    var t = String(s||"").trim();
+    return t ? ("Look for: " + t) : "";
+  }
+  function baSentence(s){
+    s = String(s==null?"":s).trim();
+    if(!s) return "";
+    if(!/[.!?]$/.test(s)) s += ".";
+    return baCap(s);
+  }
+  function baExampleText(ex){
+    return [ex.context, ex.action, ex.outcome].map(baSentence)
+      .filter(function(x){ return x; }).join(" ");
+  }
+  function baNarrText(us){
+    var n = us.narrative || {}, p = [];
+    if(n.asA) p.push("As a " + n.asA);
+    if(n.iWant) p.push("I want " + n.iWant);
+    if(n.soThat) p.push("so that " + n.soThat);
+    return p.length ? (p.join(", ") + ".") : "";
+  }
+
+  /* ---- on-dashboard UAT section (Feature A) ---- */
+  function baUatBody(){
+    var cases = baStoryUatCases();
+    if(!cases.length) return "";
+    return cases.map(function(c){
+      var why = baEsc(c.storyTitle) +
+        (c.ruleTitle ? ' <span class="uat-arrow">&#8594;</span> ' + baEsc(c.ruleTitle) : "");
+      var ctx = c.given.length ? c.given.map(baEsc).join("<br>") : '<span class="ex-null">&#8212;</span>';
+      var steps = c.when.length
+        ? '<ol class="uat-steps">' + c.when.map(function(w){ return '<li>' + baEsc(baImperative(w)) + '</li>'; }).join('') + '</ol>'
+        : '<span class="ex-null">&#8212;</span>';
+      var exp = c.then.length
+        ? c.then.map(function(t){ return '<div class="uat-exp-line">' + baEsc(baExpectPhrase(t)) + '</div>'; }).join('')
+        : '<span class="ex-null">&#8212;</span>';
+      var tr = ["scenario " + c.scenarioId];
+      if(c.exampleId) tr.push("example " + c.exampleId);
+      if(c.ruleId) tr.push("rule " + c.ruleId);
+      if(c.storyId) tr.push("story " + c.storyId);
+      return '<div class="uatcase">' +
+        '<div class="uatcase-head"><span class="uatcase-id">' + baEsc(c.caseId) + '</span>' +
+        '<span class="uatcase-title">' + baEsc(c.title) + '</span></div>' +
+        '<div class="uat-row"><span class="uat-lbl">Why</span><span class="uat-val">' + why + '</span></div>' +
+        '<div class="uat-row"><span class="uat-lbl">Context</span><span class="uat-val">' + ctx + '</span></div>' +
+        '<div class="uat-row"><span class="uat-lbl">Steps</span><span class="uat-val">' + steps + '</span></div>' +
+        '<div class="uat-row"><span class="uat-lbl">Expected</span><span class="uat-val">' + exp + '</span></div>' +
+        '<div class="uatcase-trace">Tests ' + baEsc(tr.join(" · ")) + '</div></div>';
+    }).join('');
+  }
+  function baPaintUat(){
+    var sec = document.getElementById('ba-uat-sec');
+    var body = document.getElementById('ba-uat-body');
+    if(!sec || !body) return;
+    var cases = baStoryUatCases();
+    sec.hidden = !(cases.length > 0);
+    var cnt = document.getElementById('ba-uat-count'); if(cnt) cnt.textContent = cases.length;
+    body.innerHTML = cases.length ? baUatBody() : '';
+  }
+
+  /* ================= minimal dependency-free .xlsx writer (Feature B) ================= *
+   * An .xlsx is a ZIP (STORE, no compression) of XML parts. Cells are inline strings so
+   * no sharedStrings part is needed. Styles cover the Example-Mapping template palette.  */
+  var BAX = { NORMAL:0, BOLD:1, WRAP:2, BOLDWRAP:3, YELLOW:4, YELLOWWRAP:5,
+    BLUE:6, GREEN:7, GREENWRAP:8, ORANGE:9, ORANGEWRAP:10, GREY:11, HEADER:12 };
+
+  function baCrcTable(){
+    if(baCrcTable._t) return baCrcTable._t;
+    var t = new Array(256);
+    for(var n=0;n<256;n++){
+      var c = n;
+      for(var k=0;k<8;k++){ c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); }
+      t[n] = c >>> 0;
+    }
+    baCrcTable._t = t;
+    return t;
+  }
+  function baCrc32(bytes){
+    var t = baCrcTable(), c = 0xFFFFFFFF;
+    for(var i=0;i<bytes.length;i++){ c = t[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8); }
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function baZip(files){
+    var enc = new TextEncoder();
+    var chunks = [], central = [], offset = 0;
+    function u16(a,v){ a.push(v & 0xFF, (v >>> 8) & 0xFF); }
+    function u32(a,v){ a.push(v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF); }
+    files.forEach(function(f){
+      var nameB = enc.encode(f.name), crc = baCrc32(f.data), n = f.data.length;
+      var lh = [];
+      u32(lh,0x04034b50); u16(lh,20); u16(lh,0); u16(lh,0); u16(lh,0); u16(lh,0);
+      u32(lh,crc); u32(lh,n); u32(lh,n); u16(lh,nameB.length); u16(lh,0);
+      var lhu = new Uint8Array(lh);
+      chunks.push(lhu, nameB, f.data);
+      var cd = [];
+      u32(cd,0x02014b50); u16(cd,20); u16(cd,20); u16(cd,0); u16(cd,0); u16(cd,0); u16(cd,0);
+      u32(cd,crc); u32(cd,n); u32(cd,n); u16(cd,nameB.length); u16(cd,0); u16(cd,0);
+      u16(cd,0); u16(cd,0); u32(cd,0); u32(cd,offset);
+      central.push({ head:new Uint8Array(cd), name:nameB });
+      offset += lhu.length + nameB.length + n;
+    });
+    var cdStart = offset, cdChunks = [], cdSize = 0;
+    central.forEach(function(c){ cdChunks.push(c.head, c.name); cdSize += c.head.length + c.name.length; });
+    var eocd = [];
+    u32(eocd,0x06054b50); u16(eocd,0); u16(eocd,0);
+    u16(eocd,files.length); u16(eocd,files.length);
+    u32(eocd,cdSize); u32(eocd,cdStart); u16(eocd,0);
+    var all = chunks.concat(cdChunks); all.push(new Uint8Array(eocd));
+    var total = 0; all.forEach(function(a){ total += a.length; });
+    var out = new Uint8Array(total), p = 0;
+    all.forEach(function(a){ out.set(a, p); p += a.length; });
+    return out;
+  }
+  function baColName(n){
+    var s = ""; n = n + 1;
+    while(n > 0){ var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+    return s;
+  }
+  function baXmlText(s){
+    return baEsc(String(s==null?"":s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,""));
+  }
+  function baSheetBuilder(name){
+    return {
+      name: name, _rows: [], _merges: [], _cols: [],
+      _row: function(r){ while(this._rows.length <= r) this._rows.push({ cells:[], height:0 }); return this._rows[r]; },
+      cell: function(r,c,v,s){ var row = this._row(r); while(row.cells.length <= c) row.cells.push(null);
+        row.cells[c] = { v:v, s:s }; return this; },
+      box: function(r1,c1,r2,c2,v,s){
+        for(var r=r1;r<=r2;r++){ for(var c=c1;c<=c2;c++){ this.cell(r,c,(r===r1&&c===c1)?v:"", s); } }
+        if(!(r1===r2 && c1===c2)) this._merges.push(baColName(c1)+(r1+1)+":"+baColName(c2)+(r2+1));
+        return this;
+      },
+      rowH: function(r,h){ this._row(r).height = h; return this; },
+      colW: function(c,w){ this._cols[c] = { width:w }; return this; },
+      done: function(){
+        var cols = [];
+        for(var i=0;i<this._cols.length;i++){ cols.push(this._cols[i] || { width:11 }); }
+        return { name:this.name, cols:cols, rows:this._rows, merges:this._merges };
+      }
+    };
+  }
+  function baSheetXml(sheet){
+    var cols = "";
+    if(sheet.cols && sheet.cols.length){
+      cols = "<cols>";
+      sheet.cols.forEach(function(c,i){
+        cols += '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+(c.width||11)+'" customWidth="1"/>';
+      });
+      cols += "</cols>";
+    }
+    var rowsXml = "";
+    sheet.rows.forEach(function(row, ri){
+      var r = ri + 1, attr = ' r="'+r+'"';
+      if(row.height){ attr += ' ht="'+row.height+'" customHeight="1"'; }
+      var cells = "";
+      (row.cells||[]).forEach(function(cell, ci){
+        if(cell == null) return;
+        var ref = baColName(ci) + r;
+        var s = (cell.s != null) ? (' s="'+cell.s+'"') : '';
+        var v = cell.v == null ? "" : String(cell.v);
+        if(v === "") cells += '<c r="'+ref+'"'+s+'/>';
+        else cells += '<c r="'+ref+'"'+s+' t="inlineStr"><is><t xml:space="preserve">'+baXmlText(v)+'</t></is></c>';
+      });
+      rowsXml += '<row'+attr+'>'+cells+'</row>';
+    });
+    var merges = "";
+    if(sheet.merges && sheet.merges.length){
+      merges = '<mergeCells count="'+sheet.merges.length+'">';
+      sheet.merges.forEach(function(m){ merges += '<mergeCell ref="'+m+'"/>'; });
+      merges += '</mergeCells>';
+    }
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      cols + '<sheetData>' + rowsXml + '</sheetData>' + merges + '</worksheet>';
+  }
+  function baXlsxStyles(){
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<fonts count="3">' +
+      '<font><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/></font>' +
+      '<font><b/><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/></font>' +
+      '<font><b/><sz val="12"/><color theme="1"/><name val="Calibri"/><family val="2"/></font>' +
+      '</fonts>' +
+      '<fills count="7">' +
+      '<fill><patternFill patternType="none"/></fill>' +
+      '<fill><patternFill patternType="gray125"/></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFFFFF00"/><bgColor indexed="64"/></patternFill></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFBDD7EE"/><bgColor indexed="64"/></patternFill></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFC6EFCE"/><bgColor indexed="64"/></patternFill></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFF4B183"/><bgColor indexed="64"/></patternFill></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/><bgColor indexed="64"/></patternFill></fill>' +
+      '</fills>' +
+      '<borders count="2">' +
+      '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+      '<border><left/><right/><top/><bottom style="thin"><color indexed="64"/></bottom><diagonal/></border>' +
+      '</borders>' +
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+      '<cellXfs count="13">' +
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+      '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="0" fillId="2" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="1" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="1" fillId="4" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="0" fillId="4" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="1" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="0" fillId="5" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="1" fillId="6" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment vertical="bottom" wrapText="1"/></xf>' +
+      '</cellXfs>' +
+      '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+      '</styleSheet>';
+  }
+  function baXlsx(sheets, meta){
+    var enc = new TextEncoder();
+    function part(name, str){ return { name:name, data:enc.encode(str) }; }
+    var files = [];
+    var ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>';
+    sheets.forEach(function(s,i){
+      ct += '<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+    });
+    ct += '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
+      '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>';
+    files.push(part("[Content_Types].xml", ct));
+    files.push(part("_rels/.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>' +
+      '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>'));
+    var wb = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+      'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>';
+    sheets.forEach(function(s,i){ wb += '<sheet name="'+baEsc(s.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>'; });
+    wb += '</sheets></workbook>';
+    files.push(part("xl/workbook.xml", wb));
+    var wr = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+    sheets.forEach(function(s,i){
+      wr += '<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>';
+    });
+    wr += '<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+    files.push(part("xl/_rels/workbook.xml.rels", wr));
+    files.push(part("xl/styles.xml", baXlsxStyles()));
+    sheets.forEach(function(s,i){ files.push(part("xl/worksheets/sheet"+(i+1)+".xml", baSheetXml(s))); });
+    var now = new Date().toISOString().replace(/\.\d+Z$/,"Z");
+    files.push(part("docProps/core.xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" ' +
+      'xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" ' +
+      'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>' +
+      baEsc((meta && meta.title) || "Example Mapping") + '</dc:title><dc:creator>AI PM</dc:creator>' +
+      '<cp:lastModifiedBy>AI PM</cp:lastModifiedBy><dcterms:created xsi:type="dcterms:W3CDTF">' + now +
+      '</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">' + now + '</dcterms:modified></cp:coreProperties>'));
+    files.push(part("docProps/app.xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" ' +
+      'xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>AI PM</Application></Properties>'));
+    return baZip(files);
+  }
+
+  /* ---- workbook content (Feature C) ---- */
+  function baTabName(base, used){
+    var s = String(base||"Sheet").replace(/[:\\\/?*\[\]]/g," ").replace(/\s+/g," ").trim().slice(0,31) || "Sheet";
+    var t = s, n = 2;
+    while(used[t.toLowerCase()]){ var suf = " ("+n+")"; t = s.slice(0, 31-suf.length) + suf; n++; }
+    used[t.toLowerCase()] = true;
+    return t;
+  }
+  function baStorySheet(us, used){
+    var rules = us.rules || [];
+    var R = rules.length;
+    var gridW = Math.max(R*2, 2);
+    var qCol = gridW + 1;
+    var sb = baSheetBuilder(baTabName(us.id || us.title, used));
+    for(var ci=0;ci<gridW;ci++){ sb.colW(ci, 22); }
+    sb.colW(gridW, 3); sb.colW(qCol, 32); sb.colW(qCol+1, 14);
+    var r = 0;
+    sb.box(r,0,r,gridW-1,"User Story",BAX.YELLOW); sb.rowH(r,20); r++;
+    sb.box(r,0,r,gridW-1,baNarrText(us),BAX.YELLOWWRAP); sb.rowH(r,42); r++;
+    r++;
+    sb.box(r,0,r,gridW-1,"Rules",BAX.BLUE); r++;
+    if(R === 0){ sb.box(r,0,r,gridW-1,"No rules yet.",BAX.WRAP); }
+    else rules.forEach(function(ru,i){ sb.box(r,i*2,r,i*2+1,"Rule "+(i+1)+": "+(ru.title||""),BAX.BLUE); });
+    sb.rowH(r,30); r++;
+    sb.box(r,0,r,gridW-1,"Examples",BAX.GREEN); r++;
+    var maxEx = 0; rules.forEach(function(ru){ maxEx = Math.max(maxEx, (ru.examples||[]).length); });
+    for(var k=0;k<maxEx;k++){
+      var titleRow = r, textRow = r+1;
+      rules.forEach(function(ru,i){
+        var ex = (ru.examples||[])[k]; if(!ex) return;
+        sb.box(titleRow,i*2,titleRow,i*2+1,"Example "+(k+1)+": "+(ex.title||""),BAX.GREEN);
+        sb.box(textRow,i*2,textRow,i*2+1,baExampleText(ex),BAX.GREENWRAP);
+      });
+      sb.rowH(textRow,58); r += 2;
+    }
+    r++;
+    sb.box(r,0,r,gridW-1,"Scenarios (Gherkin)",BAX.GREY); r++;
+    var scens = us.scenarios || [];
+    if(!scens.length){ sb.box(r,0,r,gridW-1,"No formulated scenarios yet.",BAX.WRAP); r++; }
+    scens.forEach(function(sc){
+      sb.box(r,0,r,gridW-1,sc.title||"",BAX.BOLDWRAP); r++;
+      [["given","Given"],["when","When"],["then","Then"]].forEach(function(kw){
+        (sc[kw[0]]||[]).forEach(function(cl,idx){
+          sb.box(r,0,r,gridW-1,(idx===0?kw[1]:"And")+": "+cl,BAX.WRAP); r++;
+        });
+      });
+      var tr = [];
+      if(sc.ruleRef) tr.push("rule "+sc.ruleRef);
+      if(sc.exampleRef) tr.push("example "+sc.exampleRef);
+      if(tr.length){ sb.box(r,0,r,gridW-1,tr.join(" · "),BAX.NORMAL); r++; }
+      r++;
+    });
+    var qs = (BA.state.openQuestions||[]).filter(function(q){ return q.storyRef === us.id; });
+    var qr = 3;
+    sb.box(qr,qCol,qr,qCol+1,"Questions",BAX.ORANGE); qr++;
+    if(!qs.length){ sb.box(qr,qCol,qr,qCol+1,"No open questions.",BAX.ORANGEWRAP); qr++; }
+    qs.forEach(function(q,i){
+      sb.box(qr,qCol,qr,qCol+1,"Question "+(i+1)+":",BAX.ORANGE); qr++;
+      sb.box(qr,qCol,qr,qCol+1,q.question||"",BAX.ORANGEWRAP); sb.rowH(qr,58); qr++;
+    });
+    return sb.done();
+  }
+  function baRowH(lines){ var n = Math.max(1, lines); return Math.min(15 + (n-1)*14, 220); }
+  function baUatSheet(){
+    var cases = baStoryUatCases();
+    var sb = baSheetBuilder("UAT scripts");
+    var head = ["Case ID","Title","Why (story → rule)","Context / Preconditions",
+      "Steps","Expected result / what to look for","Traces","Result","Tester notes"];
+    var widths = [16,26,26,30,34,30,30,12,20];
+    widths.forEach(function(w,i){ sb.colW(i,w); });
+    head.forEach(function(h,i){ sb.cell(0,i,h,BAX.HEADER); });
+    sb.rowH(0,26);
+    cases.forEach(function(c,ri){
+      var row = ri + 1;
+      var why = c.storyTitle + (c.ruleTitle ? " → " + c.ruleTitle : "");
+      var ctx = c.given.join("\n");
+      var steps = c.when.map(function(w,i){ return (i+1) + ". " + baImperative(w); }).join("\n");
+      var exp = c.then.map(baExpectPhrase).join("\n");
+      var tr = ["scenario " + c.scenarioId];
+      if(c.exampleId) tr.push("example " + c.exampleId);
+      if(c.ruleId) tr.push("rule " + c.ruleId);
+      if(c.storyId) tr.push("story " + c.storyId);
+      var vals = [c.caseId, c.title, why, ctx, steps, exp, tr.join(" · "), "", ""];
+      vals.forEach(function(v,i){ sb.cell(row,i,v,BAX.WRAP); });
+      var maxLines = Math.max(c.given.length, c.when.length, c.then.length, 1);
+      sb.rowH(row, baRowH(maxLines));
+    });
+    if(!cases.length){ sb.box(1,0,1,head.length-1,"No user-story scenarios to derive UAT cases from yet.",BAX.WRAP); }
+    return sb.done();
+  }
+  function baTraceSheet(){
+    var cases = baStoryUatCases();
+    var sb = baSheetBuilder("Traceability");
+    var head = ["Story","Rule","Example","Scenario","UAT case"];
+    [30,30,30,30,18].forEach(function(w,i){ sb.colW(i,w); });
+    head.forEach(function(h,i){ sb.cell(0,i,h,BAX.HEADER); });
+    sb.rowH(0,26);
+    function lbl(id, title){ if(!id) return "—"; return title ? (id + " — " + title) : id; }
+    cases.forEach(function(c,ri){
+      var row = ri + 1;
+      var exObj = c.exampleId ? baFind(c.exampleId) : null;
+      var vals = [
+        lbl(c.storyId, c.storyTitle),
+        lbl(c.ruleId, c.ruleTitle),
+        lbl(c.exampleId, exObj ? exObj.title : null),
+        lbl(c.scenarioId, c.title),
+        c.caseId || "—"
+      ];
+      vals.forEach(function(v,i){ sb.cell(row,i,v,BAX.WRAP); });
+    });
+    if(!cases.length){ sb.box(1,0,1,head.length-1,"No user-story scenarios to trace yet.",BAX.WRAP); }
+    return sb.done();
+  }
+  function baDownloadBytes(filename, bytes, mime){
+    var blob = new Blob([bytes], { type: mime || "application/octet-stream" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 0);
+  }
+  function baExportXlsx(){
+    baBuildIdMap();
+    var used = {}, sheets = [];
+    (BA.state.userStories||[]).forEach(function(us){ sheets.push(baStorySheet(us, used)); });
+    sheets.push(baUatSheet());
+    sheets.push(baTraceSheet());
+    var p = BA.state.project || {};
+    var bytes = baXlsx(sheets, { title: (p.name || "Project") + " — Example Mapping" });
+    baDownloadBytes(baPid() + "-example-mapping.xlsx", bytes,
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   }
 
   /* ====================== OKRs (read + edit) ====================== */
@@ -2547,6 +3004,7 @@ function openHashSection(){
     sec.hidden = !show;
     var cnt = document.getElementById('ba-us-count'); if(cnt) cnt.textContent = stories.length;
     body.innerHTML = baStoriesBody();
+    var xb = document.getElementById('ba-xls-btn'); if(xb) xb.addEventListener('click', function(e){ e.stopPropagation(); baExportXlsx(); });
     wireProvenance(body);
   }
   function baPaintRTM(){
@@ -2571,7 +3029,7 @@ function openHashSection(){
     var b = document.getElementById('ba-okr-csv'); if(b) b.addEventListener('click', function(e){ e.stopPropagation(); baExportOKRs(); });
     wireProvenance(body);
   }
-  function baRepaint(){ baBuildIdMap(); baPaintStories(); baPaintRTM(); baPaintOKRs(); }
+  function baRepaint(){ baBuildIdMap(); baPaintStories(); baPaintRTM(); baPaintUat(); baPaintOKRs(); }
 
   /* ====================== legacy-section decoration ====================== */
   function baLegacyReadonly(el, obj){
@@ -2764,7 +3222,7 @@ function openHashSection(){
     document.body.classList.add('ba-editing');
     baBuildIdMap();
     baDecorate(true);
-    baPaintStories(); baPaintRTM(); baPaintOKRs();
+    baPaintStories(); baPaintRTM(); baPaintUat(); baPaintOKRs();
     baSetTools();
   }
   function baExitEditVisual(){
@@ -2806,7 +3264,7 @@ function openHashSection(){
       el.querySelectorAll('[data-ef]').forEach(function(f){ if(f.closest('[data-eitem]')===el) baLegacyReadonly(f, obj); });
     });
     baDecorate(false);
-    baPaintStories(); baPaintRTM(); baPaintOKRs();
+    baPaintStories(); baPaintRTM(); baPaintUat(); baPaintOKRs();
   }
   function baSave(){
     baCommitActive();
@@ -3023,6 +3481,7 @@ function openHashSection(){
     baBuildIdMap();
     baPaintStories();
     baPaintRTM();
+    baPaintUat();
     baPaintOKRs();
     baWireEditButton();
     baSetTools();
