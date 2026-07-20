@@ -123,6 +123,12 @@ tr.ask-pulse>td{ animation:ask-pulse 1s ease-out 1; }
 .sec-head h2{ font-size:15px; letter-spacing:-.006em; }
 .card:not([data-collapsed="true"]) .sec-head{ border-bottom:1px solid var(--grid); }
 .sec-head .count{ font-size:12px; }
+.sec-help{ flex:0 0 auto; box-sizing:border-box; display:inline-flex;
+  align-items:center; justify-content:center; width:16px; height:16px; padding:0;
+  border:1px solid var(--muted); border-radius:50%; color:var(--muted);
+  font-size:11px; font-weight:600; line-height:1; text-decoration:none; cursor:pointer;
+  transition:color .15s,border-color .15s; }
+.sec-help:hover,.sec-help:focus-visible{ color:var(--accent); border-color:var(--accent); }
 .chev{ margin-left:auto; width:9px; height:9px; border-right:2px solid var(--muted);
   border-bottom:2px solid var(--muted); transform:rotate(45deg); transition:transform .15s; }
 .card[data-collapsed="true"] .chev{ transform:rotate(-45deg); }
@@ -475,6 +481,7 @@ tr:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
 .ex-clause{ color:var(--ink); min-width:0; }
 .ex-null{ color:var(--muted); font-style:italic; }
 .us-sc-list{ display:flex; flex-direction:column; gap:var(--sp2); }
+.us-rule-sc{ margin-top:var(--sp2); }
 .sc-head-right{ display:inline-flex; align-items:center; gap:var(--sp2); flex:none; }
 .us-redcards{ margin-top:var(--sp3); display:flex; flex-direction:column; gap:var(--sp2); }
 .redcard{ display:flex; gap:8px; align-items:baseline; font-size:12.5px; color:var(--ink);
@@ -496,6 +503,22 @@ tr:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
 .rtm-chip{ display:inline-block; font-size:10.5px; font-variant-numeric:tabular-nums; padding:2px 7px;
   border-radius:20px; background:color-mix(in srgb,var(--muted) 14%,var(--surface)); color:var(--ink2); margin:1px 3px 1px 0; }
 
+/* ---------- UAT (derived) ---------- */
+.uatcase{ border:1px solid var(--ring); border-radius:var(--r2); padding:var(--sp3) var(--sp4);
+  margin-bottom:var(--sp3); background:color-mix(in srgb,var(--muted) 4%,var(--surface)); }
+.uatcase:last-child{ margin-bottom:0; }
+.uatcase-head{ display:flex; align-items:baseline; gap:var(--sp2); margin-bottom:var(--sp2); }
+.uatcase-id{ flex:none; font-size:11px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--muted); }
+.uatcase-title{ font-weight:600; font-size:13px; line-height:1.3; }
+.uat-row{ display:flex; gap:var(--sp3); align-items:baseline; padding:3px 0; font-size:12.5px; line-height:1.45; }
+.uat-lbl{ flex:none; width:66px; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+.uat-val{ color:var(--ink); min-width:0; }
+.uat-arrow{ color:var(--muted); }
+.uat-steps{ margin:0; padding-left:1.2em; }
+.uat-steps li{ margin:1px 0; }
+.uat-exp-line{ margin:1px 0; }
+.uatcase-trace{ margin-top:var(--sp2); font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+
 /* ---------- edit mode ---------- */
 .ba-edit-cluster{ display:inline-flex; align-items:center; gap:var(--sp2); padding:0 0 0 var(--sp2);
   margin-left:var(--sp1); border-left:1px solid var(--axis); }
@@ -510,6 +533,10 @@ tr:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
   box-shadow:inset 0 -1px 0 var(--axis); }
 .ba-ce:empty::before{ content:"—"; color:var(--muted); }
 .ba-ce:focus{ box-shadow:inset 0 -1px 0 var(--accent);
+  background:color-mix(in srgb,var(--accent) 8%,transparent); }
+.head-ce{ display:inline-block; max-width:100%; outline:none; border-radius:4px; box-shadow:inset 0 -1px 0 var(--axis); }
+.head-ce:empty::before{ content:"—"; color:var(--muted); }
+.head-ce:focus{ box-shadow:inset 0 -1px 0 var(--accent);
   background:color-mix(in srgb,var(--accent) 8%,transparent); }
 .ba-sel,.ba-date{ font:inherit; font-size:12px; color:var(--ink); background:var(--surface);
   border:1px solid var(--axis); border-radius:6px; padding:2px 6px; max-width:100%; vertical-align:middle; }
@@ -619,8 +646,8 @@ body.ba-editing .sec-head{ cursor:pointer; }
 <header class="head">
   <div class="head-main">
     <div class="head-id">
-      <h1>Atlas CRM Migration</h1>
-      <div class="head-sub">Contoso Financial  ·  NorthPeak Systems · Veridian Consulting</div>
+      <h1 id="head-name">Atlas CRM Migration</h1>
+      <div class="head-sub"><span id="head-client">Contoso Financial</span>  ·  NorthPeak Systems · Veridian Consulting</div>
     </div>
     <div class="verdict verdict-critical">
       <span class="verdict-dot"></span>
@@ -651,7 +678,7 @@ body.ba-editing .sec-head{ cursor:pointer; }
   <button id="x-theme" type="button" class="f-tool f-theme" aria-label="Toggle light/dark theme" title="Toggle light/dark">◐</button>
 </div>
 <section class="card hero" data-collapsed="true" data-sec="roadmap" data-scheduled="9">
-  <button class="sec-head" aria-expanded="false"><h2>Roadmap</h2>
+  <button class="sec-head" aria-expanded="false"><h2>Roadmap</h2><span class="sec-help" role="link" tabindex="0" data-help="roadmap" title="How this section works" aria-label="How this section works">?</span>
     <span class="chev" aria-hidden="true"></span></button>
   <div class="sec-body">
     <div class="legend"><span class="lg"><span class="dot mk-planned">○</span>Planned</span><span class="lg"><span class="dot mk-ontrack">●</span>On track</span><span class="lg"><span class="dot mk-atrisk">▲</span>At risk</span><span class="lg"><span class="dot mk-late">!</span>Late</span><span class="lg"><span class="dot mk-done">✓</span>Done</span></div>
@@ -660,7 +687,7 @@ body.ba-editing .sec-head{ cursor:pointer; }
       <div class="roadmap">
         <div class="lanes-gutter" style="width:208px"><div class="lane-spacer" style="height:26px"></div><div class="lane-label" data-ws="ws-infra" style="height:44px"><span class="chip-dot" style="background:#4a3aa7"></span><span class="lane-name">Environments &amp; Integration</span></div><div class="lane-label" data-ws="ws-data" style="height:76px"><span class="chip-dot" style="background:#1baf7a"></span><span class="lane-name">Data Migration</span></div><div class="lane-label" data-ws="ws-config" style="height:44px"><span class="chip-dot" style="background:#eb6834"></span><span class="lane-name">CRM Configuration</span></div><div class="lane-label" data-ws="ws-uat" style="height:76px"><span class="chip-dot" style="background:#e87ba4"></span><span class="lane-name">Testing &amp; Go-Live</span></div></div>
         <div class="plot-wrap"><div class="plot" style="width:1000px;height:266px">
-          <div class="grid-line" style="left:0.0px;top:26px;height:240px"></div><div class="grid-label" style="left:5.0px">May 2026</div><div class="grid-line" style="left:168.48px;top:26px;height:240px"></div><div class="grid-label" style="left:173.48px">Jun</div><div class="grid-line" style="left:331.52px;top:26px;height:240px"></div><div class="grid-label" style="left:336.52px">Jul</div><div class="grid-line" style="left:500.0px;top:26px;height:240px"></div><div class="grid-label" style="left:505.0px">Aug</div><div class="grid-line" style="left:668.48px;top:26px;height:240px"></div><div class="grid-label" style="left:673.48px">Sep</div><div class="grid-line" style="left:831.52px;top:26px;height:240px"></div><div class="grid-label" style="left:836.52px">Oct</div><div class="grid-line" style="left:1000.0px;top:26px;height:240px"></div><div class="grid-label" style="left:1005.0px">Nov</div><div class="lane-band band" data-ws="ws-infra" style="top:26px;height:44px;width:1000px"></div><div class="lane-band band-alt" data-ws="ws-data" style="top:70px;height:76px;width:1000px"></div><div class="lane-band band" data-ws="ws-config" style="top:146px;height:44px;width:1000px"></div><div class="lane-band band-alt" data-ws="ws-uat" style="top:190px;height:76px;width:1000px"></div><div class="today-line" style="left:423.91px;top:22px;height:244px"></div><div class="today-tag" style="left:428.91px">Today</div><button class="pill prov " data-ws="ws-infra" data-status="done" data-kind="ms" data-id="ms-env-provision" data-sources="art-design art-status-0612" style="left:95.76px;top:36px;min-width:223.0px" title="Dev &amp; Test environments provisioned · 20 May 2026 · Done"><span class="dot mk-done" aria-hidden="true">✓</span><span class="pill-t">Dev &amp; Test environments provi…</span></button><button class="pill prov " data-ws="ws-infra" data-status="on-track" data-kind="ms" data-id="ms-integration-api" data-sources="art-design art-steering-0708" style="left:492.5px;top:36px;min-width:210.6px" title="Core-banking API integration · 1 Aug 2026 · On track"><span class="dot mk-ontrack" aria-hidden="true">●</span><span class="pill-t">Core-banking API integration</span></button><button class="pill prov " data-ws="ws-data" data-status="done" data-kind="ms" data-id="ms-data-profiling" data-sources="art-steering-0625 art-migration-plan" style="left:258.8px;top:80px;min-width:223.0px" title="Legacy data profiling complete · 19 Jun 2026 · Done"><span class="dot mk-done" aria-hidden="true">✓</span><span class="pill-t">Legacy data profiling complete</span></button><button class="pill prov " data-ws="ws-data" data-status="at-risk" data-kind="ms" data-id="ms-migration-dryrun" data-sources="art-status-0703 art-migration-plan" style="left:416.41px;top:112px;min-width:192.0px" title="Data migration dry run #1 · 18 Jul 2026 · At risk"><span class="dot mk-atrisk" aria-hidden="true">▲</span><span class="pill-t">Data migration dry run #1</span></button><button class="pill prov " data-ws="ws-config" data-status="done" data-kind="ms" data-id="ms-brd-signoff" data-sources="art-brd art-steering-0625" style="left:182.72px;top:156px;min-width:111.4px" title="BRD sign-off · 5 Jun 2026 · Done"><span class="dot mk-done" aria-hidden="true">✓</span><span class="pill-t">BRD sign-off</span></button><button class="pill prov " data-ws="ws-config" data-status="late" data-kind="ms" data-id="ms-config-sprint1" data-sources="art-status-0703 art-steering-0708" style="left:334.89px;top:156px;min-width:216.8px" title="Config sprint 1 — accounts &amp; contacts · 3 Jul 2026 · Late"><span class="dot mk-late" aria-hidden="true">!</span><span class="pill-t">Config sprint 1 — accounts &amp;…</span></button><button class="pill prov " data-ws="ws-config" data-status="on-track" data-kind="ms" data-id="ms-config-sprint2" data-sources="art-steering-0625 art-steering-0708" style="left:568.59px;top:156px;min-width:216.8px" title="Config sprint 2 — pipeline &amp; reporting · 15 Aug 2026 · On track"><span class="dot mk-ontrack" aria-hidden="true">●</span><span class="pill-t">Config sprint 2 — pipeline &amp;…</span></button><button class="pill prov flip" data-ws="ws-uat" data-status="planned" data-kind="ms" data-id="ms-uat-start" data-sources="art-kickoff art-steering-0708" style="left:615.02px;top:200px;min-width:99.0px" title="UAT begins · 8 Sep 2026 · Planned"><span class="dot mk-planned" aria-hidden="true">○</span><span class="pill-t">UAT begins</span></button><button class="pill prov flip" data-ws="ws-uat" data-status="planned" data-kind="ms" data-id="ms-golive" data-sources="art-steering-0708 art-migration-plan" style="left:712.16px;top:232px;min-width:148.6px" title="Production go-live · 5 Oct 2026 · Planned"><span class="dot mk-planned" aria-hidden="true">○</span><span class="pill-t">Production go-live</span></button>
+          <div class="grid-line" style="left:0.0px;top:26px;height:240px"></div><div class="grid-label" style="left:5.0px">May 2026</div><div class="grid-line" style="left:168.48px;top:26px;height:240px"></div><div class="grid-label" style="left:173.48px">Jun</div><div class="grid-line" style="left:331.52px;top:26px;height:240px"></div><div class="grid-label" style="left:336.52px">Jul</div><div class="grid-line" style="left:500.0px;top:26px;height:240px"></div><div class="grid-label" style="left:505.0px">Aug</div><div class="grid-line" style="left:668.48px;top:26px;height:240px"></div><div class="grid-label" style="left:673.48px">Sep</div><div class="grid-line" style="left:831.52px;top:26px;height:240px"></div><div class="grid-label" style="left:836.52px">Oct</div><div class="grid-line" style="left:1000.0px;top:26px;height:240px"></div><div class="grid-label" style="left:1005.0px">Nov</div><div class="lane-band band" data-ws="ws-infra" style="top:26px;height:44px;width:1000px"></div><div class="lane-band band-alt" data-ws="ws-data" style="top:70px;height:76px;width:1000px"></div><div class="lane-band band" data-ws="ws-config" style="top:146px;height:44px;width:1000px"></div><div class="lane-band band-alt" data-ws="ws-uat" style="top:190px;height:76px;width:1000px"></div><div class="today-line" style="left:434.78px;top:22px;height:244px"></div><div class="today-tag" style="left:439.78px">Today</div><button class="pill prov " data-ws="ws-infra" data-status="done" data-kind="ms" data-id="ms-env-provision" data-sources="art-design art-status-0612" style="left:95.76px;top:36px;min-width:223.0px" title="Dev &amp; Test environments provisioned · 20 May 2026 · Done"><span class="dot mk-done" aria-hidden="true">✓</span><span class="pill-t">Dev &amp; Test environments provi…</span></button><button class="pill prov " data-ws="ws-infra" data-status="on-track" data-kind="ms" data-id="ms-integration-api" data-sources="art-design art-steering-0708" style="left:492.5px;top:36px;min-width:210.6px" title="Core-banking API integration · 1 Aug 2026 · On track"><span class="dot mk-ontrack" aria-hidden="true">●</span><span class="pill-t">Core-banking API integration</span></button><button class="pill prov " data-ws="ws-data" data-status="done" data-kind="ms" data-id="ms-data-profiling" data-sources="art-steering-0625 art-migration-plan" style="left:258.8px;top:80px;min-width:223.0px" title="Legacy data profiling complete · 19 Jun 2026 · Done"><span class="dot mk-done" aria-hidden="true">✓</span><span class="pill-t">Legacy data profiling complete</span></button><button class="pill prov " data-ws="ws-data" data-status="at-risk" data-kind="ms" data-id="ms-migration-dryrun" data-sources="art-status-0703 art-migration-plan" style="left:416.41px;top:112px;min-width:192.0px" title="Data migration dry run #1 · 18 Jul 2026 · At risk"><span class="dot mk-atrisk" aria-hidden="true">▲</span><span class="pill-t">Data migration dry run #1</span></button><button class="pill prov " data-ws="ws-config" data-status="done" data-kind="ms" data-id="ms-brd-signoff" data-sources="art-brd art-steering-0625" style="left:182.72px;top:156px;min-width:111.4px" title="BRD sign-off · 5 Jun 2026 · Done"><span class="dot mk-done" aria-hidden="true">✓</span><span class="pill-t">BRD sign-off</span></button><button class="pill prov " data-ws="ws-config" data-status="late" data-kind="ms" data-id="ms-config-sprint1" data-sources="art-status-0703 art-steering-0708" style="left:334.89px;top:156px;min-width:216.8px" title="Config sprint 1 — accounts &amp; contacts · 3 Jul 2026 · Late"><span class="dot mk-late" aria-hidden="true">!</span><span class="pill-t">Config sprint 1 — accounts &amp;…</span></button><button class="pill prov " data-ws="ws-config" data-status="on-track" data-kind="ms" data-id="ms-config-sprint2" data-sources="art-steering-0625 art-steering-0708" style="left:568.59px;top:156px;min-width:216.8px" title="Config sprint 2 — pipeline &amp; reporting · 15 Aug 2026 · On track"><span class="dot mk-ontrack" aria-hidden="true">●</span><span class="pill-t">Config sprint 2 — pipeline &amp;…</span></button><button class="pill prov flip" data-ws="ws-uat" data-status="planned" data-kind="ms" data-id="ms-uat-start" data-sources="art-kickoff art-steering-0708" style="left:615.02px;top:200px;min-width:99.0px" title="UAT begins · 8 Sep 2026 · Planned"><span class="dot mk-planned" aria-hidden="true">○</span><span class="pill-t">UAT begins</span></button><button class="pill prov flip" data-ws="ws-uat" data-status="planned" data-kind="ms" data-id="ms-golive" data-sources="art-steering-0708 art-migration-plan" style="left:712.16px;top:232px;min-width:148.6px" title="Production go-live · 5 Oct 2026 · Planned"><span class="dot mk-planned" aria-hidden="true">○</span><span class="pill-t">Production go-live</span></button>
         </div></div>
       </div>
       <div class="unsched"><span class="unsched-lbl">Unscheduled</span><div class="unsched-pills"><button class="pill prov" data-ws="ws-uat" data-status="planned" data-kind="ms" data-id="ms-training" data-sources="art-steering-0708" title="End-user training · Planned"><span class="dot mk-planned" aria-hidden="true">○</span><span class="pill-t">End-user training</span></button></div></div>
@@ -669,7 +696,7 @@ body.ba-editing .sec-head{ cursor:pointer; }
   </div>
 </section>
 <section class="card" data-collapsed="true" data-sec="whatchanged">
-  <button class="sec-head" aria-expanded="false"><h2>What changed</h2>
+  <button class="sec-head" aria-expanded="false"><h2>What changed</h2><span class="sec-help" role="link" tabindex="0" data-help="whatchanged" title="How this section works" aria-label="How this section works">?</span>
     <span class="chev" aria-hidden="true"></span></button>
   <div class="sec-body">
     <div class="wc-range" role="group" aria-label="Change range">
@@ -681,70 +708,75 @@ body.ba-editing .sec-head{ cursor:pointer; }
   </div>
 </section>
 <section class="card" data-collapsed="true" data-sec="okrs" id="ba-okr-sec" hidden>
-  <button class="sec-head" aria-expanded="false"><h2>OKRs</h2><span class="count" id="ba-okr-count">0</span>
+  <button class="sec-head" aria-expanded="false"><h2>OKRs</h2><span class="count" id="ba-okr-count">0</span><span class="sec-help" role="link" tabindex="0" data-help="okrs" title="How this section works" aria-label="How this section works">?</span>
     <span class="chev" aria-hidden="true"></span></button>
   <div class="sec-body"><div id="ba-okr-body"></div></div>
 </section>
 <section class="card" data-collapsed="true" data-sec="milestones">
-  <button class="sec-head" aria-expanded="false"><h2>Milestones</h2><span class="count">10</span>
+  <button class="sec-head" aria-expanded="false"><h2>Milestones</h2><span class="count">10</span><span class="sec-help" role="link" tabindex="0" data-help="milestones" title="How this section works" aria-label="How this section works">?</span>
     <span class="chev" aria-hidden="true"></span></button>
   <div class="sec-body"><table class="grid"><thead><tr><th>Milestone</th><th>Workstream</th><th class="num">Due</th><th>Status</th></tr></thead><tbody><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-infra" data-status="done" data-id="ms-env-provision" data-sources="art-design art-status-0612"><td data-ef="title">Dev &amp; Test environments provisioned</td><td><span class="chip"><span class="chip-dot" style="background:#4a3aa7"></span>Environments &amp; Integration</span></td><td class="num" data-ef="due" data-edate="1">20 May 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-done"><span class="dot mk-done">✓</span>Done</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-config" data-status="done" data-id="ms-brd-signoff" data-sources="art-brd art-steering-0625"><td data-ef="title">BRD sign-off</td><td><span class="chip"><span class="chip-dot" style="background:#eb6834"></span>CRM Configuration</span></td><td class="num" data-ef="due" data-edate="1">5 Jun 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-done"><span class="dot mk-done">✓</span>Done</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-data" data-status="done" data-id="ms-data-profiling" data-sources="art-steering-0625 art-migration-plan"><td data-ef="title">Legacy data profiling complete</td><td><span class="chip"><span class="chip-dot" style="background:#1baf7a"></span>Data Migration</span></td><td class="num" data-ef="due" data-edate="1">19 Jun 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-done"><span class="dot mk-done">✓</span>Done</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-config" data-status="late" data-id="ms-config-sprint1" data-sources="art-status-0703 art-steering-0708"><td data-ef="title">Config sprint 1 — accounts &amp; contacts</td><td><span class="chip"><span class="chip-dot" style="background:#eb6834"></span>CRM Configuration</span></td><td class="num" data-ef="due" data-edate="1">3 Jul 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-late"><span class="dot mk-late">!</span>Late</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-data" data-status="at-risk" data-id="ms-migration-dryrun" data-sources="art-status-0703 art-migration-plan"><td data-ef="title">Data migration dry run #1</td><td><span class="chip"><span class="chip-dot" style="background:#1baf7a"></span>Data Migration</span></td><td class="num" data-ef="due" data-edate="1">18 Jul 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-atrisk"><span class="dot mk-atrisk">▲</span>At risk</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-infra" data-status="on-track" data-id="ms-integration-api" data-sources="art-design art-steering-0708"><td data-ef="title">Core-banking API integration</td><td><span class="chip"><span class="chip-dot" style="background:#4a3aa7"></span>Environments &amp; Integration</span></td><td class="num" data-ef="due" data-edate="1">1 Aug 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-ontrack"><span class="dot mk-ontrack">●</span>On track</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-config" data-status="on-track" data-id="ms-config-sprint2" data-sources="art-steering-0625 art-steering-0708"><td data-ef="title">Config sprint 2 — pipeline &amp; reporting</td><td><span class="chip"><span class="chip-dot" style="background:#eb6834"></span>CRM Configuration</span></td><td class="num" data-ef="due" data-edate="1">15 Aug 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-ontrack"><span class="dot mk-ontrack">●</span>On track</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-uat" data-status="planned" data-id="ms-uat-start" data-sources="art-kickoff art-steering-0708"><td data-ef="title">UAT begins</td><td><span class="chip"><span class="chip-dot" style="background:#e87ba4"></span>Testing &amp; Go-Live</span></td><td class="num" data-ef="due" data-edate="1">8 Sep 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-planned"><span class="dot mk-planned">○</span>Planned</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-uat" data-status="planned" data-id="ms-golive" data-sources="art-steering-0708 art-migration-plan"><td data-ef="title">Production go-live</td><td><span class="chip"><span class="chip-dot" style="background:#e87ba4"></span>Testing &amp; Go-Live</span></td><td class="num" data-ef="due" data-edate="1">5 Oct 2026</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-planned"><span class="dot mk-planned">○</span>Planned</span></td></tr><tr class="prov" tabindex="0" data-kind="ms" data-eitem="milestones" data-ws="ws-uat" data-status="planned" data-id="ms-training" data-sources="art-steering-0708"><td data-ef="title">End-user training</td><td><span class="chip"><span class="chip-dot" style="background:#e87ba4"></span>Testing &amp; Go-Live</span></td><td class="num" data-ef="due" data-edate="1">—</td><td data-ef="status" data-eenum="milestone.status"><span class="tag tag-planned"><span class="dot mk-planned">○</span>Planned</span></td></tr></tbody></table><p class="empty filter-empty" hidden>No milestones match the current filter.</p></div>
 </section>
 <section class="card" data-collapsed="true" data-sec="action-items">
-  <button class="sec-head" aria-expanded="false"><h2>Action items</h2><span class="count">10</span>
+  <button class="sec-head" aria-expanded="false"><h2>Action items</h2><span class="count">10</span><span class="sec-help" role="link" tabindex="0" data-help="actions" title="How this section works" aria-label="How this section works">?</span>
     <span class="chev" aria-hidden="true"></span></button>
   <div class="sec-body"><table class="grid"><thead><tr><th>Action</th><th>Owner</th><th class="num">Due</th><th>Status</th></tr></thead><tbody><tr class="prov" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-dkim" data-status="done" data-id="act-provision-test" data-sources="art-design art-status-0612"><td data-ef="title">Provision Dynamics test environment</td><td>David Kim</td><td class="num" data-ef="due" data-edate="1">20 May 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-done">Done</span></td></tr><tr class="prov" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-rsingh" data-status="done" data-id="act-finalize-brd" data-sources="art-brd"><td data-ef="title">Finalize BRD and secure sign-off</td><td>Raj Singh</td><td class="num" data-ef="due" data-edate="1">5 Jun 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-done">Done</span></td></tr><tr class="prov" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-schen" data-status="done" data-id="act-profile-legacy" data-sources="art-steering-0625 art-migration-plan"><td data-ef="title">Profile legacy CRM data quality</td><td>Sophie Chen</td><td class="num" data-ef="due" data-edate="1">18 Jun 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-done">Done</span></td></tr><tr class="prov row-overdue" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-agarcia" data-status="in-progress" data-id="act-config-accounts" data-sources="art-status-0703"><td data-ef="title">Complete accounts &amp; contacts configuration<span class="badge overdue">Overdue</span></td><td>Ana Garcia</td><td class="num" data-ef="due" data-edate="1">3 Jul 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-in-progress">In progress</span></td></tr><tr class="prov row-overdue" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-lnovak" data-status="in-progress" data-id="act-fix-dq-issues" data-sources="art-status-0703 art-migration-plan"><td data-ef="title">Remediate 12,400 duplicate customer records<span class="badge overdue">Overdue</span></td><td>Lena Novak</td><td class="num" data-ef="due" data-edate="1">9 Jul 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-in-progress">In progress</span></td></tr><tr class="prov row-overdue" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-mpatel" data-status="open" data-id="act-revise-plan" data-sources="art-steering-0708"><td data-ef="title">Circulate revised project plan to steering committee<span class="badge overdue">Overdue</span></td><td>Meera Patel</td><td class="num" data-ef="due" data-edate="1">14 Jul 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-open">Open</span></td></tr><tr class="prov row-overdue" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-schen" data-status="in-progress" data-id="act-dryrun-prep" data-sources="art-migration-plan"><td data-ef="title">Prepare migration dry-run dataset<span class="badge overdue">Overdue</span></td><td>Sophie Chen</td><td class="num" data-ef="due" data-edate="1">15 Jul 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-in-progress">In progress</span></td></tr><tr class="prov" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-mpatel" data-status="open" data-id="act-api-credentials" data-sources="art-steering-0708"><td data-ef="title">Provide core-banking API sandbox credentials</td><td>Meera Patel</td><td class="num" data-ef="due" data-edate="1">20 Jul 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-open">Open</span></td></tr><tr class="prov" tabindex="0" data-kind="act" data-eitem="actions" data-owner="stk-rsingh" data-status="open" data-id="act-uat-plan" data-sources="art-steering-0708"><td data-ef="title">Draft UAT test plan and entry criteria</td><td>Raj Singh</td><td class="num" data-ef="due" data-edate="1">10 Aug 2026</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-open">Open</span></td></tr><tr class="prov" tabindex="0" data-kind="act" data-eitem="actions" data-owner="unassigned" data-status="open" data-id="act-training-schedule" data-sources="art-steering-0708"><td data-ef="title">Schedule end-user training sessions</td><td>Unassigned</td><td class="num" data-ef="due" data-edate="1">—</td><td data-ef="status" data-eenum="action.status"><span class="tag tag-act-open">Open</span></td></tr></tbody></table><p class="empty filter-empty" hidden>No actions match the current filter.</p></div>
 </section>
 <section class="card" data-collapsed="true" data-sec="raid-risks-issues-depend">
-  <button class="sec-head" aria-expanded="false"><h2>RAID — risks, issues &amp; dependencies</h2>
+  <button class="sec-head" aria-expanded="false"><h2>RAID — risks, issues &amp; dependencies</h2><span class="sec-help" role="link" tabindex="0" data-help="raid" title="How this section works" aria-label="How this section works">?</span>
     <span class="chev" aria-hidden="true"></span></button>
   <div class="sec-body"><div class="raid-grid"><div class="raid-col"><h3>Risks<span class="count">5</span></h3><div class="raid-item prov" tabindex="0" data-kind="raid" data-eitem="risks" data-id="risk-data-quality" data-sources="art-steering-0625 art-migration-plan art-status-0703"><div class="raid-top"><span data-ef="severity" data-eenum="risk.severity"><span class="sev sev-critical">Critical</span></span><span class="raid-status" data-ef="status" data-eenum="risk.status">open</span></div><div class="raid-title" data-ef="title">Legacy data quality far worse than assumed (duplicates, missing fields)</div><div class="mit" data-ef="mitigation">Dedicated remediation sprint; Veridian dedup tooling; profiling report driving cleanup.</div><div class="raid-meta"><span class="meta">Likelihood: <span data-ef="likelihood" data-eenum="risk.likelihood">high</span></span></div></div><div class="raid-item prov" tabindex="0" data-kind="raid" data-eitem="risks" data-id="risk-api-access" data-sources="art-steering-0708"><div class="raid-top"><span data-ef="severity" data-eenum="risk.severity"><span class="sev sev-high">High</span></span><span class="raid-status" data-ef="status" data-eenum="risk.status">open</span></div><div class="raid-title" data-ef="title">Core-banking API sandbox access delayed by Contoso security review</div><div class="mit" data-ef="mitigation">Escalated to sponsor; provisional mock endpoint for early build.</div><div class="raid-meta"><span class="meta">Likelihood: <span data-ef="likelihood" data-eenum="risk.likelihood">medium</span></span></div></div><div class="raid-item prov" tabindex="0" data-kind="raid" data-eitem="risks" data-id="risk-uat-window" data-sources="art-steering-0708"><div class="raid-top"><span data-ef="severity" data-eenum="risk.severity"><span class="sev sev-high">High</span></span><span class="raid-status" data-ef="status" data-eenum="risk.status">open</span></div><div class="raid-title" data-ef="title">Compressed UAT window threatens go-live quality</div><div class="mit" data-ef="mitigation">UAT shifted to 8 Sep; entry criteria being defined up front.</div><div class="raid-meta"><span class="meta">Likelihood: <span data-ef="likelihood" data-eenum="risk.likelihood">medium</span></span></div></div><div class="raid-item prov" tabindex="0" data-kind="raid" data-eitem="risks" data-id="risk-config-capacity" data-sources="art-status-0703"><div class="raid-top"><span data-ef="severity" data-eenum="risk.severity"><span class="sev sev-medium">Medium</span></span><span class="raid-status" data-ef="status" data-eenum="risk.status">mitigating</span></div><div class="raid-title" data-ef="title">NorthPeak configuration team under-staffed for sprint 2</div><div class="mit" data-ef="mitigation">Additional configurator being onboarded for August.</div><div class="raid-meta"><span class="meta">Likelihood: <span data-ef="likelihood" data-eenum="risk.likelihood">medium</span></span></div></div><div class="raid-item prov" tabindex="0" data-kind="raid" data-eitem="risks" data-id="risk-scope-reporting" data-sources="art-steering-0625"><div class="raid-top"><span data-ef="severity" data-eenum="risk.severity"><span class="sev sev-medium">Medium</span></span><span class="raid-status" data-ef="status" data-eenum="risk.status">mitigating</span></div><div class="raid-title" data-ef="title">Reporting requirements expanding beyond phase 1 scope</div><div class="mit" data-ef="mitigation">Advanced analytics formally deferred to phase 2.</div><div class="raid-meta"><span class="meta">Likelihood: <span data-ef="likelihood" data-eenum="risk.likelihood">low</span></span></div></div></div><div class="raid-col"><h3>Issues<span class="count">2</span></h3><div class="raid-item prov" tabindex="0" data-kind="raid" data-eitem="issues" data-id="iss-duplicate-records" data-sources="art-status-0703 art-migration-plan"><div class="raid-top"><span data-ef="severity" data-eenum="issue.severity"><span class="sev sev-high">High</span></span><span class="raid-status" data-ef="status" data-eenum="issue.status">open</span></div><div class="raid-title" data-ef="title">12,400 duplicate customer records in the legacy extract</div><div class="mit" data-ef="mitigation">Dedup rules defined; remediation in progress under Veridian.</div><div class="raid-meta"></div></div><div class="raid-item prov" tabindex="0" data-kind="raid" data-eitem="issues" data-id="iss-env-latency" data-sources="art-status-0612"><div class="raid-top"><span data-ef="severity" data-eenum="issue.severity"><span class="sev sev-low">Low</span></span><span class="raid-status" data-ef="status" data-eenum="issue.status">resolved</span></div><div class="raid-title" data-ef="title">Test-environment latency during large batch loads</div><div class="mit" data-ef="mitigation">NorthPeak retuned the batch window; acceptable in retest.</div><div class="raid-meta"></div></div></div><div class="raid-col"><h3>Dependencies<span class="count">2</span></h3><div class="raid-item prov" tabindex="0" data-kind="raid" data-id="dep-api-creds" data-sources="art-steering-0708"><div class="raid-top"><span class="raid-status">open</span></div><div class="raid-title">Integration build blocked on core-banking API sandbox credentials</div><div class="mit">On: Contoso IT security approval</div><div class="raid-meta"><span class="meta">Needed by: 20 Jul 2026</span></div></div><div class="raid-item prov" tabindex="0" data-kind="raid" data-id="dep-remediated-extract" data-sources="art-migration-plan"><div class="raid-top"><span class="raid-status">open</span></div><div class="raid-title">Migration dry run depends on the remediated data extract</div><div class="mit">On: Data remediation (Veridian)</div><div class="raid-meta"><span class="meta">Needed by: 15 Jul 2026</span></div></div></div></div></div>
 </section>
 <section class="card" data-collapsed="true" data-sec="decisions-log">
-  <button class="sec-head" aria-expanded="false"><h2>Decisions log</h2><span class="count">6</span>
+  <button class="sec-head" aria-expanded="false"><h2>Decisions log</h2><span class="count">6</span><span class="sec-help" role="link" tabindex="0" data-help="decisions" title="How this section works" aria-label="How this section works">?</span>
     <span class="chev" aria-hidden="true"></span></button>
   <div class="sec-body"><ul class="d-log"><li class="d-item prov" tabindex="0" data-kind="dec" data-eitem="decisions" data-id="dec-2026-07-08-phased-cutover" data-sources="art-steering-0708"><div class="d-date num" data-ef="date" data-edate="1">8 Jul 2026</div><div class="d-body"><div class="d-sum" data-ef="summary">Adopt a phased regional cutover instead of a single big-bang cutover.</div><div class="d-rat" data-ef="rationale">Reduces go-live blast radius given unresolved data-quality issues.</div></div></li><li class="d-item prov" tabindex="0" data-kind="dec" data-eitem="decisions" data-id="dec-2026-07-08-uat-shift" data-sources="art-steering-0708"><div class="d-date num" data-ef="date" data-edate="1">8 Jul 2026</div><div class="d-body"><div class="d-sum" data-ef="summary">Shift UAT start to 8 September to absorb the config sprint 1 slip.</div><div class="d-rat" data-ef="rationale">Preserves a realistic UAT window rather than compressing testing.</div></div></li><li class="d-item prov" tabindex="0" data-kind="dec" data-eitem="decisions" data-id="dec-2026-06-25-defer-analytics" data-sources="art-steering-0625"><div class="d-date num" data-ef="date" data-edate="1">25 Jun 2026</div><div class="d-body"><div class="d-sum" data-ef="summary">Defer advanced analytics &amp; reporting to phase 2.</div><div class="d-rat" data-ef="rationale">Protects the go-live date; core pipeline reporting is sufficient for launch.</div></div></li><li class="d-item prov" tabindex="0" data-kind="dec" data-eitem="decisions" data-id="dec-2026-06-01-integration-pattern" data-sources="art-design"><div class="d-date num" data-ef="date" data-edate="1">1 Jun 2026</div><div class="d-body"><div class="d-sum" data-ef="summary">Integrate to the core-banking system via nightly batch API rather than real-time.</div><div class="d-rat" data-ef="rationale">Real-time was disproportionate to need and raised the security-review burden.</div></div></li><li class="d-item prov" tabindex="0" data-kind="dec" data-eitem="decisions" data-id="dec-2026-05-15-platform" data-sources="art-brd"><div class="d-date num" data-ef="date" data-edate="1">15 May 2026</div><div class="d-body"><div class="d-sum" data-ef="summary">Target platform confirmed as Microsoft Dynamics 365 Sales.</div><div class="d-rat" data-ef="rationale">Aligns with Contoso&#x27;s existing M365 tenant and licensing.</div></div></li><li class="d-item prov" tabindex="0" data-kind="dec" data-eitem="decisions" data-id="dec-2026-05-02-vendor-split" data-sources="art-kickoff"><div class="d-date num" data-ef="date" data-edate="1">2 May 2026</div><div class="d-body"><div class="d-sum" data-ef="summary">Split delivery — NorthPeak owns configuration &amp; integration, Veridian owns data migration.</div><div class="d-rat" data-ef="rationale">Plays to each vendor&#x27;s strength and isolates the data-migration risk under a specialist.</div></div></li></ul></div>
 </section>
-<section class="card" data-collapsed="true" data-sec="requirements-use-cases">
-  <button class="sec-head" aria-expanded="false"><h2>Requirements &amp; use cases</h2><span class="count">7</span>
+<section class="card" data-collapsed="true" data-sec="requirements">
+  <button class="sec-head" aria-expanded="false"><h2>Non-functional &amp; constraints</h2><span class="count">7</span><span class="sec-help" role="link" tabindex="0" data-help="requirements" title="How this section works" aria-label="How this section works">?</span>
     <span class="chev" aria-hidden="true"></span></button>
   <div class="sec-body"><div class="rx-bar"><button class="rx-btn" id="req-export-btn" type="button" aria-haspopup="true" aria-expanded="false">Export .feature<span class="rx-caret" aria-hidden="true"></span></button><div class="rx-menu" id="req-export-menu" hidden></div></div><div class="req-group"><h3>Functional<span class="count">3</span></h3><ul class="req-list"><li class="req prov" tabindex="0" data-kind="req" data-eitem="requirements" data-id="req-acct-360" data-sources="art-brd"><div class="req-head"><span class="req-title" data-ef="title">360-degree customer account view</span><span class="req-head-right"><span class="sc-chip">2 scenarios</span><span class="pipe pipe-approved" data-ef="status" data-eenum="requirement.status">approved</span></span></div><div class="req-detail" data-ef="detail">Consolidated view of accounts, contacts, products held and recent interactions.</div><div class="sc-list"><div class="sc prov" tabindex="0" data-kind="sc" data-id="sc-acct360-view" data-sources="art-bdd"><div class="sc-head"><span class="sc-title">RM opens a customer with products across the group</span><span class="sc-tag sc-passing">Passing</span></div><div class="gwt"><div class="gwt-row"><span class="gwt-kw">Given</span><span class="gwt-clause">a relationship manager is signed in</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">the customer Northwind Traders exists in core banking</span></div><div class="gwt-row"><span class="gwt-kw">When</span><span class="gwt-clause">they open the customer account page</span></div><div class="gwt-row"><span class="gwt-kw">Then</span><span class="gwt-clause">the 360 view shows accounts, contacts and products held</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">interactions from the last 90 days are listed</span></div></div></div><div class="sc prov" tabindex="0" data-kind="sc" data-id="sc-acct360-empty" data-sources="art-bdd"><div class="sc-head"><span class="sc-title">Customer with no linked banking products</span><span class="sc-tag sc-implemented">Implemented</span></div><div class="gwt"><div class="gwt-row"><span class="gwt-kw">Given</span><span class="gwt-clause">a relationship manager is signed in</span></div><div class="gwt-row"><span class="gwt-kw">When</span><span class="gwt-clause">they open an account that has no linked products</span></div><div class="gwt-row"><span class="gwt-kw">Then</span><span class="gwt-clause">the products panel shows an empty-state message</span></div></div></div></div></li><li class="req prov" tabindex="0" data-kind="req" data-eitem="requirements" data-id="req-pipeline" data-sources="art-brd"><div class="req-head"><span class="req-title" data-ef="title">Sales pipeline &amp; opportunity management</span><span class="req-head-right"><span class="pipe pipe-approved" data-ef="status" data-eenum="requirement.status">approved</span></span></div><div class="req-detail" data-ef="detail">Stage-based pipeline with forecasting for relationship managers.</div></li><li class="req prov" tabindex="0" data-kind="req" data-eitem="requirements" data-id="req-batch-sync" data-sources="art-brd art-design"><div class="req-head"><span class="req-title" data-ef="title">Nightly batch synchronisation with core-banking</span><span class="req-head-right"><span class="sc-chip">2 scenarios</span><span class="pipe pipe-in-review" data-ef="status" data-eenum="requirement.status">in review</span></span></div><div class="req-detail" data-ef="detail">Overnight sync of account balances and product holdings via batch API.</div><div class="sc-list"><div class="sc prov" tabindex="0" data-kind="sc" data-id="sc-batch-nightly" data-sources="art-bdd"><div class="sc-head"><span class="sc-title">Nightly sync reconciles balances and holdings</span><span class="sc-tag sc-agreed">Agreed</span></div><div class="gwt"><div class="gwt-row"><span class="gwt-kw">Given</span><span class="gwt-clause">the nightly batch window has opened</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">core-banking has published the daily balance file</span></div><div class="gwt-row"><span class="gwt-kw">When</span><span class="gwt-clause">the synchronisation job runs</span></div><div class="gwt-row"><span class="gwt-kw">Then</span><span class="gwt-clause">account balances in the CRM match core banking</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">product holdings are updated</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">a sync summary is written to the audit log</span></div></div></div><div class="sc prov" tabindex="0" data-kind="sc" data-id="sc-batch-failure" data-sources="art-bdd"><div class="sc-head"><span class="sc-title">Sync retries when the core-banking sandbox is unreachable</span><span class="sc-tag sc-failing">Failing</span></div><div class="gwt"><div class="gwt-row"><span class="gwt-kw">Given</span><span class="gwt-clause">the nightly batch window has opened</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">the core-banking API sandbox is unreachable</span></div><div class="gwt-row"><span class="gwt-kw">When</span><span class="gwt-clause">the synchronisation job runs</span></div><div class="gwt-row"><span class="gwt-kw">Then</span><span class="gwt-clause">the job retries three times</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">an alert is raised to the integration team</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">the previous balances are retained</span></div></div></div></div></li></ul></div><div class="req-group"><h3>Non-functional<span class="count">2</span></h3><ul class="req-list"><li class="req prov" tabindex="0" data-kind="req" data-eitem="requirements" data-id="req-rbac" data-sources="art-brd art-steering-0708"><div class="req-head"><span class="req-title" data-ef="title">Role-based access control aligned to Contoso security policy</span><span class="req-head-right"><span class="pipe pipe-approved" data-ef="status" data-eenum="requirement.status">approved</span></span></div><div class="req-detail" data-ef="detail">MFA for all users; least-privilege roles mapped to Contoso&#x27;s IAM standard.</div></li><li class="req prov" tabindex="0" data-kind="req" data-eitem="requirements" data-id="req-perf" data-sources="art-design"><div class="req-head"><span class="req-title" data-ef="title">Account view loads in under 3 seconds at 50k accounts</span><span class="req-head-right"><span class="pipe pipe-proposed" data-ef="status" data-eenum="requirement.status">proposed</span></span></div><div class="req-detail" data-ef="detail">Performance target for the primary relationship-manager view.</div></li></ul></div><div class="req-group"><h3>Use cases<span class="count">2</span></h3><ul class="req-list"><li class="req prov" tabindex="0" data-kind="req" data-eitem="requirements" data-id="uc-onboard-customer" data-sources="art-brd"><div class="req-head"><span class="req-title" data-ef="title">Relationship manager onboards a new corporate customer</span><span class="req-head-right"><span class="sc-chip">2 scenarios</span><span class="pipe pipe-approved" data-ef="status" data-eenum="requirement.status">approved</span></span></div><div class="req-detail" data-ef="detail">RM captures the customer, links banking products, and creates an onboarding opportunity.</div><div class="sc-list"><div class="sc prov" tabindex="0" data-kind="sc" data-id="sc-onboard-corp" data-sources="art-bdd"><div class="sc-head"><span class="sc-title">Onboard a new corporate customer with product linkage</span><span class="sc-tag sc-agreed">Agreed</span></div><div class="gwt"><div class="gwt-row"><span class="gwt-kw">Given</span><span class="gwt-clause">a relationship manager is signed in</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">the customer does not yet exist in the CRM</span></div><div class="gwt-row"><span class="gwt-kw">When</span><span class="gwt-clause">they create a new corporate customer</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">they link the customer&#x27;s banking products</span></div><div class="gwt-row"><span class="gwt-kw">Then</span><span class="gwt-clause">an onboarding opportunity is created</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">a KYC review task is assigned to the RM</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">the customer appears in the RM&#x27;s book of business</span></div></div></div><div class="sc prov" tabindex="0" data-kind="sc" data-id="sc-onboard-existing" data-sources="art-steering-0708"><div class="sc-head"><span class="sc-title">Prospect already holds a mortgage in core banking</span><span class="sc-tag sc-draft">Draft</span></div><div class="gwt"><div class="gwt-row"><span class="gwt-kw">Given</span><span class="gwt-clause">a relationship manager is signed in</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">the prospect already holds a mortgage in core banking</span></div><div class="gwt-row"><span class="gwt-kw">When</span><span class="gwt-clause">they start onboarding the prospect</span></div><div class="gwt-row"><span class="gwt-kw">Then</span><span class="gwt-clause">the existing mortgage is surfaced automatically</span></div><div class="gwt-row"><span class="gwt-kw">And</span><span class="gwt-clause">the RM is prompted to confirm the linkage</span></div></div></div></div></li><li class="req prov" tabindex="0" data-kind="req" data-eitem="requirements" data-id="uc-migrate-book" data-sources="art-migration-plan"><div class="req-head"><span class="req-title" data-ef="title">Migrate a relationship manager&#x27;s existing book of business</span><span class="req-head-right"><span class="pipe pipe-in-review" data-ef="status" data-eenum="requirement.status">in review</span></span></div><div class="req-detail" data-ef="detail">Bulk-migrate an RM&#x27;s accounts, contacts and open opportunities with data lineage preserved.</div></li></ul></div></div>
 </section>
 <section class="card" data-collapsed="true" data-sec="userstories" id="ba-us-sec" hidden>
-  <button class="sec-head" aria-expanded="false"><h2>User stories</h2><span class="count" id="ba-us-count">0</span>
+  <button class="sec-head" aria-expanded="false"><h2>BDD requirements — user stories, rules &amp; scenarios</h2><span class="count" id="ba-us-count">0</span><span class="sec-help" role="link" tabindex="0" data-help="userstories" title="How this section works" aria-label="How this section works">?</span>
     <span class="chev" aria-hidden="true"></span></button>
   <div class="sec-body"><div id="ba-us-body"></div></div>
 </section>
 <section class="card" data-collapsed="true" data-sec="rtm" id="ba-rtm-sec" hidden>
-  <button class="sec-head" aria-expanded="false"><h2>Traceability (RTM)</h2>
+  <button class="sec-head" aria-expanded="false"><h2>Traceability (RTM)</h2><span class="sec-help" role="link" tabindex="0" data-help="rtm" title="How this section works" aria-label="How this section works">?</span>
     <span class="chev" aria-hidden="true"></span></button>
   <div class="sec-body"><div id="ba-rtm-body"></div></div>
 </section>
+<section class="card" data-collapsed="true" data-sec="uat" id="ba-uat-sec" hidden>
+  <button class="sec-head" aria-expanded="false"><h2>UAT script</h2><span class="count" id="ba-uat-count">0</span><span class="sec-help" role="link" tabindex="0" data-help="uat" title="How this section works" aria-label="How this section works">?</span>
+    <span class="chev" aria-hidden="true"></span></button>
+  <div class="sec-body"><div id="ba-uat-body"></div></div>
+</section>
 <section class="card" data-collapsed="true" data-sec="open-questions">
-  <button class="sec-head" aria-expanded="false"><h2>Open questions</h2><span class="count">5</span>
+  <button class="sec-head" aria-expanded="false"><h2>Open questions</h2><span class="count">5</span><span class="sec-help" role="link" tabindex="0" data-help="questions" title="How this section works" aria-label="How this section works">?</span>
     <span class="chev" aria-hidden="true"></span></button>
   <div class="sec-body"><ul class="q-list"><li class="q-item prov" tabindex="0" data-kind="oq" data-eitem="openQuestions" data-id="oq-data-retention" data-sources="art-design"><div class="q-head"><span class="q-badge q-open" data-ef="status" data-eenum="question.status">Open</span><span class="q-text" data-ef="question">What is the data-retention policy for migrated closed accounts?</span></div><div class="q-meta">Raised by Ana Garcia · 1 Jun 2026</div></li><li class="q-item prov" tabindex="0" data-kind="oq" data-eitem="openQuestions" data-id="oq-mfa-scope" data-sources="art-steering-0625 art-steering-0708"><div class="q-head"><span class="q-badge q-answered" data-ef="status" data-eenum="question.status">Answered</span><span class="q-text" data-ef="question">Is MFA required for all CRM users or only privileged roles?</span></div><div class="q-meta">Raised by David Kim · 25 Jun 2026</div><div class="q-ans">All users — confirmed at steering committee on 8 July.</div></li><li class="q-item prov" tabindex="0" data-kind="oq" data-eitem="openQuestions" data-id="oq-cutover-window" data-sources="art-steering-0708 art-migration-plan"><div class="q-head"><span class="q-badge q-open" data-ef="status" data-eenum="question.status">Open</span><span class="q-text" data-ef="question">What production cutover downtime window is acceptable to the business?</span></div><div class="q-meta">Raised by Lena Novak · 8 Jul 2026</div></li><li class="q-item prov" tabindex="0" data-kind="oq" data-eitem="openQuestions" data-id="oq-reassign-threshold" data-sources="art-steering-0708"><div class="q-head"><span class="q-badge q-open" data-ef="status" data-eenum="question.status">Open</span><span class="q-text" data-ef="question">What approval threshold applies to bulk reassignments above 500 accounts?</span></div><div class="q-meta">Raised by Ana Garcia · 8 Jul 2026</div></li><li class="q-item prov" tabindex="0" data-kind="oq" data-eitem="openQuestions" data-id="oq-okr-rm-adoption-metric" data-sources="art-steering-0708"><div class="q-head"><span class="q-badge q-open" data-ef="status" data-eenum="question.status">Open</span><span class="q-text" data-ef="question">What weekly-active-usage or preference target should the RM-adoption OKR key result be held to? It currently has no baseline, target or unit — the aspirational objective can&#x27;t be scored until we quantify it.</span></div><div class="q-meta">Raised by Raj Singh · 8 Jul 2026</div></li></ul></div>
 </section>
 <section class="card cf-card" data-collapsed="true" data-sec="conflicts">
   <button class="sec-head" aria-expanded="false"><h2>Conflicts</h2>
-    <span class="count">2</span><span class="chev" aria-hidden="true"></span></button>
+    <span class="count">2</span><span class="sec-help" role="link" tabindex="0" data-help="conflicts" title="How this section works" aria-label="How this section works">?</span><span class="chev" aria-hidden="true"></span></button>
   <div class="sec-body"><div class="cf-banner">2 open conflicts need review</div><ul class="cf-list"><li class="cf-item prov" tabindex="0" data-kind="cf" data-id="cf-uat-date" data-sources="art-kickoff art-steering-0708"><div class="cf-about">UAT start date</div><div class="cf-cols"><div class="cf-was"><span class="cf-lbl">Was</span>24 August 2026 (kickoff plan)<span class="cf-src">transcript · 2 May 2026</span></div><div class="cf-arrow" aria-hidden="true">→</div><div class="cf-now"><span class="cf-lbl">Now</span>8 September 2026 (steering committee, 8 July)<span class="cf-src">transcript · 8 Jul 2026</span></div></div></li><li class="cf-item prov" tabindex="0" data-kind="cf" data-id="cf-cutover-approach" data-sources="art-brd art-steering-0708"><div class="cf-about">Production cutover approach</div><div class="cf-cols"><div class="cf-was"><span class="cf-lbl">Was</span>Single big-bang cutover (BRD)<span class="cf-src">brd · 15 May 2026</span></div><div class="cf-arrow" aria-hidden="true">→</div><div class="cf-now"><span class="cf-lbl">Now</span>Phased regional cutover (steering committee, 8 July)<span class="cf-src">transcript · 8 Jul 2026</span></div></div></li></ul></div>
 </section>
 
 <section class="card" data-collapsed="true" data-sec="artifact-feed">
-  <button class="sec-head" aria-expanded="false"><h2>Artifact feed</h2><span class="count">9</span>
+  <button class="sec-head" aria-expanded="false"><h2>Artifact feed</h2><span class="count">9</span><span class="sec-help" role="link" tabindex="0" data-help="artifacts" title="How this section works" aria-label="How this section works">?</span>
     <span class="chev" aria-hidden="true"></span></button>
   <div class="sec-body"><ul class="art-feed"><li class="art-item" data-id="art-bdd"><span class="art-type type-bdd">bdd</span><div class="art-body"><div class="art-file">2026-07-09-bdd-crm-scenarios.feature</div><div class="art-one">Imported BDD/Gherkin spec — agreed acceptance scenarios for account view, batch sync and onboarding.</div></div><div class="art-date num">9 Jul 2026</div></li><li class="art-item" data-id="art-steering-0708"><span class="art-type type-transcript">transcript</span><div class="art-body"><div class="art-file">2026-07-08-transcript-steering-committee-2.vtt</div><div class="art-one">Steering committee #2 — UAT moved to 8 Sep, phased cutover adopted, MFA scope confirmed.</div></div><div class="art-date num">8 Jul 2026</div></li><li class="art-item" data-id="art-migration-plan"><span class="art-type type-design-doc">design-doc</span><div class="art-body"><div class="art-file">2026-07-06-design-doc-migration-plan.pdf</div><div class="art-one">Veridian data-migration plan &amp; runbook — dry-run approach and remediation.</div></div><div class="art-date num">6 Jul 2026</div></li><li class="art-item" data-id="art-status-0703"><span class="art-type type-email">email</span><div class="art-body"><div class="art-file">2026-07-03-email-weekly-status.txt</div><div class="art-one">Weekly status — sprint 1 slipped, dry run at risk, data quality escalated.</div></div><div class="art-date num">3 Jul 2026</div></li><li class="art-item" data-id="art-steering-0625"><span class="art-type type-transcript">transcript</span><div class="art-body"><div class="art-file">2026-06-25-transcript-steering-committee-1.vtt</div><div class="art-one">Steering committee #1 — profiling complete, risks reviewed, analytics deferred.</div></div><div class="art-date num">25 Jun 2026</div></li><li class="art-item" data-id="art-status-0612"><span class="art-type type-email">email</span><div class="art-body"><div class="art-file">2026-06-12-email-weekly-status.txt</div><div class="art-one">Weekly status — environments live, profiling underway, sprint 1 starting.</div></div><div class="art-date num">12 Jun 2026</div></li><li class="art-item" data-id="art-design"><span class="art-type type-design-doc">design-doc</span><div class="art-body"><div class="art-file">2026-06-01-design-doc-solution-architecture.pdf</div><div class="art-one">Solution design — environments, integration pattern and data model.</div></div><div class="art-date num">1 Jun 2026</div></li><li class="art-item" data-id="art-brd"><span class="art-type type-brd">brd</span><div class="art-body"><div class="art-file">2026-05-15-brd-atlas-requirements-v1.docx</div><div class="art-one">Business Requirements Document v1.0 — functional, non-functional and use-case requirements.</div></div><div class="art-date num">15 May 2026</div></li><li class="art-item" data-id="art-kickoff"><span class="art-type type-transcript">transcript</span><div class="art-body"><div class="art-file">2026-05-02-transcript-kickoff.txt</div><div class="art-one">Project kickoff — scope, vendor split, teams and initial timeline agreed.</div></div><div class="art-date num">2 May 2026</div></li></ul></div>
 </section>
 <section class="card" data-collapsed="true" data-sec="team-stakeholders">
-  <button class="sec-head" aria-expanded="false"><h2>Team &amp; stakeholders</h2><span class="count">8</span>
+  <button class="sec-head" aria-expanded="false"><h2>Team &amp; stakeholders</h2><span class="count">8</span><span class="sec-help" role="link" tabindex="0" data-help="team" title="How this section works" aria-label="How this section works">?</span>
     <span class="chev" aria-hidden="true"></span></button>
   <div class="sec-body"><div class="stk-grid"><div class="stk-org"><h3>Contoso Financial<span class="count">3</span></h3><ul class="stk-list"><li class="stk prov" tabindex="0" data-kind="stk" data-id="stk-jchen" data-sources="art-kickoff"><span class="stk-name">Jordan Chen</span><span class="stk-role">Program Sponsor</span></li><li class="stk prov" tabindex="0" data-kind="stk" data-id="stk-mpatel" data-sources="art-kickoff art-steering-0708"><span class="stk-name">Meera Patel</span><span class="stk-role">Project Manager</span></li><li class="stk prov" tabindex="0" data-kind="stk" data-id="stk-rsingh" data-sources="art-kickoff art-brd"><span class="stk-name">Raj Singh</span><span class="stk-role">CRM Product Owner</span></li></ul></div><div class="stk-org"><h3>NorthPeak Systems<span class="count">3</span></h3><ul class="stk-list"><li class="stk prov" tabindex="0" data-kind="stk" data-id="stk-twolfe" data-sources="art-kickoff"><span class="stk-name">Tom Wolfe</span><span class="stk-role">Engagement Lead</span></li><li class="stk prov" tabindex="0" data-kind="stk" data-id="stk-agarcia" data-sources="art-kickoff art-design"><span class="stk-name">Ana Garcia</span><span class="stk-role">Solution Architect</span></li><li class="stk prov" tabindex="0" data-kind="stk" data-id="stk-dkim" data-sources="art-design"><span class="stk-name">David Kim</span><span class="stk-role">Integration Engineer</span></li></ul></div><div class="stk-org"><h3>Veridian Consulting<span class="count">2</span></h3><ul class="stk-list"><li class="stk prov" tabindex="0" data-kind="stk" data-id="stk-lnovak" data-sources="art-kickoff art-migration-plan"><span class="stk-name">Lena Novak</span><span class="stk-role">Data Migration Lead</span></li><li class="stk prov" tabindex="0" data-kind="stk" data-id="stk-schen" data-sources="art-migration-plan"><span class="stk-name">Sophie Chen</span><span class="stk-role">Data Engineer</span></li></ul></div></div></div>
 </section>
-<div class="foot">Rendered 18 Jul 2026 · AI PM · state validated against schema.json</div>
+<div class="foot">Rendered 20 Jul 2026 · AI PM v4.7 · state validated against schema.json</div>
 </div>
 <script>window.__ARTIFACTS__ = {"art-kickoff": {"file": "2026-05-02-transcript-kickoff.txt", "type": "transcript", "date": "2 May 2026", "oneLiner": "Project kickoff — scope, vendor split, teams and initial timeline agreed."}, "art-brd": {"file": "2026-05-15-brd-atlas-requirements-v1.docx", "type": "brd", "date": "15 May 2026", "oneLiner": "Business Requirements Document v1.0 — functional, non-functional and use-case requirements."}, "art-design": {"file": "2026-06-01-design-doc-solution-architecture.pdf", "type": "design-doc", "date": "1 Jun 2026", "oneLiner": "Solution design — environments, integration pattern and data model."}, "art-status-0612": {"file": "2026-06-12-email-weekly-status.txt", "type": "email", "date": "12 Jun 2026", "oneLiner": "Weekly status — environments live, profiling underway, sprint 1 starting."}, "art-steering-0625": {"file": "2026-06-25-transcript-steering-committee-1.vtt", "type": "transcript", "date": "25 Jun 2026", "oneLiner": "Steering committee #1 — profiling complete, risks reviewed, analytics deferred."}, "art-migration-plan": {"file": "2026-07-06-design-doc-migration-plan.pdf", "type": "design-doc", "date": "6 Jul 2026", "oneLiner": "Veridian data-migration plan & runbook — dry-run approach and remediation."}, "art-status-0703": {"file": "2026-07-03-email-weekly-status.txt", "type": "email", "date": "3 Jul 2026", "oneLiner": "Weekly status — sprint 1 slipped, dry run at risk, data quality escalated."}, "art-steering-0708": {"file": "2026-07-08-transcript-steering-committee-2.vtt", "type": "transcript", "date": "8 Jul 2026", "oneLiner": "Steering committee #2 — UAT moved to 8 Sep, phased cutover adopted, MFA scope confirmed."}, "art-bdd": {"file": "2026-07-09-bdd-crm-scenarios.feature", "type": "bdd", "date": "9 Jul 2026", "oneLiner": "Imported BDD/Gherkin spec — agreed acceptance scenarios for account view, batch sync and onboarding."}}; window.__PROJECT_ID__ = "demo-atlas";
-window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration", "client": "Contoso Financial", "description": "Migrate Contoso Financial's legacy CRM to Dynamics 365 Sales, with NorthPeak Systems delivering configuration + core-banking integration and Veridian Consulting delivering the data migration.", "vendors": ["NorthPeak Systems", "Veridian Consulting"], "lastDigest": "2026-07-09T16:20:00Z"}, "stakeholders": [{"id": "stk-jchen", "name": "Jordan Chen", "org": "Contoso Financial", "role": "Program Sponsor", "sources": ["art-kickoff"]}, {"id": "stk-mpatel", "name": "Meera Patel", "org": "Contoso Financial", "role": "Project Manager", "sources": ["art-kickoff", "art-steering-0708"]}, {"id": "stk-rsingh", "name": "Raj Singh", "org": "Contoso Financial", "role": "CRM Product Owner", "sources": ["art-kickoff", "art-brd"]}, {"id": "stk-twolfe", "name": "Tom Wolfe", "org": "NorthPeak Systems", "role": "Engagement Lead", "sources": ["art-kickoff"]}, {"id": "stk-agarcia", "name": "Ana Garcia", "org": "NorthPeak Systems", "role": "Solution Architect", "sources": ["art-kickoff", "art-design"]}, {"id": "stk-dkim", "name": "David Kim", "org": "NorthPeak Systems", "role": "Integration Engineer", "sources": ["art-design"]}, {"id": "stk-lnovak", "name": "Lena Novak", "org": "Veridian Consulting", "role": "Data Migration Lead", "sources": ["art-kickoff", "art-migration-plan"]}, {"id": "stk-schen", "name": "Sophie Chen", "org": "Veridian Consulting", "role": "Data Engineer", "sources": ["art-migration-plan"]}], "workstreams": [{"id": "ws-infra", "name": "Environments & Integration", "color": "#4a3aa7"}, {"id": "ws-data", "name": "Data Migration", "color": "#1baf7a"}, {"id": "ws-config", "name": "CRM Configuration", "color": "#eb6834"}, {"id": "ws-uat", "name": "Testing & Go-Live", "color": "#e87ba4"}], "milestones": [{"id": "ms-env-provision", "title": "Dev & Test environments provisioned", "workstream": "ws-infra", "due": "2026-05-20", "status": "done", "confidence": "high", "notes": "Dynamics sandboxes stood up by NorthPeak.", "sources": ["art-design", "art-status-0612"], "history": []}, {"id": "ms-brd-signoff", "title": "BRD sign-off", "workstream": "ws-config", "due": "2026-06-05", "status": "done", "confidence": "high", "notes": "Business Requirements Document v1.0 approved by Contoso.", "sources": ["art-brd", "art-steering-0625"], "history": []}, {"id": "ms-data-profiling", "title": "Legacy data profiling complete", "workstream": "ws-data", "due": "2026-06-19", "status": "done", "confidence": "high", "notes": "Profiling surfaced significant duplicate/quality issues.", "sources": ["art-steering-0625", "art-migration-plan"], "history": []}, {"id": "ms-config-sprint1", "title": "Config sprint 1 — accounts & contacts", "workstream": "ws-config", "due": "2026-07-03", "status": "late", "confidence": "high", "notes": "Slipped: dependent on remediated data and API sandbox access.", "sources": ["art-status-0703", "art-steering-0708"], "history": [{"field": "status", "old": "on-track", "date": "2026-07-03", "source": "art-status-0703"}]}, {"id": "ms-migration-dryrun", "title": "Data migration dry run #1", "workstream": "ws-data", "due": "2026-07-18", "status": "at-risk", "confidence": "medium", "notes": "At risk pending duplicate-record remediation.", "sources": ["art-status-0703", "art-migration-plan"], "history": [{"field": "due", "old": "2026-07-15", "date": "2026-07-06", "source": "art-migration-plan"}]}, {"id": "ms-integration-api", "title": "Core-banking API integration", "workstream": "ws-infra", "due": "2026-08-01", "status": "on-track", "confidence": "medium", "notes": "Nightly batch pattern; blocked-adjacent on sandbox credentials.", "sources": ["art-design", "art-steering-0708"], "history": [{"field": "status", "old": "planned", "date": "2026-07-09", "source": "art-steering-0708"}]}, {"id": "ms-config-sprint2", "title": "Config sprint 2 — pipeline & reporting", "workstream": "ws-config", "due": "2026-08-15", "status": "on-track", "confidence": "medium", "notes": "Advanced analytics deferred to phase 2.", "sources": ["art-steering-0625", "art-steering-0708"], "history": []}, {"id": "ms-uat-start", "title": "UAT begins", "workstream": "ws-uat", "due": "2026-09-08", "status": "planned", "confidence": "medium", "notes": "Shifted later to absorb the config sprint 1 slip.", "sources": ["art-kickoff", "art-steering-0708"], "history": [{"field": "due", "old": "2026-08-24", "date": "2026-07-08", "source": "art-kickoff"}]}, {"id": "ms-golive", "title": "Production go-live", "workstream": "ws-uat", "due": "2026-10-05", "status": "planned", "confidence": "low", "notes": "Phased regional cutover.", "sources": ["art-steering-0708", "art-migration-plan"], "history": []}, {"id": "ms-training", "title": "End-user training", "workstream": "ws-uat", "due": null, "status": "planned", "confidence": null, "notes": "Not yet scheduled — pending confirmed UAT and go-live dates.", "sources": ["art-steering-0708"], "history": []}], "actions": [{"id": "act-finalize-brd", "title": "Finalize BRD and secure sign-off", "owner": "stk-rsingh", "due": "2026-06-05", "status": "done", "notes": null, "sources": ["art-brd"], "history": []}, {"id": "act-provision-test", "title": "Provision Dynamics test environment", "owner": "stk-dkim", "due": "2026-05-20", "status": "done", "notes": null, "sources": ["art-design", "art-status-0612"], "history": []}, {"id": "act-profile-legacy", "title": "Profile legacy CRM data quality", "owner": "stk-schen", "due": "2026-06-18", "status": "done", "notes": "Report delivered to steering committee.", "sources": ["art-steering-0625", "art-migration-plan"], "history": []}, {"id": "act-config-accounts", "title": "Complete accounts & contacts configuration", "owner": "stk-agarcia", "due": "2026-07-03", "status": "in-progress", "notes": "Blocked-adjacent on data remediation.", "sources": ["art-status-0703"], "history": [{"field": "status", "old": "open", "date": "2026-06-25", "source": "art-steering-0625"}]}, {"id": "act-fix-dq-issues", "title": "Remediate 12,400 duplicate customer records", "owner": "stk-lnovak", "due": "2026-07-09", "status": "in-progress", "notes": "Dedup rules applied; validation ongoing.", "sources": ["art-status-0703", "art-migration-plan"], "history": []}, {"id": "act-api-credentials", "title": "Provide core-banking API sandbox credentials", "owner": "stk-mpatel", "due": "2026-07-20", "status": "open", "notes": "Awaiting Contoso security review.", "sources": ["art-steering-0708"], "history": []}, {"id": "act-dryrun-prep", "title": "Prepare migration dry-run dataset", "owner": "stk-schen", "due": "2026-07-15", "status": "in-progress", "notes": null, "sources": ["art-migration-plan"], "history": []}, {"id": "act-uat-plan", "title": "Draft UAT test plan and entry criteria", "owner": "stk-rsingh", "due": "2026-08-10", "status": "open", "notes": null, "sources": ["art-steering-0708"], "history": []}, {"id": "act-revise-plan", "title": "Circulate revised project plan to steering committee", "owner": "stk-mpatel", "due": "2026-07-14", "status": "open", "notes": null, "sources": ["art-steering-0708"], "history": []}, {"id": "act-training-schedule", "title": "Schedule end-user training sessions", "owner": null, "due": null, "status": "open", "notes": "Owner not yet assigned.", "sources": ["art-steering-0708"], "history": []}], "decisions": [{"id": "dec-2026-05-02-vendor-split", "date": "2026-05-02", "summary": "Split delivery — NorthPeak owns configuration & integration, Veridian owns data migration.", "rationale": "Plays to each vendor's strength and isolates the data-migration risk under a specialist.", "sources": ["art-kickoff"], "history": []}, {"id": "dec-2026-05-15-platform", "date": "2026-05-15", "summary": "Target platform confirmed as Microsoft Dynamics 365 Sales.", "rationale": "Aligns with Contoso's existing M365 tenant and licensing.", "sources": ["art-brd"], "history": []}, {"id": "dec-2026-06-01-integration-pattern", "date": "2026-06-01", "summary": "Integrate to the core-banking system via nightly batch API rather than real-time.", "rationale": "Real-time was disproportionate to need and raised the security-review burden.", "sources": ["art-design"], "history": []}, {"id": "dec-2026-06-25-defer-analytics", "date": "2026-06-25", "summary": "Defer advanced analytics & reporting to phase 2.", "rationale": "Protects the go-live date; core pipeline reporting is sufficient for launch.", "sources": ["art-steering-0625"], "history": []}, {"id": "dec-2026-07-08-phased-cutover", "date": "2026-07-08", "summary": "Adopt a phased regional cutover instead of a single big-bang cutover.", "rationale": "Reduces go-live blast radius given unresolved data-quality issues.", "sources": ["art-steering-0708"], "history": []}, {"id": "dec-2026-07-08-uat-shift", "date": "2026-07-08", "summary": "Shift UAT start to 8 September to absorb the config sprint 1 slip.", "rationale": "Preserves a realistic UAT window rather than compressing testing.", "sources": ["art-steering-0708"], "history": []}], "risks": [{"id": "risk-data-quality", "title": "Legacy data quality far worse than assumed (duplicates, missing fields)", "severity": "critical", "likelihood": "high", "mitigation": "Dedicated remediation sprint; Veridian dedup tooling; profiling report driving cleanup.", "status": "open", "sources": ["art-steering-0625", "art-migration-plan", "art-status-0703"], "history": [{"field": "severity", "old": "high", "date": "2026-07-03", "source": "art-status-0703"}]}, {"id": "risk-api-access", "title": "Core-banking API sandbox access delayed by Contoso security review", "severity": "high", "likelihood": "medium", "mitigation": "Escalated to sponsor; provisional mock endpoint for early build.", "status": "open", "sources": ["art-steering-0708"], "history": []}, {"id": "risk-config-capacity", "title": "NorthPeak configuration team under-staffed for sprint 2", "severity": "medium", "likelihood": "medium", "mitigation": "Additional configurator being onboarded for August.", "status": "mitigating", "sources": ["art-status-0703"], "history": []}, {"id": "risk-uat-window", "title": "Compressed UAT window threatens go-live quality", "severity": "high", "likelihood": "medium", "mitigation": "UAT shifted to 8 Sep; entry criteria being defined up front.", "status": "open", "sources": ["art-steering-0708"], "history": []}, {"id": "risk-scope-reporting", "title": "Reporting requirements expanding beyond phase 1 scope", "severity": "medium", "likelihood": "low", "mitigation": "Advanced analytics formally deferred to phase 2.", "status": "mitigating", "sources": ["art-steering-0625"], "history": []}], "issues": [{"id": "iss-duplicate-records", "title": "12,400 duplicate customer records in the legacy extract", "severity": "high", "mitigation": "Dedup rules defined; remediation in progress under Veridian.", "status": "open", "sources": ["art-status-0703", "art-migration-plan"], "history": []}, {"id": "iss-env-latency", "title": "Test-environment latency during large batch loads", "severity": "low", "mitigation": "NorthPeak retuned the batch window; acceptable in retest.", "status": "resolved", "sources": ["art-status-0612"], "history": []}], "dependencies": [{"id": "dep-api-creds", "title": "Integration build blocked on core-banking API sandbox credentials", "on": "Contoso IT security approval", "neededBy": "2026-07-20", "status": "open", "sources": ["art-steering-0708"], "history": []}, {"id": "dep-remediated-extract", "title": "Migration dry run depends on the remediated data extract", "on": "Data remediation (Veridian)", "neededBy": "2026-07-15", "status": "open", "sources": ["art-migration-plan"], "history": []}], "requirements": [{"id": "req-acct-360", "kind": "functional", "title": "360-degree customer account view", "detail": "Consolidated view of accounts, contacts, products held and recent interactions.", "status": "approved", "sources": ["art-brd"], "history": [], "scenarios": [{"id": "sc-acct360-view", "title": "RM opens a customer with products across the group", "given": ["a relationship manager is signed in", "the customer Northwind Traders exists in core banking"], "when": ["they open the customer account page"], "then": ["the 360 view shows accounts, contacts and products held", "interactions from the last 90 days are listed"], "status": "passing", "sources": ["art-bdd"], "history": []}, {"id": "sc-acct360-empty", "title": "Customer with no linked banking products", "given": ["a relationship manager is signed in"], "when": ["they open an account that has no linked products"], "then": ["the products panel shows an empty-state message"], "status": "implemented", "sources": ["art-bdd"], "history": []}]}, {"id": "req-pipeline", "kind": "functional", "title": "Sales pipeline & opportunity management", "detail": "Stage-based pipeline with forecasting for relationship managers.", "status": "approved", "sources": ["art-brd"], "history": []}, {"id": "req-batch-sync", "kind": "functional", "title": "Nightly batch synchronisation with core-banking", "detail": "Overnight sync of account balances and product holdings via batch API.", "status": "in-review", "sources": ["art-brd", "art-design"], "history": [], "scenarios": [{"id": "sc-batch-nightly", "title": "Nightly sync reconciles balances and holdings", "given": ["the nightly batch window has opened", "core-banking has published the daily balance file"], "when": ["the synchronisation job runs"], "then": ["account balances in the CRM match core banking", "product holdings are updated", "a sync summary is written to the audit log"], "status": "agreed", "sources": ["art-bdd"], "history": []}, {"id": "sc-batch-failure", "title": "Sync retries when the core-banking sandbox is unreachable", "given": ["the nightly batch window has opened", "the core-banking API sandbox is unreachable"], "when": ["the synchronisation job runs"], "then": ["the job retries three times", "an alert is raised to the integration team", "the previous balances are retained"], "status": "failing", "sources": ["art-bdd"], "history": []}]}, {"id": "req-rbac", "kind": "non-functional", "title": "Role-based access control aligned to Contoso security policy", "detail": "MFA for all users; least-privilege roles mapped to Contoso's IAM standard.", "status": "approved", "sources": ["art-brd", "art-steering-0708"], "history": []}, {"id": "req-perf", "kind": "non-functional", "title": "Account view loads in under 3 seconds at 50k accounts", "detail": "Performance target for the primary relationship-manager view.", "status": "proposed", "sources": ["art-design"], "history": []}, {"id": "uc-onboard-customer", "kind": "use-case", "title": "Relationship manager onboards a new corporate customer", "detail": "RM captures the customer, links banking products, and creates an onboarding opportunity.", "status": "approved", "sources": ["art-brd"], "history": [], "scenarios": [{"id": "sc-onboard-corp", "title": "Onboard a new corporate customer with product linkage", "given": ["a relationship manager is signed in", "the customer does not yet exist in the CRM"], "when": ["they create a new corporate customer", "they link the customer's banking products"], "then": ["an onboarding opportunity is created", "a KYC review task is assigned to the RM", "the customer appears in the RM's book of business"], "status": "agreed", "sources": ["art-bdd"], "history": []}, {"id": "sc-onboard-existing", "title": "Prospect already holds a mortgage in core banking", "given": ["a relationship manager is signed in", "the prospect already holds a mortgage in core banking"], "when": ["they start onboarding the prospect"], "then": ["the existing mortgage is surfaced automatically", "the RM is prompted to confirm the linkage"], "status": "draft", "sources": ["art-steering-0708"], "history": []}]}, {"id": "uc-migrate-book", "kind": "use-case", "title": "Migrate a relationship manager's existing book of business", "detail": "Bulk-migrate an RM's accounts, contacts and open opportunities with data lineage preserved.", "status": "in-review", "sources": ["art-migration-plan"], "history": []}], "openQuestions": [{"id": "oq-data-retention", "question": "What is the data-retention policy for migrated closed accounts?", "raisedBy": "stk-agarcia", "date": "2026-06-01", "status": "open", "answer": null, "sources": ["art-design"], "history": []}, {"id": "oq-mfa-scope", "question": "Is MFA required for all CRM users or only privileged roles?", "raisedBy": "stk-dkim", "date": "2026-06-25", "status": "answered", "answer": "All users — confirmed at steering committee on 8 July.", "sources": ["art-steering-0625", "art-steering-0708"], "history": [{"field": "status", "old": "open", "date": "2026-07-08", "source": "art-steering-0708"}]}, {"id": "oq-cutover-window", "question": "What production cutover downtime window is acceptable to the business?", "raisedBy": "stk-lnovak", "date": "2026-07-08", "status": "open", "answer": null, "sources": ["art-steering-0708", "art-migration-plan"], "history": []}, {"id": "oq-reassign-threshold", "question": "What approval threshold applies to bulk reassignments above 500 accounts?", "raisedBy": "stk-agarcia", "date": "2026-07-08", "status": "open", "answer": null, "sources": ["art-steering-0708"], "history": [], "storyRef": "us-bulk-reassign"}, {"id": "oq-okr-rm-adoption-metric", "question": "What weekly-active-usage or preference target should the RM-adoption OKR key result be held to? It currently has no baseline, target or unit — the aspirational objective can't be scored until we quantify it.", "raisedBy": "stk-rsingh", "date": "2026-07-08", "status": "open", "answer": null, "sources": ["art-steering-0708"], "history": []}], "conflicts": [{"id": "cf-uat-date", "about": "UAT start date", "was": "24 August 2026 (kickoff plan)", "now": "8 September 2026 (steering committee, 8 July)", "sourceOld": "art-kickoff", "sourceNew": "art-steering-0708", "status": "open"}, {"id": "cf-cutover-approach", "about": "Production cutover approach", "was": "Single big-bang cutover (BRD)", "now": "Phased regional cutover (steering committee, 8 July)", "sourceOld": "art-brd", "sourceNew": "art-steering-0708", "status": "open"}], "artifacts": [{"id": "art-kickoff", "file": "2026-05-02-transcript-kickoff.txt", "type": "transcript", "date": "2026-05-02", "digestedAt": "2026-05-03T09:10:00Z", "oneLiner": "Project kickoff — scope, vendor split, teams and initial timeline agreed."}, {"id": "art-brd", "file": "2026-05-15-brd-atlas-requirements-v1.docx", "type": "brd", "date": "2026-05-15", "digestedAt": "2026-05-16T11:40:00Z", "oneLiner": "Business Requirements Document v1.0 — functional, non-functional and use-case requirements."}, {"id": "art-design", "file": "2026-06-01-design-doc-solution-architecture.pdf", "type": "design-doc", "date": "2026-06-01", "digestedAt": "2026-06-02T14:05:00Z", "oneLiner": "Solution design — environments, integration pattern and data model."}, {"id": "art-status-0612", "file": "2026-06-12-email-weekly-status.txt", "type": "email", "date": "2026-06-12", "digestedAt": "2026-06-12T17:30:00Z", "oneLiner": "Weekly status — environments live, profiling underway, sprint 1 starting."}, {"id": "art-steering-0625", "file": "2026-06-25-transcript-steering-committee-1.vtt", "type": "transcript", "date": "2026-06-25", "digestedAt": "2026-06-26T08:50:00Z", "oneLiner": "Steering committee #1 — profiling complete, risks reviewed, analytics deferred."}, {"id": "art-migration-plan", "file": "2026-07-06-design-doc-migration-plan.pdf", "type": "design-doc", "date": "2026-07-06", "digestedAt": "2026-07-06T19:15:00Z", "oneLiner": "Veridian data-migration plan & runbook — dry-run approach and remediation."}, {"id": "art-status-0703", "file": "2026-07-03-email-weekly-status.txt", "type": "email", "date": "2026-07-03", "digestedAt": "2026-07-03T17:22:00Z", "oneLiner": "Weekly status — sprint 1 slipped, dry run at risk, data quality escalated."}, {"id": "art-steering-0708", "file": "2026-07-08-transcript-steering-committee-2.vtt", "type": "transcript", "date": "2026-07-08", "digestedAt": "2026-07-09T09:05:00Z", "oneLiner": "Steering committee #2 — UAT moved to 8 Sep, phased cutover adopted, MFA scope confirmed."}, {"id": "art-bdd", "file": "2026-07-09-bdd-crm-scenarios.feature", "type": "bdd", "date": "2026-07-09", "digestedAt": "2026-07-09T09:30:00Z", "oneLiner": "Imported BDD/Gherkin spec — agreed acceptance scenarios for account view, batch sync and onboarding."}], "userStories": [{"id": "us-account-360", "title": "Relationship-manager 360 customer view", "narrative": {"asA": "relationship manager", "iWant": "a single 360 view of a customer across all their Atlas accounts", "soThat": "I can advise them without switching between the core-banking screens"}, "workstream": "ws-config", "status": "in-review", "rules": [{"id": "rule-360-consolidation", "title": "All of a customer's linked accounts appear on one screen", "examples": [{"id": "ex-360-household", "title": "Retail + mortgage in one household", "context": "Household H-4471 holds a Contoso retail current account and a mortgage", "action": "An RM opens the customer record", "outcome": "Both accounts are listed together under the household"}, {"id": "ex-360-joint", "title": "Joint account holders", "context": "A joint savings account is held by Priya and Sam Okafor", "action": "An RM opens either holder", "outcome": "Both holders' names are shown against the joint account"}, {"id": "ex-360-closed", "title": "Recently closed account", "context": "A current account was closed 3 months ago", "action": "An RM opens the customer", "outcome": "The closed account is shown greyed with a 'Closed' badge, not hidden"}]}, {"id": "rule-360-freshness", "title": "Balances reflect core-banking within the sync SLA and never show stale data silently", "examples": [{"id": "ex-360-asof", "title": "Balances after the nightly batch", "context": "The nightly batch completed at 02:00", "action": "An RM opens the customer at 08:00", "outcome": "Balances show an 'as of 02:00' timestamp"}, {"id": "ex-360-intraday", "title": "Intraday transfer not yet synced", "context": "A GBP 5,000 transfer posted at 10:00 has not synced", "action": "An RM opens the customer at 10:05", "outcome": "The last-sync time is shown so the RM knows the figure may lag"}, {"id": "ex-360-batchfail", "title": "Batch failed overnight", "context": "The 02:00 batch failed and did not complete", "action": "An RM opens the customer", "outcome": "A banner warns 'Balances may be delayed' instead of showing yesterday's data as current"}]}, {"id": "rule-360-permissions", "title": "An RM only sees customers and data they are authorised for", "examples": [{"id": "ex-360-inbook", "title": "Customer in the RM's book", "context": "RM Meera is assigned to household H-4471", "action": "Meera opens that customer", "outcome": "Access is allowed and the full 360 view loads"}, {"id": "ex-360-outbook", "title": "Customer outside the RM's book", "context": "A customer is assigned to a different RM's book", "action": "Meera attempts to open that customer", "outcome": "Access is blocked with a 'not authorised' message"}, {"id": "ex-360-private", "title": "Private-banking flagged customer", "context": "A customer is flagged private-banking and the RM lacks clearance", "action": "The RM opens the record", "outcome": "Sensitive fields are masked while basic contact details remain"}]}], "scenarios": [{"id": "sc-360-household", "title": "Linked accounts appear together for a household", "given": ["a household holds a retail current account and a mortgage"], "when": ["a relationship manager opens the customer record"], "then": ["both accounts appear together on one screen"], "status": "agreed", "sources": ["art-bdd"], "history": []}, {"id": "sc-360-asof", "title": "Balances are stamped with their sync time", "given": ["the nightly balance batch completed at 02:00"], "when": ["a relationship manager opens the customer at 08:00"], "then": ["each balance shows an 'as of 02:00' timestamp"], "status": "draft", "sources": ["art-steering-0708"], "history": []}, {"id": "sc-360-outside-book", "title": "Access outside the assigned book is blocked", "given": ["a relationship manager is not assigned to a customer's book"], "when": ["the relationship manager attempts to open that customer"], "then": ["access is blocked with a not-authorised message"], "status": "implemented", "sources": ["art-design", "art-bdd"], "history": []}], "sources": ["art-brd", "art-design", "art-bdd"], "history": []}, {"id": "us-bulk-reassign", "title": "Bulk-reassign a departing RM's book of business", "narrative": {"asA": "sales operations lead", "iWant": "to reassign a departing relationship manager's accounts in bulk", "soThat": "customer coverage continues without manual one-by-one edits"}, "workstream": "ws-config", "status": "draft", "rules": [{"id": "rule-reassign-bulk", "title": "A whole book can be moved to another RM in a single action", "examples": [{"id": "ex-reassign-basic", "title": "Move an entire book", "context": "RM Tom Wolfe is leaving with 180 assigned accounts", "action": "Ops selects Tom's book and reassigns it to RM Ana Garcia", "outcome": "All 180 accounts show Ana as the owning RM"}, {"id": "ex-reassign-audit", "title": "Reassignment is auditable", "context": "A bulk reassignment of 180 accounts is performed", "action": "Compliance later reviews the change", "outcome": "An audit entry records who reassigned what, when, and from/to whom"}]}], "scenarios": [], "sources": ["art-steering-0708"], "history": []}], "okrs": [{"id": "obj-uat-ready-foundation", "objective": "Reach a trustworthy, UAT-ready Atlas CRM foundation by the end of Q3 2026", "period": "2026-Q3", "owner": "stk-mpatel", "workstream": "ws-config", "kind": "committed", "status": "active", "keyResults": [{"id": "kr-dedup-records", "statement": "Reduce duplicate customer records to under 400 before the migration dry run", "metric": "duplicate customer records remaining", "start": 12400, "target": 400, "current": 5200, "unit": "records", "score": 0.6, "confidence": "medium", "milestoneRef": "ms-migration-dryrun", "sources": ["art-migration-plan", "art-status-0703"], "history": []}, {"id": "kr-config-sprints", "statement": "Complete both CRM configuration sprints on the revised plan", "metric": "configuration sprints delivered", "start": 0, "target": 2, "current": 1, "unit": "sprints", "score": 0.5, "confidence": "medium", "milestoneRef": null, "sources": ["art-steering-0708", "art-status-0703"], "history": []}, {"id": "kr-view-performance", "statement": "Cut the relationship-manager account view to under 3 seconds at 50k accounts", "metric": "p95 account-view load time", "start": 8, "target": 3, "current": 3.5, "unit": "s", "score": 0.9, "confidence": "high", "milestoneRef": null, "sources": ["art-design"], "history": []}], "sources": ["art-steering-0708", "art-migration-plan"], "history": []}, {"id": "obj-rm-prefer-atlas", "objective": "Make Atlas the CRM relationship managers genuinely prefer over the legacy system", "period": "2026-Q3", "owner": "stk-rsingh", "workstream": "ws-uat", "kind": "aspirational", "status": "draft", "keyResults": [{"id": "kr-rm-preference", "statement": "A clear majority of relationship managers rate Atlas easier to use than the legacy CRM", "metric": "RM preference (net-easier %)", "start": null, "target": null, "current": null, "unit": null, "score": null, "confidence": "low", "milestoneRef": null, "sources": ["art-steering-0708"], "history": []}, {"id": "kr-rm-trained", "statement": "Relationship managers complete Atlas onboarding training ahead of go-live", "metric": "RMs trained", "start": 0, "target": 100, "current": 45, "unit": "%", "score": 0.45, "confidence": "low", "milestoneRef": null, "sources": ["art-steering-0708"], "history": []}], "sources": ["art-steering-0708"], "history": []}]}; window.__RENDER_NOW__ = "2026-07-18T05:19:45Z";</script>
+window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration", "client": "Contoso Financial", "description": "Migrate Contoso Financial's legacy CRM to Dynamics 365 Sales, with NorthPeak Systems delivering configuration + core-banking integration and Veridian Consulting delivering the data migration.", "vendors": ["NorthPeak Systems", "Veridian Consulting"], "lastDigest": "2026-07-09T16:20:00Z"}, "stakeholders": [{"id": "stk-jchen", "name": "Jordan Chen", "org": "Contoso Financial", "role": "Program Sponsor", "sources": ["art-kickoff"]}, {"id": "stk-mpatel", "name": "Meera Patel", "org": "Contoso Financial", "role": "Project Manager", "sources": ["art-kickoff", "art-steering-0708"]}, {"id": "stk-rsingh", "name": "Raj Singh", "org": "Contoso Financial", "role": "CRM Product Owner", "sources": ["art-kickoff", "art-brd"]}, {"id": "stk-twolfe", "name": "Tom Wolfe", "org": "NorthPeak Systems", "role": "Engagement Lead", "sources": ["art-kickoff"]}, {"id": "stk-agarcia", "name": "Ana Garcia", "org": "NorthPeak Systems", "role": "Solution Architect", "sources": ["art-kickoff", "art-design"]}, {"id": "stk-dkim", "name": "David Kim", "org": "NorthPeak Systems", "role": "Integration Engineer", "sources": ["art-design"]}, {"id": "stk-lnovak", "name": "Lena Novak", "org": "Veridian Consulting", "role": "Data Migration Lead", "sources": ["art-kickoff", "art-migration-plan"]}, {"id": "stk-schen", "name": "Sophie Chen", "org": "Veridian Consulting", "role": "Data Engineer", "sources": ["art-migration-plan"]}], "workstreams": [{"id": "ws-infra", "name": "Environments & Integration", "color": "#4a3aa7"}, {"id": "ws-data", "name": "Data Migration", "color": "#1baf7a"}, {"id": "ws-config", "name": "CRM Configuration", "color": "#eb6834"}, {"id": "ws-uat", "name": "Testing & Go-Live", "color": "#e87ba4"}], "milestones": [{"id": "ms-env-provision", "title": "Dev & Test environments provisioned", "workstream": "ws-infra", "due": "2026-05-20", "status": "done", "confidence": "high", "notes": "Dynamics sandboxes stood up by NorthPeak.", "sources": ["art-design", "art-status-0612"], "history": []}, {"id": "ms-brd-signoff", "title": "BRD sign-off", "workstream": "ws-config", "due": "2026-06-05", "status": "done", "confidence": "high", "notes": "Business Requirements Document v1.0 approved by Contoso.", "sources": ["art-brd", "art-steering-0625"], "history": []}, {"id": "ms-data-profiling", "title": "Legacy data profiling complete", "workstream": "ws-data", "due": "2026-06-19", "status": "done", "confidence": "high", "notes": "Profiling surfaced significant duplicate/quality issues.", "sources": ["art-steering-0625", "art-migration-plan"], "history": []}, {"id": "ms-config-sprint1", "title": "Config sprint 1 — accounts & contacts", "workstream": "ws-config", "due": "2026-07-03", "status": "late", "confidence": "high", "notes": "Slipped: dependent on remediated data and API sandbox access.", "sources": ["art-status-0703", "art-steering-0708"], "history": [{"field": "status", "old": "on-track", "date": "2026-07-03", "source": "art-status-0703"}]}, {"id": "ms-migration-dryrun", "title": "Data migration dry run #1", "workstream": "ws-data", "due": "2026-07-18", "status": "at-risk", "confidence": "medium", "notes": "At risk pending duplicate-record remediation.", "sources": ["art-status-0703", "art-migration-plan"], "history": [{"field": "due", "old": "2026-07-15", "date": "2026-07-06", "source": "art-migration-plan"}]}, {"id": "ms-integration-api", "title": "Core-banking API integration", "workstream": "ws-infra", "due": "2026-08-01", "status": "on-track", "confidence": "medium", "notes": "Nightly batch pattern; blocked-adjacent on sandbox credentials.", "sources": ["art-design", "art-steering-0708"], "history": [{"field": "status", "old": "planned", "date": "2026-07-09", "source": "art-steering-0708"}]}, {"id": "ms-config-sprint2", "title": "Config sprint 2 — pipeline & reporting", "workstream": "ws-config", "due": "2026-08-15", "status": "on-track", "confidence": "medium", "notes": "Advanced analytics deferred to phase 2.", "sources": ["art-steering-0625", "art-steering-0708"], "history": []}, {"id": "ms-uat-start", "title": "UAT begins", "workstream": "ws-uat", "due": "2026-09-08", "status": "planned", "confidence": "medium", "notes": "Shifted later to absorb the config sprint 1 slip.", "sources": ["art-kickoff", "art-steering-0708"], "history": [{"field": "due", "old": "2026-08-24", "date": "2026-07-08", "source": "art-kickoff"}]}, {"id": "ms-golive", "title": "Production go-live", "workstream": "ws-uat", "due": "2026-10-05", "status": "planned", "confidence": "low", "notes": "Phased regional cutover.", "sources": ["art-steering-0708", "art-migration-plan"], "history": []}, {"id": "ms-training", "title": "End-user training", "workstream": "ws-uat", "due": null, "status": "planned", "confidence": null, "notes": "Not yet scheduled — pending confirmed UAT and go-live dates.", "sources": ["art-steering-0708"], "history": []}], "actions": [{"id": "act-finalize-brd", "title": "Finalize BRD and secure sign-off", "owner": "stk-rsingh", "due": "2026-06-05", "status": "done", "notes": null, "sources": ["art-brd"], "history": []}, {"id": "act-provision-test", "title": "Provision Dynamics test environment", "owner": "stk-dkim", "due": "2026-05-20", "status": "done", "notes": null, "sources": ["art-design", "art-status-0612"], "history": []}, {"id": "act-profile-legacy", "title": "Profile legacy CRM data quality", "owner": "stk-schen", "due": "2026-06-18", "status": "done", "notes": "Report delivered to steering committee.", "sources": ["art-steering-0625", "art-migration-plan"], "history": []}, {"id": "act-config-accounts", "title": "Complete accounts & contacts configuration", "owner": "stk-agarcia", "due": "2026-07-03", "status": "in-progress", "notes": "Blocked-adjacent on data remediation.", "sources": ["art-status-0703"], "history": [{"field": "status", "old": "open", "date": "2026-06-25", "source": "art-steering-0625"}]}, {"id": "act-fix-dq-issues", "title": "Remediate 12,400 duplicate customer records", "owner": "stk-lnovak", "due": "2026-07-09", "status": "in-progress", "notes": "Dedup rules applied; validation ongoing.", "sources": ["art-status-0703", "art-migration-plan"], "history": []}, {"id": "act-api-credentials", "title": "Provide core-banking API sandbox credentials", "owner": "stk-mpatel", "due": "2026-07-20", "status": "open", "notes": "Awaiting Contoso security review.", "sources": ["art-steering-0708"], "history": []}, {"id": "act-dryrun-prep", "title": "Prepare migration dry-run dataset", "owner": "stk-schen", "due": "2026-07-15", "status": "in-progress", "notes": null, "sources": ["art-migration-plan"], "history": []}, {"id": "act-uat-plan", "title": "Draft UAT test plan and entry criteria", "owner": "stk-rsingh", "due": "2026-08-10", "status": "open", "notes": null, "sources": ["art-steering-0708"], "history": []}, {"id": "act-revise-plan", "title": "Circulate revised project plan to steering committee", "owner": "stk-mpatel", "due": "2026-07-14", "status": "open", "notes": null, "sources": ["art-steering-0708"], "history": []}, {"id": "act-training-schedule", "title": "Schedule end-user training sessions", "owner": null, "due": null, "status": "open", "notes": "Owner not yet assigned.", "sources": ["art-steering-0708"], "history": []}], "decisions": [{"id": "dec-2026-05-02-vendor-split", "date": "2026-05-02", "summary": "Split delivery — NorthPeak owns configuration & integration, Veridian owns data migration.", "rationale": "Plays to each vendor's strength and isolates the data-migration risk under a specialist.", "sources": ["art-kickoff"], "history": []}, {"id": "dec-2026-05-15-platform", "date": "2026-05-15", "summary": "Target platform confirmed as Microsoft Dynamics 365 Sales.", "rationale": "Aligns with Contoso's existing M365 tenant and licensing.", "sources": ["art-brd"], "history": []}, {"id": "dec-2026-06-01-integration-pattern", "date": "2026-06-01", "summary": "Integrate to the core-banking system via nightly batch API rather than real-time.", "rationale": "Real-time was disproportionate to need and raised the security-review burden.", "sources": ["art-design"], "history": []}, {"id": "dec-2026-06-25-defer-analytics", "date": "2026-06-25", "summary": "Defer advanced analytics & reporting to phase 2.", "rationale": "Protects the go-live date; core pipeline reporting is sufficient for launch.", "sources": ["art-steering-0625"], "history": []}, {"id": "dec-2026-07-08-phased-cutover", "date": "2026-07-08", "summary": "Adopt a phased regional cutover instead of a single big-bang cutover.", "rationale": "Reduces go-live blast radius given unresolved data-quality issues.", "sources": ["art-steering-0708"], "history": []}, {"id": "dec-2026-07-08-uat-shift", "date": "2026-07-08", "summary": "Shift UAT start to 8 September to absorb the config sprint 1 slip.", "rationale": "Preserves a realistic UAT window rather than compressing testing.", "sources": ["art-steering-0708"], "history": []}], "risks": [{"id": "risk-data-quality", "title": "Legacy data quality far worse than assumed (duplicates, missing fields)", "severity": "critical", "likelihood": "high", "mitigation": "Dedicated remediation sprint; Veridian dedup tooling; profiling report driving cleanup.", "status": "open", "sources": ["art-steering-0625", "art-migration-plan", "art-status-0703"], "history": [{"field": "severity", "old": "high", "date": "2026-07-03", "source": "art-status-0703"}]}, {"id": "risk-api-access", "title": "Core-banking API sandbox access delayed by Contoso security review", "severity": "high", "likelihood": "medium", "mitigation": "Escalated to sponsor; provisional mock endpoint for early build.", "status": "open", "sources": ["art-steering-0708"], "history": []}, {"id": "risk-config-capacity", "title": "NorthPeak configuration team under-staffed for sprint 2", "severity": "medium", "likelihood": "medium", "mitigation": "Additional configurator being onboarded for August.", "status": "mitigating", "sources": ["art-status-0703"], "history": []}, {"id": "risk-uat-window", "title": "Compressed UAT window threatens go-live quality", "severity": "high", "likelihood": "medium", "mitigation": "UAT shifted to 8 Sep; entry criteria being defined up front.", "status": "open", "sources": ["art-steering-0708"], "history": []}, {"id": "risk-scope-reporting", "title": "Reporting requirements expanding beyond phase 1 scope", "severity": "medium", "likelihood": "low", "mitigation": "Advanced analytics formally deferred to phase 2.", "status": "mitigating", "sources": ["art-steering-0625"], "history": []}], "issues": [{"id": "iss-duplicate-records", "title": "12,400 duplicate customer records in the legacy extract", "severity": "high", "mitigation": "Dedup rules defined; remediation in progress under Veridian.", "status": "open", "sources": ["art-status-0703", "art-migration-plan"], "history": []}, {"id": "iss-env-latency", "title": "Test-environment latency during large batch loads", "severity": "low", "mitigation": "NorthPeak retuned the batch window; acceptable in retest.", "status": "resolved", "sources": ["art-status-0612"], "history": []}], "dependencies": [{"id": "dep-api-creds", "title": "Integration build blocked on core-banking API sandbox credentials", "on": "Contoso IT security approval", "neededBy": "2026-07-20", "status": "open", "sources": ["art-steering-0708"], "history": []}, {"id": "dep-remediated-extract", "title": "Migration dry run depends on the remediated data extract", "on": "Data remediation (Veridian)", "neededBy": "2026-07-15", "status": "open", "sources": ["art-migration-plan"], "history": []}], "requirements": [{"id": "req-acct-360", "kind": "functional", "title": "360-degree customer account view", "detail": "Consolidated view of accounts, contacts, products held and recent interactions.", "status": "approved", "sources": ["art-brd"], "history": [], "scenarios": [{"id": "sc-acct360-view", "title": "RM opens a customer with products across the group", "given": ["a relationship manager is signed in", "the customer Northwind Traders exists in core banking"], "when": ["they open the customer account page"], "then": ["the 360 view shows accounts, contacts and products held", "interactions from the last 90 days are listed"], "status": "passing", "sources": ["art-bdd"], "history": []}, {"id": "sc-acct360-empty", "title": "Customer with no linked banking products", "given": ["a relationship manager is signed in"], "when": ["they open an account that has no linked products"], "then": ["the products panel shows an empty-state message"], "status": "implemented", "sources": ["art-bdd"], "history": []}]}, {"id": "req-pipeline", "kind": "functional", "title": "Sales pipeline & opportunity management", "detail": "Stage-based pipeline with forecasting for relationship managers.", "status": "approved", "sources": ["art-brd"], "history": []}, {"id": "req-batch-sync", "kind": "functional", "title": "Nightly batch synchronisation with core-banking", "detail": "Overnight sync of account balances and product holdings via batch API.", "status": "in-review", "sources": ["art-brd", "art-design"], "history": [], "scenarios": [{"id": "sc-batch-nightly", "title": "Nightly sync reconciles balances and holdings", "given": ["the nightly batch window has opened", "core-banking has published the daily balance file"], "when": ["the synchronisation job runs"], "then": ["account balances in the CRM match core banking", "product holdings are updated", "a sync summary is written to the audit log"], "status": "agreed", "sources": ["art-bdd"], "history": []}, {"id": "sc-batch-failure", "title": "Sync retries when the core-banking sandbox is unreachable", "given": ["the nightly batch window has opened", "the core-banking API sandbox is unreachable"], "when": ["the synchronisation job runs"], "then": ["the job retries three times", "an alert is raised to the integration team", "the previous balances are retained"], "status": "failing", "sources": ["art-bdd"], "history": []}]}, {"id": "req-rbac", "kind": "non-functional", "title": "Role-based access control aligned to Contoso security policy", "detail": "MFA for all users; least-privilege roles mapped to Contoso's IAM standard.", "status": "approved", "sources": ["art-brd", "art-steering-0708"], "history": []}, {"id": "req-perf", "kind": "non-functional", "title": "Account view loads in under 3 seconds at 50k accounts", "detail": "Performance target for the primary relationship-manager view.", "status": "proposed", "sources": ["art-design"], "history": []}, {"id": "uc-onboard-customer", "kind": "use-case", "title": "Relationship manager onboards a new corporate customer", "detail": "RM captures the customer, links banking products, and creates an onboarding opportunity.", "status": "approved", "sources": ["art-brd"], "history": [], "scenarios": [{"id": "sc-onboard-corp", "title": "Onboard a new corporate customer with product linkage", "given": ["a relationship manager is signed in", "the customer does not yet exist in the CRM"], "when": ["they create a new corporate customer", "they link the customer's banking products"], "then": ["an onboarding opportunity is created", "a KYC review task is assigned to the RM", "the customer appears in the RM's book of business"], "status": "agreed", "sources": ["art-bdd"], "history": []}, {"id": "sc-onboard-existing", "title": "Prospect already holds a mortgage in core banking", "given": ["a relationship manager is signed in", "the prospect already holds a mortgage in core banking"], "when": ["they start onboarding the prospect"], "then": ["the existing mortgage is surfaced automatically", "the RM is prompted to confirm the linkage"], "status": "draft", "sources": ["art-steering-0708"], "history": []}]}, {"id": "uc-migrate-book", "kind": "use-case", "title": "Migrate a relationship manager's existing book of business", "detail": "Bulk-migrate an RM's accounts, contacts and open opportunities with data lineage preserved.", "status": "in-review", "sources": ["art-migration-plan"], "history": []}], "openQuestions": [{"id": "oq-data-retention", "question": "What is the data-retention policy for migrated closed accounts?", "raisedBy": "stk-agarcia", "date": "2026-06-01", "status": "open", "answer": null, "sources": ["art-design"], "history": []}, {"id": "oq-mfa-scope", "question": "Is MFA required for all CRM users or only privileged roles?", "raisedBy": "stk-dkim", "date": "2026-06-25", "status": "answered", "answer": "All users — confirmed at steering committee on 8 July.", "sources": ["art-steering-0625", "art-steering-0708"], "history": [{"field": "status", "old": "open", "date": "2026-07-08", "source": "art-steering-0708"}]}, {"id": "oq-cutover-window", "question": "What production cutover downtime window is acceptable to the business?", "raisedBy": "stk-lnovak", "date": "2026-07-08", "status": "open", "answer": null, "sources": ["art-steering-0708", "art-migration-plan"], "history": []}, {"id": "oq-reassign-threshold", "question": "What approval threshold applies to bulk reassignments above 500 accounts?", "raisedBy": "stk-agarcia", "date": "2026-07-08", "status": "open", "answer": null, "sources": ["art-steering-0708"], "history": [], "storyRef": "us-bulk-reassign"}, {"id": "oq-okr-rm-adoption-metric", "question": "What weekly-active-usage or preference target should the RM-adoption OKR key result be held to? It currently has no baseline, target or unit — the aspirational objective can't be scored until we quantify it.", "raisedBy": "stk-rsingh", "date": "2026-07-08", "status": "open", "answer": null, "sources": ["art-steering-0708"], "history": []}], "conflicts": [{"id": "cf-uat-date", "about": "UAT start date", "was": "24 August 2026 (kickoff plan)", "now": "8 September 2026 (steering committee, 8 July)", "sourceOld": "art-kickoff", "sourceNew": "art-steering-0708", "status": "open"}, {"id": "cf-cutover-approach", "about": "Production cutover approach", "was": "Single big-bang cutover (BRD)", "now": "Phased regional cutover (steering committee, 8 July)", "sourceOld": "art-brd", "sourceNew": "art-steering-0708", "status": "open"}], "artifacts": [{"id": "art-kickoff", "file": "2026-05-02-transcript-kickoff.txt", "type": "transcript", "date": "2026-05-02", "digestedAt": "2026-05-03T09:10:00Z", "oneLiner": "Project kickoff — scope, vendor split, teams and initial timeline agreed."}, {"id": "art-brd", "file": "2026-05-15-brd-atlas-requirements-v1.docx", "type": "brd", "date": "2026-05-15", "digestedAt": "2026-05-16T11:40:00Z", "oneLiner": "Business Requirements Document v1.0 — functional, non-functional and use-case requirements."}, {"id": "art-design", "file": "2026-06-01-design-doc-solution-architecture.pdf", "type": "design-doc", "date": "2026-06-01", "digestedAt": "2026-06-02T14:05:00Z", "oneLiner": "Solution design — environments, integration pattern and data model."}, {"id": "art-status-0612", "file": "2026-06-12-email-weekly-status.txt", "type": "email", "date": "2026-06-12", "digestedAt": "2026-06-12T17:30:00Z", "oneLiner": "Weekly status — environments live, profiling underway, sprint 1 starting."}, {"id": "art-steering-0625", "file": "2026-06-25-transcript-steering-committee-1.vtt", "type": "transcript", "date": "2026-06-25", "digestedAt": "2026-06-26T08:50:00Z", "oneLiner": "Steering committee #1 — profiling complete, risks reviewed, analytics deferred."}, {"id": "art-migration-plan", "file": "2026-07-06-design-doc-migration-plan.pdf", "type": "design-doc", "date": "2026-07-06", "digestedAt": "2026-07-06T19:15:00Z", "oneLiner": "Veridian data-migration plan & runbook — dry-run approach and remediation."}, {"id": "art-status-0703", "file": "2026-07-03-email-weekly-status.txt", "type": "email", "date": "2026-07-03", "digestedAt": "2026-07-03T17:22:00Z", "oneLiner": "Weekly status — sprint 1 slipped, dry run at risk, data quality escalated."}, {"id": "art-steering-0708", "file": "2026-07-08-transcript-steering-committee-2.vtt", "type": "transcript", "date": "2026-07-08", "digestedAt": "2026-07-09T09:05:00Z", "oneLiner": "Steering committee #2 — UAT moved to 8 Sep, phased cutover adopted, MFA scope confirmed."}, {"id": "art-bdd", "file": "2026-07-09-bdd-crm-scenarios.feature", "type": "bdd", "date": "2026-07-09", "digestedAt": "2026-07-09T09:30:00Z", "oneLiner": "Imported BDD/Gherkin spec — agreed acceptance scenarios for account view, batch sync and onboarding."}], "userStories": [{"id": "us-account-360", "title": "Relationship-manager 360 customer view", "narrative": {"asA": "relationship manager", "iWant": "a single 360 view of a customer across all their Atlas accounts", "soThat": "I can advise them without switching between the core-banking screens"}, "workstream": "ws-config", "status": "in-review", "rules": [{"id": "rule-360-consolidation", "title": "All of a customer's linked accounts appear on one screen", "examples": [{"id": "ex-360-household", "title": "Retail + mortgage in one household", "context": "Household H-4471 holds a Contoso retail current account and a mortgage", "action": "An RM opens the customer record", "outcome": "Both accounts are listed together under the household"}, {"id": "ex-360-joint", "title": "Joint account holders", "context": "A joint savings account is held by Priya and Sam Okafor", "action": "An RM opens either holder", "outcome": "Both holders' names are shown against the joint account"}, {"id": "ex-360-closed", "title": "Recently closed account", "context": "A current account was closed 3 months ago", "action": "An RM opens the customer", "outcome": "The closed account is shown greyed with a 'Closed' badge, not hidden"}]}, {"id": "rule-360-freshness", "title": "Balances reflect core-banking within the sync SLA and never show stale data silently", "examples": [{"id": "ex-360-asof", "title": "Balances after the nightly batch", "context": "The nightly batch completed at 02:00", "action": "An RM opens the customer at 08:00", "outcome": "Balances show an 'as of 02:00' timestamp"}, {"id": "ex-360-intraday", "title": "Intraday transfer not yet synced", "context": "A GBP 5,000 transfer posted at 10:00 has not synced", "action": "An RM opens the customer at 10:05", "outcome": "The last-sync time is shown so the RM knows the figure may lag"}, {"id": "ex-360-batchfail", "title": "Batch failed overnight", "context": "The 02:00 batch failed and did not complete", "action": "An RM opens the customer", "outcome": "A banner warns 'Balances may be delayed' instead of showing yesterday's data as current"}]}, {"id": "rule-360-permissions", "title": "An RM only sees customers and data they are authorised for", "examples": [{"id": "ex-360-inbook", "title": "Customer in the RM's book", "context": "RM Meera is assigned to household H-4471", "action": "Meera opens that customer", "outcome": "Access is allowed and the full 360 view loads"}, {"id": "ex-360-outbook", "title": "Customer outside the RM's book", "context": "A customer is assigned to a different RM's book", "action": "Meera attempts to open that customer", "outcome": "Access is blocked with a 'not authorised' message"}, {"id": "ex-360-private", "title": "Private-banking flagged customer", "context": "A customer is flagged private-banking and the RM lacks clearance", "action": "The RM opens the record", "outcome": "Sensitive fields are masked while basic contact details remain"}]}], "scenarios": [{"id": "sc-360-household", "title": "Linked accounts appear together for a household", "given": ["a household holds a retail current account and a mortgage"], "when": ["a relationship manager opens the customer record"], "then": ["both accounts appear together on one screen"], "status": "agreed", "sources": ["art-bdd"], "history": []}, {"id": "sc-360-asof", "title": "Balances are stamped with their sync time", "given": ["the nightly balance batch completed at 02:00"], "when": ["a relationship manager opens the customer at 08:00"], "then": ["each balance shows an 'as of 02:00' timestamp"], "status": "draft", "sources": ["art-steering-0708"], "history": []}, {"id": "sc-360-outside-book", "title": "Access outside the assigned book is blocked", "given": ["a relationship manager is not assigned to a customer's book"], "when": ["the relationship manager attempts to open that customer"], "then": ["access is blocked with a not-authorised message"], "status": "implemented", "sources": ["art-design", "art-bdd"], "history": []}], "sources": ["art-brd", "art-design", "art-bdd"], "history": []}, {"id": "us-bulk-reassign", "title": "Bulk-reassign a departing RM's book of business", "narrative": {"asA": "sales operations lead", "iWant": "to reassign a departing relationship manager's accounts in bulk", "soThat": "customer coverage continues without manual one-by-one edits"}, "workstream": "ws-config", "status": "draft", "rules": [{"id": "rule-reassign-bulk", "title": "A whole book can be moved to another RM in a single action", "examples": [{"id": "ex-reassign-basic", "title": "Move an entire book", "context": "RM Tom Wolfe is leaving with 180 assigned accounts", "action": "Ops selects Tom's book and reassigns it to RM Ana Garcia", "outcome": "All 180 accounts show Ana as the owning RM"}, {"id": "ex-reassign-audit", "title": "Reassignment is auditable", "context": "A bulk reassignment of 180 accounts is performed", "action": "Compliance later reviews the change", "outcome": "An audit entry records who reassigned what, when, and from/to whom"}]}], "scenarios": [], "sources": ["art-steering-0708"], "history": []}], "okrs": [{"id": "obj-uat-ready-foundation", "objective": "Reach a trustworthy, UAT-ready Atlas CRM foundation by the end of Q3 2026", "period": "2026-Q3", "owner": "stk-mpatel", "workstream": "ws-config", "kind": "committed", "status": "active", "keyResults": [{"id": "kr-dedup-records", "statement": "Reduce duplicate customer records to under 400 before the migration dry run", "metric": "duplicate customer records remaining", "start": 12400, "target": 400, "current": 5200, "unit": "records", "score": 0.6, "confidence": "medium", "milestoneRef": "ms-migration-dryrun", "sources": ["art-migration-plan", "art-status-0703"], "history": []}, {"id": "kr-config-sprints", "statement": "Complete both CRM configuration sprints on the revised plan", "metric": "configuration sprints delivered", "start": 0, "target": 2, "current": 1, "unit": "sprints", "score": 0.5, "confidence": "medium", "milestoneRef": null, "sources": ["art-steering-0708", "art-status-0703"], "history": []}, {"id": "kr-view-performance", "statement": "Cut the relationship-manager account view to under 3 seconds at 50k accounts", "metric": "p95 account-view load time", "start": 8, "target": 3, "current": 3.5, "unit": "s", "score": 0.9, "confidence": "high", "milestoneRef": null, "sources": ["art-design"], "history": []}], "sources": ["art-steering-0708", "art-migration-plan"], "history": []}, {"id": "obj-rm-prefer-atlas", "objective": "Make Atlas the CRM relationship managers genuinely prefer over the legacy system", "period": "2026-Q3", "owner": "stk-rsingh", "workstream": "ws-uat", "kind": "aspirational", "status": "draft", "keyResults": [{"id": "kr-rm-preference", "statement": "A clear majority of relationship managers rate Atlas easier to use than the legacy CRM", "metric": "RM preference (net-easier %)", "start": null, "target": null, "current": null, "unit": null, "score": null, "confidence": "low", "milestoneRef": null, "sources": ["art-steering-0708"], "history": []}, {"id": "kr-rm-trained", "statement": "Relationship managers complete Atlas onboarding training ahead of go-live", "metric": "RMs trained", "start": 0, "target": 100, "current": 45, "unit": "%", "score": 0.45, "confidence": "low", "milestoneRef": null, "sources": ["art-steering-0708"], "history": []}], "sources": ["art-steering-0708"], "history": []}]}; window.__RENDER_NOW__ = "2026-07-20T21:07:58Z";</script>
 <script>
 (function(){
   var ART = window.__ARTIFACTS__ || {};
@@ -770,6 +802,14 @@ window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration
       var expanded = card.getAttribute('data-collapsed') === 'true'; // will expand
       setCard(card, expanded);
       var m = store(); m[card.getAttribute('data-sec')] = expanded; save(m);
+    });
+  });
+  // Section "?" help links: open how-it-works.html without toggling the collapse.
+  document.querySelectorAll('.sec-help').forEach(function(el){
+    function go(){ window.open('how-it-works.html#help-' + el.getAttribute('data-help'), '_blank', 'noopener'); }
+    el.addEventListener('click', function(e){ e.stopPropagation(); e.preventDefault(); go(); });
+    el.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar'){ e.stopPropagation(); e.preventDefault(); go(); }
     });
   });
   function setAll(expanded){
@@ -877,17 +917,55 @@ window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration
   function wireProvenance(root){
     (root || document).querySelectorAll('.prov').forEach(function(el){
       if(el.__provWired) return; el.__provWired = true;
-      el.addEventListener('click', function(e){ e.stopPropagation(); openPop(el, e.clientX, e.clientY); });
+      el.addEventListener('click', function(e){
+        if(document.body.classList.contains('ba-editing')) return;  // edits, not popover
+        e.stopPropagation(); openPop(el, e.clientX, e.clientY);
+      });
       el.addEventListener('keydown', function(e){
+        if(document.body.classList.contains('ba-editing')) return;
+        // ignore Space/Enter typed inside an editable field (would swallow the character)
+        var t = e.target;
+        if(t && t.closest && t.closest('[contenteditable="true"],input,textarea,select')) return;
         if(e.key === 'Enter' || e.key === ' '){ e.preventDefault();
           var r = el.getBoundingClientRect(); openPop(el, r.left + 20, r.bottom); }
       });
+    });
+  }
+  /* Feature A — editable project name + client line in edit mode. Header is
+     host-rendered; the BA block calls this via host.onEdit(on). Project is a
+     singleton (not id-mapped) with no history array in the schema, so scalar
+     project fields update in place WITHOUT manual-edit history entries — the
+     same way lastEdited/lastDigest are written. */
+  function decorateHeader(on){
+    [['head-name','name'],['head-client','client']].forEach(function(pair){
+      var el = document.getElementById(pair[0]); if(!el) return;
+      var field = pair[1];
+      if(on){
+        el.setAttribute('contenteditable', 'true');
+        el.setAttribute('spellcheck', 'false');
+        el.classList.add('head-ce');
+        if(!el.__headWired){
+          el.__headWired = true;
+          el.addEventListener('input', function(){
+            if(!BA.state.project) BA.state.project = {};
+            var v = el.textContent.replace(/\s+/g, ' ').replace(/^\s+/, '');
+            BA.state.project[field] = v;
+            BA.dirty = true;
+            if(field === 'name') document.title = (v ? v : 'AI PM') + ' — Dashboard';
+          });
+        }
+      } else {
+        el.removeAttribute('contenteditable');
+        el.classList.remove('head-ce');
+        el.textContent = (BA.state.project && BA.state.project[field]) || '';
+      }
     });
   }
   wireProvenance(document);
   document.addEventListener('click', function(e){ if(pop && !pop.contains(e.target)) closePop(); });
   document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closePop(); });
   window.addEventListener('resize', closePop, true);
+  window.addEventListener('scroll', closePop, { passive: true });
 
   /* ====================================================================== *
    *  FEATURE BLOCK — BDD .feature export · What changed · Status report.    *
@@ -1367,15 +1445,16 @@ window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration
       line("Action", "examples", "action", ex.action) +
       line("Outcome", "examples", "outcome", ex.outcome) + '</div>';
   }
-  function baRuleCard(us, ru){
+  function baRuleCard(us, ru, scens){
     var exs = (ru.examples||[]).map(function(ex){ return baExampleRow(ru, ex); }).join('') ||
       (BA.editing ? '' : '<div class="ex-line"><span class="ex-clause ex-null">No examples yet.</span></div>');
     var del = BA.editing ? baDelBtn("rules", ru.id) : "";
     var add = BA.editing ? baAddBtn("example", ru.id, "+ Example") : "";
+    var sc = (scens && scens.length) ? ('<div class="us-sc-list us-rule-sc">' + scens.map(baScenario).join('') + '</div>') : "";
     return '<div class="rule prov" tabindex="0" data-kind="rule" data-id="' + baEsc(ru.id) + '"' +
       '>' +
       '<div class="rule-title">' + baText("rules", ru.id, "title", ru.title) + del + '</div>' +
-      exs + add + '</div>';
+      exs + add + sc + '</div>';
   }
   function baScenario(sc){
     var st = sc.status || "draft";
@@ -1418,13 +1497,22 @@ window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration
     return '<div class="us-redcards">' + items + '</div>';
   }
   function baStoryCard(us){
-    var rules = (us.rules||[]).map(function(ru){ return baRuleCard(us, ru); }).join('');
+    var scens = us.scenarios || [];
+    var matched = {};
+    var rules = (us.rules||[]).map(function(ru){
+      var rs = scens.filter(function(s){ return s.ruleRef === ru.id; });
+      rs.forEach(function(s){ matched[s.id] = true; });
+      return baRuleCard(us, ru, rs);
+    }).join('');
     var addRule = BA.editing ? baAddBtn("rule", us.id, "+ Rule") : "";
-    var scen = (us.scenarios||[]).map(baScenario).join('');
+    var other = scens.filter(function(s){ return !matched[s.id]; });
+    var anyMatched = scens.length > other.length;
+    var scLabel = anyMatched ? "Other scenarios" : "Scenarios";
+    var scen = other.map(baScenario).join('');
     var addSc = BA.editing ? baAddBtn("scenario", us.id, "+ Scenario") : "";
     var del = BA.editing ? baDelBtn("userStories", us.id) : "";
     var rulesBlock = (rules || BA.editing) ? ('<div class="us-sub-h">Rules &amp; examples</div><div class="us-rules">' + rules + addRule + '</div>') : "";
-    var scBlock = (scen || BA.editing) ? ('<div class="us-sub-h">Formulated scenarios</div><div class="us-sc-list">' + scen + addSc + '</div>') : "";
+    var scBlock = (scen || BA.editing) ? ('<div class="us-sub-h">' + scLabel + '</div><div class="us-sc-list">' + scen + addSc + '</div>') : "";
     return '<div class="us prov" tabindex="0" data-kind="us" data-id="' + baEsc(us.id) + '"' +
       ((us.sources&&us.sources.length)?' data-sources="' + baEsc(us.sources.join(" ")) + '"':'') + '>' +
       '<div class="us-head"><span class="us-title">' + baText("userStories", us.id, "title", us.title) + '</span>' +
@@ -1436,17 +1524,16 @@ window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration
   function baStoriesBody(){
     var stories = BA.state.userStories || [];
     if(!stories.length && !BA.editing) return "";
+    var bar = stories.length ? '<div class="rtm-bar"><button class="rx-btn" type="button" id="ba-xls-btn">Export Excel workbook</button></div>' : "";
     var html = stories.map(baStoryCard).join('');
     if(BA.editing) html += baAddBtn("userStories", null, "+ Story");
-    return html || '<p class="empty">No user stories yet.</p>';
+    return bar + (html || '<p class="empty">No user stories yet.</p>');
   }
 
   /* ====================== RTM + UAT (derived) ====================== */
   function baRTMBody(){
     var stories = BA.state.userStories || [];
     var bar = '<div class="rtm-bar">' +
-      '<button class="rx-btn" type="button" id="ba-rtm-csv">Export RTM (CSV)</button>' +
-      '<button class="rx-btn" type="button" id="ba-uat-csv">Export UAT (CSV)</button>' +
       '<button class="rx-btn" type="button" id="ba-uat-md">Export UAT (MD)</button></div>';
     if(!stories.length) return bar + '<p class="empty">No user stories to trace yet.</p>';
     var rows = "";
@@ -1489,23 +1576,6 @@ window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration
   }
   function baPid(){ return (BA.state.project && BA.state.project.id) || 'project'; }
 
-  function baExportRTM(){
-    var rows = [["Story ID","Story","Rule","Examples","Scenario IDs","Status","Sources"]];
-    (BA.state.userStories||[]).forEach(function(us){
-      var scIds = (us.scenarios||[]).map(function(s){ return s.id; }).join(" ");
-      var srcs = (us.sources||[]).join(" ");
-      var rules = us.rules || [];
-      if(!rules.length){
-        rows.push([us.id, us.title, "", 0, scIds, us.status||"", srcs]);
-      } else {
-        rules.forEach(function(ru){
-          rows.push([us.id, us.title, ru.title, (ru.examples||[]).length, scIds, us.status||"", srcs]);
-        });
-      }
-    });
-    baDownload(baPid() + "-rtm.csv", baCsv(rows), "text/csv");
-  }
-
   function baUatCases(){
     var cases = [];
     function join(a){ return (a||[]).join("; "); }
@@ -1524,13 +1594,6 @@ window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration
       });
     });
     return cases;
-  }
-  function baExportUatCsv(){
-    var rows = [["Case ID","Type","Story / Requirement","Test title","Preconditions","Steps","Expected","Status"]];
-    baUatCases().forEach(function(c){
-      rows.push([c.caseId, c.groupKind, c.group, c.title, c.pre, c.steps, c.expect, c.status]);
-    });
-    baDownload(baPid() + "-uat.csv", baCsv(rows), "text/csv");
   }
   function baExportUatMd(){
     var cases = baUatCases();
@@ -1554,6 +1617,445 @@ window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration
     });
     if(!cases.length) L.push("_No scenarios to derive UAT cases from yet._");
     baDownload(baPid() + "-uat.md", L.join("\n") + "\n", "text/markdown");
+  }
+
+  /* ====================== UAT (derived) + Excel export ====================== */
+  /* Derives one UAT case per user-story scenario (rich trace). Story scenarios
+     are the workbook spine; requirement scenarios remain covered by the CSV/MD
+     exports above. All rendering is derived at view time — nothing is stored.   */
+  function baRuleTitleIn(us, ruleId){
+    if(!ruleId) return null;
+    var hit = null;
+    (us.rules||[]).forEach(function(ru){ if(ru.id === ruleId) hit = ru.title; });
+    return hit;
+  }
+  function baStoryUatCases(){
+    var out = [];
+    (BA.state.userStories||[]).forEach(function(us){
+      (us.scenarios||[]).forEach(function(sc){
+        var ruleId = sc.ruleRef || null;
+        out.push({ caseId: sc.id, scenarioId: sc.id, title: sc.title || "",
+          storyId: us.id, storyTitle: us.title || "",
+          ruleId: ruleId, ruleTitle: baRuleTitleIn(us, ruleId),
+          exampleId: sc.exampleRef || null,
+          given: sc.given || [], when: sc.when || [], then: sc.then || [] });
+      });
+    });
+    return out;
+  }
+  function baDeconj(v){
+    var w = String(v||"");
+    if(/ies$/i.test(w)) return w.slice(0,-3) + "y";
+    if(/(ss|sh|ch|x|z|o)es$/i.test(w)) return w.slice(0,-2);
+    if(/s$/i.test(w) && !/ss$/i.test(w)) return w.slice(0,-1);
+    return w;
+  }
+  function baCap(s){ s = String(s||""); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+  function baImperative(s){
+    var t = String(s||"").trim();
+    if(!t) return "";
+    var m = /^(?:the|a|an)\s+([a-z][a-z' -]*?)\s+([a-z]+(?:ies|es|s))\s+(.+)$/i.exec(t);
+    if(m) return baCap(baDeconj(m[2])) + " " + m[3];
+    m = /^(?:i|we|they|you)\s+([a-z]+)\s+(.+)$/i.exec(t);
+    if(m) return baCap(m[1]) + " " + m[2];
+    return baCap(t);
+  }
+  function baExpectPhrase(s){
+    var t = String(s||"").trim();
+    return t ? ("Look for: " + t) : "";
+  }
+  function baSentence(s){
+    s = String(s==null?"":s).trim();
+    if(!s) return "";
+    if(!/[.!?]$/.test(s)) s += ".";
+    return baCap(s);
+  }
+  function baExampleText(ex){
+    return [ex.context, ex.action, ex.outcome].map(baSentence)
+      .filter(function(x){ return x; }).join(" ");
+  }
+  function baNarrText(us){
+    var n = us.narrative || {}, p = [];
+    if(n.asA) p.push("As a " + n.asA);
+    if(n.iWant) p.push("I want " + n.iWant);
+    if(n.soThat) p.push("so that " + n.soThat);
+    return p.length ? (p.join(", ") + ".") : "";
+  }
+
+  /* ---- on-dashboard UAT section (Feature A) ---- */
+  function baUatBody(){
+    var cases = baStoryUatCases();
+    if(!cases.length) return "";
+    return cases.map(function(c){
+      var why = baEsc(c.storyTitle) +
+        (c.ruleTitle ? ' <span class="uat-arrow">&#8594;</span> ' + baEsc(c.ruleTitle) : "");
+      var ctx = c.given.length ? c.given.map(baEsc).join("<br>") : '<span class="ex-null">&#8212;</span>';
+      var steps = c.when.length
+        ? '<ol class="uat-steps">' + c.when.map(function(w){ return '<li>' + baEsc(baImperative(w)) + '</li>'; }).join('') + '</ol>'
+        : '<span class="ex-null">&#8212;</span>';
+      var exp = c.then.length
+        ? c.then.map(function(t){ return '<div class="uat-exp-line">' + baEsc(baExpectPhrase(t)) + '</div>'; }).join('')
+        : '<span class="ex-null">&#8212;</span>';
+      var tr = ["scenario " + c.scenarioId];
+      if(c.exampleId) tr.push("example " + c.exampleId);
+      if(c.ruleId) tr.push("rule " + c.ruleId);
+      if(c.storyId) tr.push("story " + c.storyId);
+      return '<div class="uatcase">' +
+        '<div class="uatcase-head"><span class="uatcase-id">' + baEsc(c.caseId) + '</span>' +
+        '<span class="uatcase-title">' + baEsc(c.title) + '</span></div>' +
+        '<div class="uat-row"><span class="uat-lbl">Why</span><span class="uat-val">' + why + '</span></div>' +
+        '<div class="uat-row"><span class="uat-lbl">Context</span><span class="uat-val">' + ctx + '</span></div>' +
+        '<div class="uat-row"><span class="uat-lbl">Steps</span><span class="uat-val">' + steps + '</span></div>' +
+        '<div class="uat-row"><span class="uat-lbl">Expected</span><span class="uat-val">' + exp + '</span></div>' +
+        '<div class="uatcase-trace">Tests ' + baEsc(tr.join(" · ")) + '</div></div>';
+    }).join('');
+  }
+  function baPaintUat(){
+    var sec = document.getElementById('ba-uat-sec');
+    var body = document.getElementById('ba-uat-body');
+    if(!sec || !body) return;
+    var cases = baStoryUatCases();
+    sec.hidden = !(cases.length > 0);
+    var cnt = document.getElementById('ba-uat-count'); if(cnt) cnt.textContent = cases.length;
+    body.innerHTML = cases.length ? baUatBody() : '';
+  }
+
+  /* ================= minimal dependency-free .xlsx writer (Feature B) ================= *
+   * An .xlsx is a ZIP (STORE, no compression) of XML parts. Cells are inline strings so
+   * no sharedStrings part is needed. Styles cover the Example-Mapping template palette.  */
+  var BAX = { NORMAL:0, BOLD:1, WRAP:2, BOLDWRAP:3, YELLOW:4, YELLOWWRAP:5,
+    BLUE:6, GREEN:7, GREENWRAP:8, ORANGE:9, ORANGEWRAP:10, GREY:11, HEADER:12 };
+
+  function baCrcTable(){
+    if(baCrcTable._t) return baCrcTable._t;
+    var t = new Array(256);
+    for(var n=0;n<256;n++){
+      var c = n;
+      for(var k=0;k<8;k++){ c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); }
+      t[n] = c >>> 0;
+    }
+    baCrcTable._t = t;
+    return t;
+  }
+  function baCrc32(bytes){
+    var t = baCrcTable(), c = 0xFFFFFFFF;
+    for(var i=0;i<bytes.length;i++){ c = t[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8); }
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function baZip(files){
+    var enc = new TextEncoder();
+    var chunks = [], central = [], offset = 0;
+    function u16(a,v){ a.push(v & 0xFF, (v >>> 8) & 0xFF); }
+    function u32(a,v){ a.push(v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF); }
+    files.forEach(function(f){
+      var nameB = enc.encode(f.name), crc = baCrc32(f.data), n = f.data.length;
+      var lh = [];
+      u32(lh,0x04034b50); u16(lh,20); u16(lh,0); u16(lh,0); u16(lh,0); u16(lh,0);
+      u32(lh,crc); u32(lh,n); u32(lh,n); u16(lh,nameB.length); u16(lh,0);
+      var lhu = new Uint8Array(lh);
+      chunks.push(lhu, nameB, f.data);
+      var cd = [];
+      u32(cd,0x02014b50); u16(cd,20); u16(cd,20); u16(cd,0); u16(cd,0); u16(cd,0); u16(cd,0);
+      u32(cd,crc); u32(cd,n); u32(cd,n); u16(cd,nameB.length); u16(cd,0); u16(cd,0);
+      u16(cd,0); u16(cd,0); u32(cd,0); u32(cd,offset);
+      central.push({ head:new Uint8Array(cd), name:nameB });
+      offset += lhu.length + nameB.length + n;
+    });
+    var cdStart = offset, cdChunks = [], cdSize = 0;
+    central.forEach(function(c){ cdChunks.push(c.head, c.name); cdSize += c.head.length + c.name.length; });
+    var eocd = [];
+    u32(eocd,0x06054b50); u16(eocd,0); u16(eocd,0);
+    u16(eocd,files.length); u16(eocd,files.length);
+    u32(eocd,cdSize); u32(eocd,cdStart); u16(eocd,0);
+    var all = chunks.concat(cdChunks); all.push(new Uint8Array(eocd));
+    var total = 0; all.forEach(function(a){ total += a.length; });
+    var out = new Uint8Array(total), p = 0;
+    all.forEach(function(a){ out.set(a, p); p += a.length; });
+    return out;
+  }
+  function baColName(n){
+    var s = ""; n = n + 1;
+    while(n > 0){ var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+    return s;
+  }
+  function baXmlText(s){
+    return baEsc(String(s==null?"":s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,""));
+  }
+  function baSheetBuilder(name){
+    return {
+      name: name, _rows: [], _merges: [], _cols: [],
+      _row: function(r){ while(this._rows.length <= r) this._rows.push({ cells:[], height:0 }); return this._rows[r]; },
+      cell: function(r,c,v,s){ var row = this._row(r); while(row.cells.length <= c) row.cells.push(null);
+        row.cells[c] = { v:v, s:s }; return this; },
+      box: function(r1,c1,r2,c2,v,s){
+        for(var r=r1;r<=r2;r++){ for(var c=c1;c<=c2;c++){ this.cell(r,c,(r===r1&&c===c1)?v:"", s); } }
+        if(!(r1===r2 && c1===c2)) this._merges.push(baColName(c1)+(r1+1)+":"+baColName(c2)+(r2+1));
+        return this;
+      },
+      rowH: function(r,h){ this._row(r).height = h; return this; },
+      colW: function(c,w){ this._cols[c] = { width:w }; return this; },
+      done: function(){
+        var cols = [];
+        for(var i=0;i<this._cols.length;i++){ cols.push(this._cols[i] || { width:11 }); }
+        return { name:this.name, cols:cols, rows:this._rows, merges:this._merges };
+      }
+    };
+  }
+  function baSheetXml(sheet){
+    var cols = "";
+    if(sheet.cols && sheet.cols.length){
+      cols = "<cols>";
+      sheet.cols.forEach(function(c,i){
+        cols += '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+(c.width||11)+'" customWidth="1"/>';
+      });
+      cols += "</cols>";
+    }
+    var rowsXml = "";
+    sheet.rows.forEach(function(row, ri){
+      var r = ri + 1, attr = ' r="'+r+'"';
+      if(row.height){ attr += ' ht="'+row.height+'" customHeight="1"'; }
+      var cells = "";
+      (row.cells||[]).forEach(function(cell, ci){
+        if(cell == null) return;
+        var ref = baColName(ci) + r;
+        var s = (cell.s != null) ? (' s="'+cell.s+'"') : '';
+        var v = cell.v == null ? "" : String(cell.v);
+        if(v === "") cells += '<c r="'+ref+'"'+s+'/>';
+        else cells += '<c r="'+ref+'"'+s+' t="inlineStr"><is><t xml:space="preserve">'+baXmlText(v)+'</t></is></c>';
+      });
+      rowsXml += '<row'+attr+'>'+cells+'</row>';
+    });
+    var merges = "";
+    if(sheet.merges && sheet.merges.length){
+      merges = '<mergeCells count="'+sheet.merges.length+'">';
+      sheet.merges.forEach(function(m){ merges += '<mergeCell ref="'+m+'"/>'; });
+      merges += '</mergeCells>';
+    }
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      cols + '<sheetData>' + rowsXml + '</sheetData>' + merges + '</worksheet>';
+  }
+  function baXlsxStyles(){
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<fonts count="3">' +
+      '<font><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/></font>' +
+      '<font><b/><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/></font>' +
+      '<font><b/><sz val="12"/><color theme="1"/><name val="Calibri"/><family val="2"/></font>' +
+      '</fonts>' +
+      '<fills count="7">' +
+      '<fill><patternFill patternType="none"/></fill>' +
+      '<fill><patternFill patternType="gray125"/></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFFFFF00"/><bgColor indexed="64"/></patternFill></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFBDD7EE"/><bgColor indexed="64"/></patternFill></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFC6EFCE"/><bgColor indexed="64"/></patternFill></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFF4B183"/><bgColor indexed="64"/></patternFill></fill>' +
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/><bgColor indexed="64"/></patternFill></fill>' +
+      '</fills>' +
+      '<borders count="2">' +
+      '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+      '<border><left/><right/><top/><bottom style="thin"><color indexed="64"/></bottom><diagonal/></border>' +
+      '</borders>' +
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+      '<cellXfs count="13">' +
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+      '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+      '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="0" fillId="2" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="1" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="1" fillId="4" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="0" fillId="4" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="1" fillId="5" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="0" fillId="5" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="1" fillId="6" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment vertical="bottom" wrapText="1"/></xf>' +
+      '</cellXfs>' +
+      '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+      '</styleSheet>';
+  }
+  function baXlsx(sheets, meta){
+    var enc = new TextEncoder();
+    function part(name, str){ return { name:name, data:enc.encode(str) }; }
+    var files = [];
+    var ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>';
+    sheets.forEach(function(s,i){
+      ct += '<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+    });
+    ct += '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
+      '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>';
+    files.push(part("[Content_Types].xml", ct));
+    files.push(part("_rels/.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>' +
+      '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>'));
+    var wb = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+      'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>';
+    sheets.forEach(function(s,i){ wb += '<sheet name="'+baEsc(s.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>'; });
+    wb += '</sheets></workbook>';
+    files.push(part("xl/workbook.xml", wb));
+    var wr = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+    sheets.forEach(function(s,i){
+      wr += '<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>';
+    });
+    wr += '<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+    files.push(part("xl/_rels/workbook.xml.rels", wr));
+    files.push(part("xl/styles.xml", baXlsxStyles()));
+    sheets.forEach(function(s,i){ files.push(part("xl/worksheets/sheet"+(i+1)+".xml", baSheetXml(s))); });
+    var now = new Date().toISOString().replace(/\.\d+Z$/,"Z");
+    files.push(part("docProps/core.xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" ' +
+      'xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" ' +
+      'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>' +
+      baEsc((meta && meta.title) || "Example Mapping") + '</dc:title><dc:creator>AI PM</dc:creator>' +
+      '<cp:lastModifiedBy>AI PM</cp:lastModifiedBy><dcterms:created xsi:type="dcterms:W3CDTF">' + now +
+      '</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">' + now + '</dcterms:modified></cp:coreProperties>'));
+    files.push(part("docProps/app.xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+      '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" ' +
+      'xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>AI PM</Application></Properties>'));
+    return baZip(files);
+  }
+
+  /* ---- workbook content (Feature C) ---- */
+  function baTabName(base, used){
+    var s = String(base||"Sheet").replace(/[:\\\/?*\[\]]/g," ").replace(/\s+/g," ").trim().slice(0,31) || "Sheet";
+    var t = s, n = 2;
+    while(used[t.toLowerCase()]){ var suf = " ("+n+")"; t = s.slice(0, 31-suf.length) + suf; n++; }
+    used[t.toLowerCase()] = true;
+    return t;
+  }
+  function baStorySheet(us, used){
+    var rules = us.rules || [];
+    var R = rules.length;
+    var gridW = Math.max(R*2, 2);
+    var qCol = gridW + 1;
+    var sb = baSheetBuilder(baTabName(us.id || us.title, used));
+    for(var ci=0;ci<gridW;ci++){ sb.colW(ci, 22); }
+    sb.colW(gridW, 3); sb.colW(qCol, 32); sb.colW(qCol+1, 14);
+    var r = 0;
+    sb.box(r,0,r,gridW-1,"User Story",BAX.YELLOW); sb.rowH(r,20); r++;
+    sb.box(r,0,r,gridW-1,baNarrText(us),BAX.YELLOWWRAP); sb.rowH(r,42); r++;
+    r++;
+    sb.box(r,0,r,gridW-1,"Rules",BAX.BLUE); r++;
+    if(R === 0){ sb.box(r,0,r,gridW-1,"No rules yet.",BAX.WRAP); }
+    else rules.forEach(function(ru,i){ sb.box(r,i*2,r,i*2+1,"Rule "+(i+1)+": "+(ru.title||""),BAX.BLUE); });
+    sb.rowH(r,30); r++;
+    sb.box(r,0,r,gridW-1,"Examples",BAX.GREEN); r++;
+    var maxEx = 0; rules.forEach(function(ru){ maxEx = Math.max(maxEx, (ru.examples||[]).length); });
+    for(var k=0;k<maxEx;k++){
+      var titleRow = r, textRow = r+1;
+      rules.forEach(function(ru,i){
+        var ex = (ru.examples||[])[k]; if(!ex) return;
+        sb.box(titleRow,i*2,titleRow,i*2+1,"Example "+(k+1)+": "+(ex.title||""),BAX.GREEN);
+        sb.box(textRow,i*2,textRow,i*2+1,baExampleText(ex),BAX.GREENWRAP);
+      });
+      sb.rowH(textRow,58); r += 2;
+    }
+    r++;
+    sb.box(r,0,r,gridW-1,"Scenarios (Gherkin)",BAX.GREY); r++;
+    var scens = us.scenarios || [];
+    if(!scens.length){ sb.box(r,0,r,gridW-1,"No formulated scenarios yet.",BAX.WRAP); r++; }
+    scens.forEach(function(sc){
+      sb.box(r,0,r,gridW-1,sc.title||"",BAX.BOLDWRAP); r++;
+      [["given","Given"],["when","When"],["then","Then"]].forEach(function(kw){
+        (sc[kw[0]]||[]).forEach(function(cl,idx){
+          sb.box(r,0,r,gridW-1,(idx===0?kw[1]:"And")+": "+cl,BAX.WRAP); r++;
+        });
+      });
+      var tr = [];
+      if(sc.ruleRef) tr.push("rule "+sc.ruleRef);
+      if(sc.exampleRef) tr.push("example "+sc.exampleRef);
+      if(tr.length){ sb.box(r,0,r,gridW-1,tr.join(" · "),BAX.NORMAL); r++; }
+      r++;
+    });
+    var qs = (BA.state.openQuestions||[]).filter(function(q){ return q.storyRef === us.id; });
+    var qr = 3;
+    sb.box(qr,qCol,qr,qCol+1,"Questions",BAX.ORANGE); qr++;
+    if(!qs.length){ sb.box(qr,qCol,qr,qCol+1,"No open questions.",BAX.ORANGEWRAP); qr++; }
+    qs.forEach(function(q,i){
+      sb.box(qr,qCol,qr,qCol+1,"Question "+(i+1)+":",BAX.ORANGE); qr++;
+      sb.box(qr,qCol,qr,qCol+1,q.question||"",BAX.ORANGEWRAP); sb.rowH(qr,58); qr++;
+    });
+    return sb.done();
+  }
+  function baRowH(lines){ var n = Math.max(1, lines); return Math.min(15 + (n-1)*14, 220); }
+  function baUatSheet(){
+    var cases = baStoryUatCases();
+    var sb = baSheetBuilder("UAT scripts");
+    var head = ["Case ID","Title","Why (story → rule)","Context / Preconditions",
+      "Steps","Expected result / what to look for","Traces","Result","Tester notes"];
+    var widths = [16,26,26,30,34,30,30,12,20];
+    widths.forEach(function(w,i){ sb.colW(i,w); });
+    head.forEach(function(h,i){ sb.cell(0,i,h,BAX.HEADER); });
+    sb.rowH(0,26);
+    cases.forEach(function(c,ri){
+      var row = ri + 1;
+      var why = c.storyTitle + (c.ruleTitle ? " → " + c.ruleTitle : "");
+      var ctx = c.given.join("\n");
+      var steps = c.when.map(function(w,i){ return (i+1) + ". " + baImperative(w); }).join("\n");
+      var exp = c.then.map(baExpectPhrase).join("\n");
+      var tr = ["scenario " + c.scenarioId];
+      if(c.exampleId) tr.push("example " + c.exampleId);
+      if(c.ruleId) tr.push("rule " + c.ruleId);
+      if(c.storyId) tr.push("story " + c.storyId);
+      var vals = [c.caseId, c.title, why, ctx, steps, exp, tr.join(" · "), "", ""];
+      vals.forEach(function(v,i){ sb.cell(row,i,v,BAX.WRAP); });
+      var maxLines = Math.max(c.given.length, c.when.length, c.then.length, 1);
+      sb.rowH(row, baRowH(maxLines));
+    });
+    if(!cases.length){ sb.box(1,0,1,head.length-1,"No user-story scenarios to derive UAT cases from yet.",BAX.WRAP); }
+    return sb.done();
+  }
+  function baTraceSheet(){
+    var cases = baStoryUatCases();
+    var sb = baSheetBuilder("Traceability");
+    var head = ["Story","Rule","Example","Scenario","UAT case"];
+    [30,30,30,30,18].forEach(function(w,i){ sb.colW(i,w); });
+    head.forEach(function(h,i){ sb.cell(0,i,h,BAX.HEADER); });
+    sb.rowH(0,26);
+    function lbl(id, title){ if(!id) return "—"; return title ? (id + " — " + title) : id; }
+    cases.forEach(function(c,ri){
+      var row = ri + 1;
+      var exObj = c.exampleId ? baFind(c.exampleId) : null;
+      var vals = [
+        lbl(c.storyId, c.storyTitle),
+        lbl(c.ruleId, c.ruleTitle),
+        lbl(c.exampleId, exObj ? exObj.title : null),
+        lbl(c.scenarioId, c.title),
+        c.caseId || "—"
+      ];
+      vals.forEach(function(v,i){ sb.cell(row,i,v,BAX.WRAP); });
+    });
+    if(!cases.length){ sb.box(1,0,1,head.length-1,"No user-story scenarios to trace yet.",BAX.WRAP); }
+    return sb.done();
+  }
+  function baDownloadBytes(filename, bytes, mime){
+    var blob = new Blob([bytes], { type: mime || "application/octet-stream" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 0);
+  }
+  function baExportXlsx(){
+    baBuildIdMap();
+    var used = {}, sheets = [];
+    (BA.state.userStories||[]).forEach(function(us){ sheets.push(baStorySheet(us, used)); });
+    sheets.push(baUatSheet());
+    sheets.push(baTraceSheet());
+    var p = BA.state.project || {};
+    var bytes = baXlsx(sheets, { title: (p.name || "Project") + " — Example Mapping" });
+    baDownloadBytes(baPid() + "-example-mapping.xlsx", bytes,
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   }
 
   /* ====================== OKRs (read + edit) ====================== */
@@ -1706,6 +2208,7 @@ window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration
     sec.hidden = !show;
     var cnt = document.getElementById('ba-us-count'); if(cnt) cnt.textContent = stories.length;
     body.innerHTML = baStoriesBody();
+    var xb = document.getElementById('ba-xls-btn'); if(xb) xb.addEventListener('click', function(e){ e.stopPropagation(); baExportXlsx(); });
     wireProvenance(body);
   }
   function baPaintRTM(){
@@ -1715,8 +2218,6 @@ window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration
     var stories = BA.state.userStories || [];
     sec.hidden = !(stories.length > 0);
     body.innerHTML = baRTMBody();
-    var b1 = document.getElementById('ba-rtm-csv'); if(b1) b1.addEventListener('click', function(e){ e.stopPropagation(); baExportRTM(); });
-    var b2 = document.getElementById('ba-uat-csv'); if(b2) b2.addEventListener('click', function(e){ e.stopPropagation(); baExportUatCsv(); });
     var b3 = document.getElementById('ba-uat-md'); if(b3) b3.addEventListener('click', function(e){ e.stopPropagation(); baExportUatMd(); });
   }
   function baPaintOKRs(){
@@ -1730,7 +2231,7 @@ window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration
     var b = document.getElementById('ba-okr-csv'); if(b) b.addEventListener('click', function(e){ e.stopPropagation(); baExportOKRs(); });
     wireProvenance(body);
   }
-  function baRepaint(){ baBuildIdMap(); baPaintStories(); baPaintRTM(); baPaintOKRs(); }
+  function baRepaint(){ baBuildIdMap(); baPaintStories(); baPaintRTM(); baPaintUat(); baPaintOKRs(); }
 
   /* ====================== legacy-section decoration ====================== */
   function baLegacyReadonly(el, obj){
@@ -1923,14 +2424,16 @@ window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration
     document.body.classList.add('ba-editing');
     baBuildIdMap();
     baDecorate(true);
-    baPaintStories(); baPaintRTM(); baPaintOKRs();
+    baPaintStories(); baPaintRTM(); baPaintUat(); baPaintOKRs();
     baSetTools();
+    if(BA.host.onEdit) BA.host.onEdit(true);
   }
   function baExitEditVisual(){
     BA.editing = false;
     document.body.classList.remove('ba-editing');
     baClearBanner();
     baSetTools();
+    if(BA.host.onEdit) BA.host.onEdit(false);
   }
   function baDiscardRequest(){
     // leaving edit mode without saving: inline confirm (never window.confirm)
@@ -1965,7 +2468,7 @@ window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration
       el.querySelectorAll('[data-ef]').forEach(function(f){ if(f.closest('[data-eitem]')===el) baLegacyReadonly(f, obj); });
     });
     baDecorate(false);
-    baPaintStories(); baPaintRTM(); baPaintOKRs();
+    baPaintStories(); baPaintRTM(); baPaintUat(); baPaintOKRs();
   }
   function baSave(){
     baCommitActive();
@@ -2182,6 +2685,7 @@ window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration
     baBuildIdMap();
     baPaintStories();
     baPaintRTM();
+    baPaintUat();
     baPaintOKRs();
     baWireEditButton();
     baSetTools();
@@ -2494,7 +2998,7 @@ window.__STATE__ = {"project": {"id": "demo-atlas", "name": "Atlas CRM Migration
 
   apply();
   if(window.__STATE__) wireFeatures(window.__STATE__, window.__RENDER_NOW__ ? new Date(window.__RENDER_NOW__) : new Date());
-  if(window.__STATE__) baInit(window.__STATE__, {});
+  if(window.__STATE__) baInit(window.__STATE__, { onEdit: decorateHeader });
   askInit({ apply: apply, expand: function(card){ setCard(card, true); var m=store(); m[card.getAttribute('data-sec')]=true; save(m); } });
   openHashSection();
 })();
