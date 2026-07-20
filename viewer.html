@@ -3477,9 +3477,16 @@ function loadFromPaste(raw){
   var state;
   try { state = JSON.parse(text); }
   catch(e){
-    var msg = String(e && e.message ? e.message : e).slice(0, 120);
-    showPasteError("Not valid JSON — " + msg + ". Copy the FULL reply and try again.");
-    return;
+    // Copilot's copy button markdown-escapes punctuation (e.g. [ becomes \[),
+    // which is illegal in JSON. Un-escape those sequences and retry once —
+    // legit JSON escapes (\" \\ \/ \n …) are untouched by this character set.
+    var unescaped = text.replace(/\\([\[\]{}()*_#+\-.!`~<>|])/g, "$1");
+    try { state = JSON.parse(unescaped); }
+    catch(e2){
+      var msg = String(e && e.message ? e.message : e).slice(0, 120);
+      showPasteError("Not valid JSON — " + msg + ". Copy the FULL reply and try again.");
+      return;
+    }
   }
   PASTED = true;
   pasteBarDismissed = false;
