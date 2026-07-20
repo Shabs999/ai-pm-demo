@@ -595,10 +595,10 @@
   ],
   "requirements": [
     {
-      "id": "req-acct-360",
-      "kind": "functional",
-      "title": "360-degree customer account view",
-      "detail": "Consolidated view of accounts, contacts, products held and recent interactions.",
+      "id": "uc-manage-pipeline",
+      "kind": "use-case",
+      "title": "Relationship manager manages a sales opportunity through the pipeline",
+      "detail": "RM progresses opportunities through stage-based pipeline stages, with a weighted forecast rolled up for their book of business.",
       "status": "approved",
       "sources": [
         "art-brd"
@@ -606,82 +606,17 @@
       "history": [],
       "scenarios": [
         {
-          "id": "sc-acct360-view",
-          "title": "RM opens a customer with products across the group",
+          "id": "sc-pipeline-advance",
+          "title": "Advancing an opportunity updates the forecast",
           "given": [
-            "a relationship manager is signed in",
-            "the customer Northwind Traders exists in core banking"
+            "a relationship manager has an open opportunity at the 'Proposal' stage"
           ],
           "when": [
-            "they open the customer account page"
+            "they move the opportunity to 'Negotiation'"
           ],
           "then": [
-            "the 360 view shows accounts, contacts and products held",
-            "interactions from the last 90 days are listed"
-          ],
-          "status": "passing",
-          "sources": [
-            "art-bdd"
-          ],
-          "history": []
-        },
-        {
-          "id": "sc-acct360-empty",
-          "title": "Customer with no linked banking products",
-          "given": [
-            "a relationship manager is signed in"
-          ],
-          "when": [
-            "they open an account that has no linked products"
-          ],
-          "then": [
-            "the products panel shows an empty-state message"
-          ],
-          "status": "implemented",
-          "sources": [
-            "art-bdd"
-          ],
-          "history": []
-        }
-      ]
-    },
-    {
-      "id": "req-pipeline",
-      "kind": "functional",
-      "title": "Sales pipeline & opportunity management",
-      "detail": "Stage-based pipeline with forecasting for relationship managers.",
-      "status": "approved",
-      "sources": [
-        "art-brd"
-      ],
-      "history": []
-    },
-    {
-      "id": "req-batch-sync",
-      "kind": "functional",
-      "title": "Nightly batch synchronisation with core-banking",
-      "detail": "Overnight sync of account balances and product holdings via batch API.",
-      "status": "in-review",
-      "sources": [
-        "art-brd",
-        "art-design"
-      ],
-      "history": [],
-      "scenarios": [
-        {
-          "id": "sc-batch-nightly",
-          "title": "Nightly sync reconciles balances and holdings",
-          "given": [
-            "the nightly batch window has opened",
-            "core-banking has published the daily balance file"
-          ],
-          "when": [
-            "the synchronisation job runs"
-          ],
-          "then": [
-            "account balances in the CRM match core banking",
-            "product holdings are updated",
-            "a sync summary is written to the audit log"
+            "the opportunity's stage and probability update",
+            "the forecast for the relationship manager's book is recalculated"
           ],
           "status": "agreed",
           "sources": [
@@ -690,23 +625,21 @@
           "history": []
         },
         {
-          "id": "sc-batch-failure",
-          "title": "Sync retries when the core-banking sandbox is unreachable",
+          "id": "sc-pipeline-forecast",
+          "title": "Pipeline view shows a weighted forecast for the book",
           "given": [
-            "the nightly batch window has opened",
-            "the core-banking API sandbox is unreachable"
+            "a relationship manager has several opportunities across pipeline stages"
           ],
           "when": [
-            "the synchronisation job runs"
+            "they open their pipeline view"
           ],
           "then": [
-            "the job retries three times",
-            "an alert is raised to the integration team",
-            "the previous balances are retained"
+            "opportunities are grouped by stage",
+            "a weighted forecast total is shown for the book"
           ],
-          "status": "failing",
+          "status": "draft",
           "sources": [
-            "art-bdd"
+            "art-brd"
           ],
           "history": []
         }
@@ -1004,6 +937,20 @@
               "context": "A current account was closed 3 months ago",
               "action": "An RM opens the customer",
               "outcome": "The closed account is shown greyed with a 'Closed' badge, not hidden"
+            },
+            {
+              "id": "ex-360-products",
+              "title": "Accounts, products held and recent interactions together",
+              "context": "Household H-4471 holds a current account and a credit card, with several branch and call-centre interactions in the last quarter",
+              "action": "An RM opens the customer record",
+              "outcome": "Accounts, the products held and interactions from the last 90 days are shown together on one screen"
+            },
+            {
+              "id": "ex-360-empty",
+              "title": "Customer with no linked banking products",
+              "context": "A newly created customer has no linked banking products yet",
+              "action": "An RM opens the customer record",
+              "outcome": "The products panel shows a friendly empty-state message rather than an error or blank space"
             }
           ]
         },
@@ -1031,6 +978,13 @@
               "context": "The 02:00 batch failed and did not complete",
               "action": "An RM opens the customer",
               "outcome": "A banner warns 'Balances may be delayed' instead of showing yesterday's data as current"
+            },
+            {
+              "id": "ex-360-holdings",
+              "title": "Product holdings reconcile overnight, not just balances",
+              "context": "A customer took out a new credit card yesterday in core banking",
+              "action": "An RM opens the customer after the nightly sync",
+              "outcome": "The new product holding appears alongside balances, reconciled from core banking"
             }
           ]
         },
@@ -1066,6 +1020,8 @@
         {
           "id": "sc-360-household",
           "title": "Linked accounts appear together for a household",
+          "ruleRef": "rule-360-consolidation",
+          "exampleRef": "ex-360-household",
           "given": [
             "a household holds a retail current account and a mortgage"
           ],
@@ -1084,6 +1040,8 @@
         {
           "id": "sc-360-asof",
           "title": "Balances are stamped with their sync time",
+          "ruleRef": "rule-360-freshness",
+          "exampleRef": "ex-360-asof",
           "given": [
             "the nightly balance batch completed at 02:00"
           ],
@@ -1102,6 +1060,8 @@
         {
           "id": "sc-360-outside-book",
           "title": "Access outside the assigned book is blocked",
+          "ruleRef": "rule-360-permissions",
+          "exampleRef": "ex-360-outbook",
           "given": [
             "a relationship manager is not assigned to a customer's book"
           ],
@@ -1115,6 +1075,71 @@
           "sources": [
             "art-design",
             "art-bdd"
+          ],
+          "history": []
+        },
+        {
+          "id": "sc-360-products",
+          "title": "Accounts, products and recent interactions appear together",
+          "ruleRef": "rule-360-consolidation",
+          "exampleRef": "ex-360-products",
+          "given": [
+            "a household holds a current account and a credit card",
+            "the customer has branch and call-centre interactions in the last 90 days"
+          ],
+          "when": [
+            "a relationship manager opens the customer record"
+          ],
+          "then": [
+            "accounts and products held appear together on one screen",
+            "interactions from the last 90 days are listed"
+          ],
+          "status": "agreed",
+          "sources": [
+            "art-bdd"
+          ],
+          "history": []
+        },
+        {
+          "id": "sc-360-empty",
+          "title": "Products panel shows an empty state when nothing is linked",
+          "ruleRef": "rule-360-consolidation",
+          "exampleRef": "ex-360-empty",
+          "given": [
+            "a customer has no linked banking products"
+          ],
+          "when": [
+            "a relationship manager opens the customer record"
+          ],
+          "then": [
+            "the products panel shows an empty-state message instead of an error"
+          ],
+          "status": "draft",
+          "sources": [
+            "art-bdd",
+            "art-design"
+          ],
+          "history": []
+        },
+        {
+          "id": "sc-360-batchfail",
+          "title": "A failed overnight batch warns instead of showing stale data",
+          "ruleRef": "rule-360-freshness",
+          "exampleRef": "ex-360-batchfail",
+          "given": [
+            "the overnight balance batch failed and did not complete"
+          ],
+          "when": [
+            "a relationship manager opens the customer"
+          ],
+          "then": [
+            "a banner warns that balances may be delayed",
+            "yesterday's balances are not shown as if they were current"
+          ],
+          "status": "agreed",
+          "sources": [
+            "art-bdd",
+            "art-design"
           ],
           "history": []
         }
@@ -1154,11 +1179,137 @@
               "context": "A bulk reassignment of 180 accounts is performed",
               "action": "Compliance later reviews the change",
               "outcome": "An audit entry records who reassigned what, when, and from/to whom"
+            },
+            {
+              "id": "ex-reassign-partial",
+              "title": "Move a selected subset of a book",
+              "context": "Operations needs to move only the SME accounts from a departing RM's book, not the retail ones",
+              "action": "Ops filters the book to SME accounts and reassigns just those to another RM",
+              "outcome": "Only the selected SME accounts move; the rest stay with the original RM"
+            }
+          ]
+        },
+        {
+          "id": "rule-reassign-approval",
+          "title": "Bulk reassignment requires the right permission, and large moves need manager approval",
+          "examples": [
+            {
+              "id": "ex-approval-permitted",
+              "title": "Ops lead has reassignment rights",
+              "context": "A sales-operations lead holds the bulk-reassign permission",
+              "action": "They reassign a 40-account book",
+              "outcome": "The reassignment proceeds without extra approval"
+            },
+            {
+              "id": "ex-approval-denied",
+              "title": "User without permission is blocked",
+              "context": "A relationship manager without bulk-reassign rights",
+              "action": "They attempt a bulk reassignment",
+              "outcome": "The action is blocked with a 'not authorised' message"
+            },
+            {
+              "id": "ex-approval-threshold",
+              "title": "Large reassignment needs manager sign-off",
+              "context": "A reassignment covers 180 accounts, above the 100-account approval threshold",
+              "action": "Operations submits the reassignment",
+              "outcome": "It is held pending a sales manager's sign-off before taking effect"
+            }
+          ]
+        },
+        {
+          "id": "rule-reassign-continuity",
+          "title": "Customers keep continuous coverage and are notified appropriately when their RM changes",
+          "examples": [
+            {
+              "id": "ex-continuity-notify",
+              "title": "Customer notified of their new RM",
+              "context": "180 accounts move to a new relationship manager",
+              "action": "The reassignment takes effect",
+              "outcome": "Affected customers receive a notification introducing their new relationship manager"
+            },
+            {
+              "id": "ex-continuity-openwork",
+              "title": "Open opportunities and tasks follow the accounts",
+              "context": "The departing RM had open opportunities and tasks on the reassigned accounts",
+              "action": "The book is reassigned to another RM",
+              "outcome": "The open opportunities and tasks move to the new RM so nothing is dropped"
+            },
+            {
+              "id": "ex-continuity-optout",
+              "title": "Do-not-contact customers are respected",
+              "context": "Some reassigned customers are flagged do-not-contact for marketing",
+              "action": "The RM-change notification is sent",
+              "outcome": "They still receive the mandatory relationship-manager-change notice but no marketing content"
             }
           ]
         }
       ],
-      "scenarios": [],
+      "scenarios": [
+        {
+          "id": "sc-reassign-bulk",
+          "title": "A whole book moves to another RM in one action",
+          "ruleRef": "rule-reassign-bulk",
+          "exampleRef": "ex-reassign-basic",
+          "given": [
+            "a departing relationship manager has 180 assigned accounts"
+          ],
+          "when": [
+            "operations reassigns the whole book to another relationship manager in one action"
+          ],
+          "then": [
+            "all 180 accounts show the new relationship manager as owner"
+          ],
+          "status": "agreed",
+          "sources": [
+            "art-bdd"
+          ],
+          "history": []
+        },
+        {
+          "id": "sc-reassign-approval",
+          "title": "A reassignment above the threshold waits for manager approval",
+          "ruleRef": "rule-reassign-approval",
+          "exampleRef": "ex-approval-threshold",
+          "given": [
+            "a bulk reassignment covers 180 accounts",
+            "the manager-approval threshold is 100 accounts"
+          ],
+          "when": [
+            "operations submits the reassignment"
+          ],
+          "then": [
+            "the reassignment is held pending a sales manager's approval",
+            "it takes effect only once approved"
+          ],
+          "status": "draft",
+          "sources": [
+            "art-steering-0708"
+          ],
+          "history": []
+        },
+        {
+          "id": "sc-reassign-continuity",
+          "title": "Open work follows the accounts to the new RM",
+          "ruleRef": "rule-reassign-continuity",
+          "exampleRef": "ex-continuity-openwork",
+          "given": [
+            "a departing relationship manager has open opportunities and tasks on the reassigned accounts"
+          ],
+          "when": [
+            "operations reassigns the book to another relationship manager"
+          ],
+          "then": [
+            "the open opportunities and tasks are reassigned to the new relationship manager",
+            "no open work is left unassigned"
+          ],
+          "status": "draft",
+          "sources": [
+            "art-bdd",
+            "art-steering-0708"
+          ],
+          "history": []
+        }
+      ],
       "sources": [
         "art-steering-0708"
       ],

@@ -615,7 +615,7 @@ tr:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
 .uatcase-id{ flex:none; font-size:11px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--muted); }
 .uatcase-title{ font-weight:600; font-size:13px; line-height:1.3; }
 .uat-row{ display:flex; gap:var(--sp3); align-items:baseline; padding:3px 0; font-size:12.5px; line-height:1.45; }
-.uat-lbl{ flex:none; width:66px; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+.uat-lbl{ flex:none; width:92px; font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
 .uat-val{ color:var(--ink); min-width:0; }
 .uat-arrow{ color:var(--muted); }
 .uat-steps{ margin:0; padding-left:1.2em; }
@@ -674,6 +674,19 @@ body.ba-editing .sec-head{ cursor:pointer; }
 .ba-banner-dot{ width:10px; height:10px; border-radius:50%; flex:none; background:var(--st-late); }
 .ba-banner ul{ margin:var(--sp3) 0 0; padding-left:19px; font-size:12.5px; color:var(--ink2); }
 .ba-banner li{ margin:3px 0; }
+/* element-kind label prefix (User story: / Rule: / Example: / Scenario:) */
+.ba-el-lbl{ font-size:10px; font-weight:400; letter-spacing:.05em; text-transform:uppercase;
+  color:var(--muted); margin-right:6px; white-space:nowrap; }
+/* method-standard advisory banner (non-blocking) */
+.ba-mwarn{ border-radius:var(--r); padding:var(--sp4) var(--sp5); margin-bottom:var(--sp4);
+  border:1px solid color-mix(in srgb,var(--st-atrisk) 50%,var(--ring));
+  background:color-mix(in srgb,var(--st-atrisk) 10%,var(--surface)); box-shadow:var(--shadow); }
+.ba-mwarn-h{ display:flex; align-items:center; gap:9px; font-size:13.5px; font-weight:600; color:var(--ink); }
+.ba-mwarn-dot{ width:10px; height:10px; border-radius:50%; flex:none; background:var(--st-atrisk); }
+.ba-mwarn ul{ margin:var(--sp3) 0 0; padding-left:19px; font-size:12.5px; color:var(--ink2); }
+.ba-mwarn li{ margin:3px 0; }
+.ba-mwarn li.red{ color:var(--st-late); font-weight:500; }
+.ba-mwarn li.red::marker{ color:var(--st-late); }
 .ba-toast{ position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(12px);
   background:var(--ink); color:var(--plane); font-size:13px; font-weight:500; padding:11px 20px;
   border-radius:var(--r2); box-shadow:var(--shadow); opacity:0; transition:opacity .25s, transform .25s;
@@ -1179,6 +1192,7 @@ function renderDecisions(state){
 }
 
 var SC_STATUS = {draft:"Draft", agreed:"Agreed", implemented:"Implemented", passing:"Passing", failing:"Failing"};
+var STATUS_TIP = "Status extracted from digested sources — items start as draft and are promoted (in review, agreed, approved) only when a source records it. Click the item to see its sources.";
 function gwtRows(sc){
   var rows = [];
   function add(keyword, clauses){
@@ -1196,12 +1210,12 @@ function renderScenario(sc){
   var st = sc.status || "draft";
   var label = SC_STATUS[st] || (st.charAt(0).toUpperCase() + st.slice(1));
   return '<div class="sc prov" tabindex="0" data-kind="sc"' + provAttrs(sc) + '>' +
-    '<div class="sc-head"><span class="sc-title">' + esc(sc.title) + '</span>' +
-    '<span class="sc-tag sc-' + esc(st) + '">' + esc(label) + '</span></div>' +
+    '<div class="sc-head"><span class="sc-title"><span class="ba-el-lbl">Scenario:</span>' + esc(sc.title) + '</span>' +
+    '<span class="sc-tag sc-' + esc(st) + '" title="' + esc(STATUS_TIP) + '">' + esc(label) + '</span></div>' +
     '<div class="gwt">' + gwtRows(sc) + '</div></div>';
 }
 function renderRequirements(state){
-  var kinds = [["functional","Functional"],["non-functional","Non-functional"],["use-case","Use cases"]];
+  var kinds = [["non-functional","Non-functional"],["use-case","Use cases"],["functional","Functional (legacy)"]];
   var blocks = kinds.map(function(pair){
     var key = pair[0], label = pair[1];
     var items = (state.requirements || []).filter(function(r){ return r.kind === key; });
@@ -1215,10 +1229,13 @@ function renderRequirements(state){
       return '<li class="req prov" tabindex="0" data-kind="req" data-eitem="requirements"' + provAttrs(r) + '>' +
         '<div class="req-head"><span class="req-title" data-ef="title">' + esc(r.title) + '</span>' +
         '<span class="req-head-right">' + chip +
-        '<span class="pipe pipe-' + esc(r.status) + '" data-ef="status" data-eenum="requirement.status">' + esc(st) + '</span></span></div>' + detail + scHtml + '</li>';
+        '<span class="pipe pipe-' + esc(r.status) + '" data-ef="status" data-eenum="requirement.status" title="' + esc(STATUS_TIP) + '">' + esc(st) + '</span></span></div>' + detail + scHtml + '</li>';
     }).join("");
+    var note = (key === "functional")
+      ? '<p class="empty">Functional requirements now live in User stories (routing rule) — re-digest or move these items.</p>'
+      : "";
     return '<div class="req-group"><h3>' + esc(label) + '<span class="count">' + items.length + '</span></h3>' +
-      '<ul class="req-list">' + rows + '</ul></div>';
+      note + '<ul class="req-list">' + rows + '</ul></div>';
   }).join("");
   var anySc = (state.requirements || []).some(function(r){ return (r.scenarios || []).length; });
   var exportBar = anySc ? ('<div class="rx-bar">' +
@@ -1682,7 +1699,7 @@ function assembleDashboard(state, meta){
   // footer: render.py line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.7 · state validated against schema.json' +
+    ' · AI PM v4.8 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -2249,11 +2266,12 @@ function openHashSection(){
   /* ====================== USER STORIES (read + edit) ====================== */
   var BA_STORY_TAG = { draft:"Draft", ready:"Ready", "in-review":"In review", agreed:"Agreed", delivered:"Delivered" };
   var BA_SC_STATUS = { draft:"Draft", agreed:"Agreed", implemented:"Implemented", passing:"Passing", failing:"Failing" };
+  var BA_STATUS_TIP = "Status extracted from digested sources — items start as draft and are promoted (in review, agreed, approved) only when a source records it. Click the item to see its sources.";
 
   function baStoryTag(us){
     var st = us.status || "draft";
     if(BA.editing) return baEnumCtl("userStories", us.id, "status", "story.status", st);
-    return '<span class="us-tag us-' + baEsc(st) + '">' + baEsc(BA_STORY_TAG[st] || st) + '</span>';
+    return '<span class="us-tag us-' + baEsc(st) + '" title="' + baEsc(BA_STATUS_TIP) + '">' + baEsc(BA_STORY_TAG[st] || st) + '</span>';
   }
   function baSafeColor(c){ return (/^#[0-9a-fA-F]{3,8}$/).test(c) ? c : "#898781"; }
   function baWsChip(state, wsId){
@@ -2286,7 +2304,7 @@ function openHashSection(){
     var del = BA.editing ? baDelBtn("examples", ex.id) : "";
     return '<div class="ex-row prov" tabindex="0" data-kind="ex" data-id="' + baEsc(ex.id) + '"' +
       ((ex.sources&&ex.sources.length)?' data-sources="' + baEsc(ex.sources.join(" ")) + '"':'') + '>' +
-      '<div class="ex-title">' + baText("examples", ex.id, "title", ex.title) + del + '</div>' +
+      '<div class="ex-title"><span class="ba-el-lbl">Example:</span>' + baText("examples", ex.id, "title", ex.title) + del + '</div>' +
       line("Context", "examples", "context", ex.context) +
       line("Action", "examples", "action", ex.action) +
       line("Outcome", "examples", "outcome", ex.outcome) + '</div>';
@@ -2299,7 +2317,7 @@ function openHashSection(){
     var sc = (scens && scens.length) ? ('<div class="us-sc-list us-rule-sc">' + scens.map(baScenario).join('') + '</div>') : "";
     return '<div class="rule prov" tabindex="0" data-kind="rule" data-id="' + baEsc(ru.id) + '"' +
       '>' +
-      '<div class="rule-title">' + baText("rules", ru.id, "title", ru.title) + del + '</div>' +
+      '<div class="rule-title"><span class="ba-el-lbl">Rule:</span>' + baText("rules", ru.id, "title", ru.title) + del + '</div>' +
       exs + add + sc + '</div>';
   }
   function baScenario(sc){
@@ -2323,11 +2341,11 @@ function openHashSection(){
     }
     add("Given","given"); add("When","when"); add("Then","then");
     var tag = BA.editing ? baEnumCtl("scenarios", sc.id, "status", "scenario.status", st)
-      : '<span class="sc-tag sc-' + baEsc(st) + '">' + baEsc(BA_SC_STATUS[st] || st) + '</span>';
+      : '<span class="sc-tag sc-' + baEsc(st) + '" title="' + baEsc(BA_STATUS_TIP) + '">' + baEsc(BA_SC_STATUS[st] || st) + '</span>';
     var del = BA.editing ? baDelBtn("scenarios", sc.id) : "";
     return '<div class="sc prov" tabindex="0" data-kind="sc" data-id="' + baEsc(sc.id) + '"' +
       ((sc.sources&&sc.sources.length)?' data-sources="' + baEsc(sc.sources.join(" ")) + '"':'') + '>' +
-      '<div class="sc-head"><span class="sc-title">' + baText("scenarios", sc.id, "title", sc.title) + '</span>' +
+      '<div class="sc-head"><span class="sc-title"><span class="ba-el-lbl">Scenario:</span>' + baText("scenarios", sc.id, "title", sc.title) + '</span>' +
       '<span class="sc-head-right">' + tag + del + '</span></div>' +
       '<div class="gwt">' + rows.join('') + '</div></div>';
   }
@@ -2361,7 +2379,7 @@ function openHashSection(){
     var scBlock = (scen || BA.editing) ? ('<div class="us-sub-h">' + scLabel + '</div><div class="us-sc-list">' + scen + addSc + '</div>') : "";
     return '<div class="us prov" tabindex="0" data-kind="us" data-id="' + baEsc(us.id) + '"' +
       ((us.sources&&us.sources.length)?' data-sources="' + baEsc(us.sources.join(" ")) + '"':'') + '>' +
-      '<div class="us-head"><span class="us-title">' + baText("userStories", us.id, "title", us.title) + '</span>' +
+      '<div class="us-head"><span class="us-title"><span class="ba-el-lbl">User story:</span>' + baText("userStories", us.id, "title", us.title) + '</span>' +
       '<span class="us-head-right">' + baStoryTag(us) + del + '</span></div>' +
       baNarrative(us) +
       '<div class="us-ws">' + baWsChip(BA.state, us.workstream) + '</div>' +
@@ -2391,7 +2409,7 @@ function openHashSection(){
       var storyCell = '<td rowspan="' + span + '"><div class="rtm-story">' + baEsc(us.title) + '</div>' +
         '<div class="rtm-sub">' + baEsc(us.id) + '</div></td>';
       var scCell = '<td rowspan="' + span + '">' + scen + '</td>';
-      var stCell = '<td rowspan="' + span + '"><span class="us-tag us-' + baEsc(us.status||'draft') + '">' +
+      var stCell = '<td rowspan="' + span + '"><span class="us-tag us-' + baEsc(us.status||'draft') + '" title="' + baEsc(BA_STATUS_TIP) + '">' +
         baEsc(BA_STORY_TAG[us.status||'draft'] || us.status) + '</span></td>';
       var srcCell = '<td rowspan="' + span + '" class="rtm-src">' + baEsc(srcs) + '</td>';
       if(!rules.length){
@@ -2427,16 +2445,17 @@ function openHashSection(){
     function join(a){ return (a||[]).join("; "); }
     (BA.state.userStories||[]).forEach(function(us){
       (us.scenarios||[]).forEach(function(sc){
+        var perStory = sc.persona || (us.narrative && us.narrative.asA) || null;
         cases.push({ caseId: sc.id, group: us.title, groupId: us.id, groupKind: "Story",
           title: sc.title, pre: join(sc.given), steps: join(sc.when), expect: join(sc.then),
-          status: sc.status||"draft" });
+          persona: perStory ? baCap(perStory) : null, status: sc.status||"draft" });
       });
     });
     (BA.state.requirements||[]).forEach(function(r){
       (r.scenarios||[]).forEach(function(sc){
         cases.push({ caseId: sc.id, group: r.title, groupId: r.id, groupKind: "Requirement",
           title: sc.title, pre: join(sc.given), steps: join(sc.when), expect: join(sc.then),
-          status: sc.status||"draft" });
+          persona: sc.persona ? baCap(sc.persona) : null, status: sc.status||"draft" });
       });
     });
     return cases;
@@ -2455,6 +2474,7 @@ function openHashSection(){
       g.items.forEach(function(c){
         L.push("### " + c.caseId + " — " + c.title);
         L.push("- **Status:** " + c.status);
+        L.push("- **Performed by (role):** " + (c.persona || "—"));
         L.push("- **Preconditions:** " + (c.pre || "—"));
         L.push("- **Steps:** " + (c.steps || "—"));
         L.push("- **Expected:** " + (c.expect || "—"));
@@ -2480,10 +2500,11 @@ function openHashSection(){
     (BA.state.userStories||[]).forEach(function(us){
       (us.scenarios||[]).forEach(function(sc){
         var ruleId = sc.ruleRef || null;
+        var persona = sc.persona || (us.narrative && us.narrative.asA) || null;
         out.push({ caseId: sc.id, scenarioId: sc.id, title: sc.title || "",
           storyId: us.id, storyTitle: us.title || "",
           ruleId: ruleId, ruleTitle: baRuleTitleIn(us, ruleId),
-          exampleId: sc.exampleRef || null,
+          exampleId: sc.exampleRef || null, persona: persona ? baCap(persona) : null,
           given: sc.given || [], when: sc.when || [], then: sc.then || [] });
       });
     });
@@ -2550,6 +2571,7 @@ function openHashSection(){
         '<div class="uatcase-head"><span class="uatcase-id">' + baEsc(c.caseId) + '</span>' +
         '<span class="uatcase-title">' + baEsc(c.title) + '</span></div>' +
         '<div class="uat-row"><span class="uat-lbl">Why</span><span class="uat-val">' + why + '</span></div>' +
+        '<div class="uat-row"><span class="uat-lbl">Performed by</span><span class="uat-val">' + (c.persona ? baEsc(c.persona) : '<span class="ex-null">&#8212;</span>') + '</span></div>' +
         '<div class="uat-row"><span class="uat-lbl">Context</span><span class="uat-val">' + ctx + '</span></div>' +
         '<div class="uat-row"><span class="uat-lbl">Steps</span><span class="uat-val">' + steps + '</span></div>' +
         '<div class="uat-row"><span class="uat-lbl">Expected</span><span class="uat-val">' + exp + '</span></div>' +
@@ -2570,7 +2592,7 @@ function openHashSection(){
    * An .xlsx is a ZIP (STORE, no compression) of XML parts. Cells are inline strings so
    * no sharedStrings part is needed. Styles cover the Example-Mapping template palette.  */
   var BAX = { NORMAL:0, BOLD:1, WRAP:2, BOLDWRAP:3, YELLOW:4, YELLOWWRAP:5,
-    BLUE:6, GREEN:7, GREENWRAP:8, ORANGE:9, ORANGEWRAP:10, GREY:11, HEADER:12 };
+    BLUE:6, GREEN:7, GREENWRAP:8, ORANGE:9, ORANGEWRAP:10, GREY:11, HEADER:12, LINK:13 };
 
   function baCrcTable(){
     if(baCrcTable._t) return baCrcTable._t;
@@ -2624,6 +2646,8 @@ function openHashSection(){
     while(n > 0){ var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
     return s;
   }
+  /* internal-workbook link target: 'Sheet Name'!A5 (sheet always single-quoted). */
+  function baXlLoc(sheet, ref){ return "'" + String(sheet==null?"":sheet).replace(/'/g,"''") + "'!" + ref; }
   function baXmlText(s){
     return baEsc(String(s==null?"":s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,""));
   }
@@ -2631,10 +2655,10 @@ function openHashSection(){
     return {
       name: name, _rows: [], _merges: [], _cols: [],
       _row: function(r){ while(this._rows.length <= r) this._rows.push({ cells:[], height:0 }); return this._rows[r]; },
-      cell: function(r,c,v,s){ var row = this._row(r); while(row.cells.length <= c) row.cells.push(null);
-        row.cells[c] = { v:v, s:s }; return this; },
-      box: function(r1,c1,r2,c2,v,s){
-        for(var r=r1;r<=r2;r++){ for(var c=c1;c<=c2;c++){ this.cell(r,c,(r===r1&&c===c1)?v:"", s); } }
+      cell: function(r,c,v,s,link){ var row = this._row(r); while(row.cells.length <= c) row.cells.push(null);
+        row.cells[c] = { v:v, s:s, link:link||null }; return this; },
+      box: function(r1,c1,r2,c2,v,s,link){
+        for(var r=r1;r<=r2;r++){ for(var c=c1;c<=c2;c++){ this.cell(r,c,(r===r1&&c===c1)?v:"", s, (r===r1&&c===c1)?link:null); } }
         if(!(r1===r2 && c1===c2)) this._merges.push(baColName(c1)+(r1+1)+":"+baColName(c2)+(r2+1));
         return this;
       },
@@ -2656,7 +2680,7 @@ function openHashSection(){
       });
       cols += "</cols>";
     }
-    var rowsXml = "";
+    var rowsXml = "", hl = [];
     sheet.rows.forEach(function(row, ri){
       var r = ri + 1, attr = ' r="'+r+'"';
       if(row.height){ attr += ' ht="'+row.height+'" customHeight="1"'; }
@@ -2666,6 +2690,7 @@ function openHashSection(){
         var ref = baColName(ci) + r;
         var s = (cell.s != null) ? (' s="'+cell.s+'"') : '';
         var v = cell.v == null ? "" : String(cell.v);
+        if(cell.link) hl.push({ ref:ref, loc:cell.link });
         if(v === "") cells += '<c r="'+ref+'"'+s+'/>';
         else cells += '<c r="'+ref+'"'+s+' t="inlineStr"><is><t xml:space="preserve">'+baXmlText(v)+'</t></is></c>';
       });
@@ -2677,17 +2702,24 @@ function openHashSection(){
       sheet.merges.forEach(function(m){ merges += '<mergeCell ref="'+m+'"/>'; });
       merges += '</mergeCells>';
     }
+    var links = "";
+    if(hl.length){
+      links = '<hyperlinks>';
+      hl.forEach(function(h){ links += '<hyperlink ref="'+h.ref+'" location="'+baXmlText(h.loc)+'" display="'+baXmlText(h.loc)+'"/>'; });
+      links += '</hyperlinks>';
+    }
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
       '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-      cols + '<sheetData>' + rowsXml + '</sheetData>' + merges + '</worksheet>';
+      cols + '<sheetData>' + rowsXml + '</sheetData>' + merges + links + '</worksheet>';
   }
   function baXlsxStyles(){
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
       '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-      '<fonts count="3">' +
+      '<fonts count="4">' +
       '<font><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/></font>' +
       '<font><b/><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/></font>' +
       '<font><b/><sz val="12"/><color theme="1"/><name val="Calibri"/><family val="2"/></font>' +
+      '<font><u/><sz val="11"/><color rgb="FF0563C1"/><name val="Calibri"/><family val="2"/></font>' +
       '</fonts>' +
       '<fills count="7">' +
       '<fill><patternFill patternType="none"/></fill>' +
@@ -2703,7 +2735,7 @@ function openHashSection(){
       '<border><left/><right/><top/><bottom style="thin"><color indexed="64"/></bottom><diagonal/></border>' +
       '</borders>' +
       '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-      '<cellXfs count="13">' +
+      '<cellXfs count="14">' +
       '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
       '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
       '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
@@ -2717,6 +2749,7 @@ function openHashSection(){
       '<xf numFmtId="0" fontId="0" fillId="5" borderId="0" xfId="0" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
       '<xf numFmtId="0" fontId="1" fillId="6" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
       '<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment vertical="bottom" wrapText="1"/></xf>' +
+      '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
       '</cellXfs>' +
       '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
       '</styleSheet>';
@@ -2779,12 +2812,12 @@ function openHashSection(){
     used[t.toLowerCase()] = true;
     return t;
   }
-  function baStorySheet(us, used){
+  function baStorySheet(us, tabName, lk){
     var rules = us.rules || [];
     var R = rules.length;
     var gridW = Math.max(R*2, 2);
     var qCol = gridW + 1;
-    var sb = baSheetBuilder(baTabName(us.id || us.title, used));
+    var sb = baSheetBuilder(tabName);
     for(var ci=0;ci<gridW;ci++){ sb.colW(ci, 22); }
     sb.colW(gridW, 3); sb.colW(qCol, 32); sb.colW(qCol+1, 14);
     var r = 0;
@@ -2811,7 +2844,8 @@ function openHashSection(){
     var scens = us.scenarios || [];
     if(!scens.length){ sb.box(r,0,r,gridW-1,"No formulated scenarios yet.",BAX.WRAP); r++; }
     scens.forEach(function(sc){
-      sb.box(r,0,r,gridW-1,sc.title||"",BAX.BOLDWRAP); r++;
+      var scLink = (lk && lk.caseRow && lk.caseRow[sc.id]) ? baXlLoc(lk.uatName, "A"+lk.caseRow[sc.id]) : null;
+      sb.box(r,0,r,gridW-1,sc.title||"",scLink?BAX.LINK:BAX.BOLDWRAP,scLink); r++;
       [["given","Given"],["when","When"],["then","Then"]].forEach(function(kw){
         (sc[kw[0]]||[]).forEach(function(cl,idx){
           sb.box(r,0,r,gridW-1,(idx===0?kw[1]:"And")+": "+cl,BAX.WRAP); r++;
@@ -2834,12 +2868,12 @@ function openHashSection(){
     return sb.done();
   }
   function baRowH(lines){ var n = Math.max(1, lines); return Math.min(15 + (n-1)*14, 220); }
-  function baUatSheet(){
+  function baUatSheet(lk){
     var cases = baStoryUatCases();
     var sb = baSheetBuilder("UAT scripts");
-    var head = ["Case ID","Title","Why (story → rule)","Context / Preconditions",
+    var head = ["Case ID","Title","Performed by (role)","Why (story → rule)","Context / Preconditions",
       "Steps","Expected result / what to look for","Traces","Result","Tester notes"];
-    var widths = [16,26,26,30,34,30,30,12,20];
+    var widths = [16,26,20,26,30,34,30,30,12,20];
     widths.forEach(function(w,i){ sb.colW(i,w); });
     head.forEach(function(h,i){ sb.cell(0,i,h,BAX.HEADER); });
     sb.rowH(0,26);
@@ -2853,15 +2887,17 @@ function openHashSection(){
       if(c.exampleId) tr.push("example " + c.exampleId);
       if(c.ruleId) tr.push("rule " + c.ruleId);
       if(c.storyId) tr.push("story " + c.storyId);
-      var vals = [c.caseId, c.title, why, ctx, steps, exp, tr.join(" · "), "", ""];
+      var vals = [c.caseId, c.title, c.persona || "", why, ctx, steps, exp, tr.join(" · "), "", ""];
       vals.forEach(function(v,i){ sb.cell(row,i,v,BAX.WRAP); });
+      var stLink = (lk && lk.storyTab && lk.storyTab[c.storyId]) ? baXlLoc(lk.storyTab[c.storyId], "A1") : null;
+      if(stLink) sb.cell(row,0,c.caseId,BAX.LINK,stLink);
       var maxLines = Math.max(c.given.length, c.when.length, c.then.length, 1);
       sb.rowH(row, baRowH(maxLines));
     });
     if(!cases.length){ sb.box(1,0,1,head.length-1,"No user-story scenarios to derive UAT cases from yet.",BAX.WRAP); }
     return sb.done();
   }
-  function baTraceSheet(){
+  function baTraceSheet(lk){
     var cases = baStoryUatCases();
     var sb = baSheetBuilder("Traceability");
     var head = ["Story","Rule","Example","Scenario","UAT case"];
@@ -2880,6 +2916,10 @@ function openHashSection(){
         c.caseId || "—"
       ];
       vals.forEach(function(v,i){ sb.cell(row,i,v,BAX.WRAP); });
+      var stLink = (lk && lk.storyTab && lk.storyTab[c.storyId]) ? baXlLoc(lk.storyTab[c.storyId], "A1") : null;
+      if(stLink) sb.cell(row,0,vals[0],BAX.LINK,stLink);
+      var uatLink = (lk && lk.uatName && c.caseId) ? baXlLoc(lk.uatName, "A"+(row+1)) : null;
+      if(uatLink) sb.cell(row,4,vals[4],BAX.LINK,uatLink);
     });
     if(!cases.length){ sb.box(1,0,1,head.length-1,"No user-story scenarios to trace yet.",BAX.WRAP); }
     return sb.done();
@@ -2895,9 +2935,17 @@ function openHashSection(){
   function baExportXlsx(){
     baBuildIdMap();
     var used = {}, sheets = [];
-    (BA.state.userStories||[]).forEach(function(us){ sheets.push(baStorySheet(us, used)); });
-    sheets.push(baUatSheet());
-    sheets.push(baTraceSheet());
+    var cases = baStoryUatCases();
+    var caseRow = {};  // scenarioId -> its excel row on the UAT scripts / Traceability sheets
+    cases.forEach(function(c,i){ caseRow[c.scenarioId] = i + 2; });
+    var storyTab = {};
+    var lk = { storyTab: storyTab, caseRow: caseRow, uatName: "UAT scripts", traceName: "Traceability" };
+    (BA.state.userStories||[]).forEach(function(us){
+      var nm = baTabName(us.id || us.title, used); storyTab[us.id] = nm;
+      sheets.push(baStorySheet(us, nm, lk));
+    });
+    sheets.push(baUatSheet(lk));
+    sheets.push(baTraceSheet(lk));
     var p = BA.state.project || {};
     var bytes = baXlsx(sheets, { title: (p.name || "Project") + " — Example Mapping" });
     baDownloadBytes(baPid() + "-example-mapping.xlsx", bytes,
@@ -3166,6 +3214,61 @@ function openHashSection(){
   }
 
   /* ====================== validation (port, incl. userStories) ====================== */
+  /* method-standard advisory checks (Example Mapping / BDD) — non-blocking.
+     Returns [{msg, red}]. Surfaced by baPaintMethodWarnings on load (both the
+     zero-code viewer and the static render.py dashboard); never blocks save. */
+  function baMethodWarnings(state){
+    var W = [];
+    function warn(msg, red){ W.push({ msg: msg, red: !!red }); }
+    var fn = (state.requirements||[]).filter(function(r){ return r.kind === "functional"; });
+    if(fn.length) warn("requirements: " + fn.length + " functional item" + (fn.length===1?"":"s") +
+      " present — the routing rule sends functional/behavioural requirements to user stories; re-digest or move them", false);
+    (state.userStories||[]).forEach(function(us){
+      var rules = us.rules || [], scens = us.scenarios || [];
+      if(rules.length && !scens.length){
+        warn("story " + (us.id||"?") + " has " + rules.length + " rule" + (rules.length===1?"":"s") +
+          " but no scenarios — method requires ≥1 scenario per rule", true);
+      }
+      if(rules.length && rules.length < 3){
+        warn("method: story " + (us.id||"?") + " has " + rules.length + " rule" + (rules.length===1?"":"s") +
+          " — Example Mapping expects about 3 or more rules per story", false);
+      }
+      rules.forEach(function(ru){
+        var exs = ru.examples || [];
+        if(exs.length < 3){
+          warn("method: rule " + (ru.id||"?") + " has " + exs.length + " example" + (exs.length===1?"":"s") +
+            " — Example Mapping expects about 3 or more examples per rule", false);
+        }
+        if(scens.length && !scens.some(function(s){ return s.ruleRef === ru.id; })){
+          warn("method: rule " + (ru.id||"?") + " (story " + (us.id||"?") + ") has no scenario referencing it — traceability will show gaps", false);
+        }
+      });
+      scens.forEach(function(sc){
+        if(!sc.ruleRef){
+          warn("scenario " + (sc.id||"?") + " is not linked to a rule (ruleRef) — traceability will show gaps", false);
+        } else if(!sc.exampleRef){
+          warn("scenario " + (sc.id||"?") + " links to rule " + sc.ruleRef + " but has no exampleRef — example-level traceability is incomplete", false);
+        }
+      });
+    });
+    return W;
+  }
+  function baPaintMethodWarnings(){
+    var old = document.getElementById('ba-mwarn'); if(old) old.remove();
+    if(BA.editing) return;
+    var W = baMethodWarnings(BA.state);
+    if(!W.length) return;
+    var wrap = document.querySelector('.wrap') || document.body;
+    var reds = 0; W.forEach(function(x){ if(x.red) reds++; });
+    var div = document.createElement('div');
+    div.className = 'ba-mwarn'; div.id = 'ba-mwarn';
+    div.innerHTML = '<div class="ba-mwarn-h"><span class="ba-mwarn-dot"></span>' + W.length +
+      ' method ' + (W.length===1?'check':'checks') + (reds ? ' · ' + reds + ' need attention' : '') +
+      ' — advisory, nothing is blocked</div><ul>' +
+      W.map(function(x){ return '<li' + (x.red?' class="red"':'') + '>' + baEsc(x.msg) + '</li>'; }).join('') +
+      '</ul>';
+    wrap.insertBefore(div, wrap.firstChild);
+  }
   function baValidate(state){
     var errors = [], DATE = /^\d{4}-\d{2}-\d{2}$/;
     function isObj(o){ return o!==null && typeof o==='object' && !Array.isArray(o); }
@@ -3271,6 +3374,7 @@ function openHashSection(){
     baBuildIdMap();
     baDecorate(true);
     baPaintStories(); baPaintRTM(); baPaintUat(); baPaintOKRs();
+    baPaintMethodWarnings();
     baSetTools();
     if(BA.host.onEdit) BA.host.onEdit(true);
   }
@@ -3279,6 +3383,7 @@ function openHashSection(){
     document.body.classList.remove('ba-editing');
     baClearBanner();
     baSetTools();
+    baPaintMethodWarnings();
     if(BA.host.onEdit) BA.host.onEdit(false);
   }
   function baDiscardRequest(){
@@ -3315,6 +3420,7 @@ function openHashSection(){
     });
     baDecorate(false);
     baPaintStories(); baPaintRTM(); baPaintUat(); baPaintOKRs();
+    baPaintMethodWarnings();
   }
   function baSave(){
     baCommitActive();
@@ -3533,6 +3639,7 @@ function openHashSection(){
     baPaintRTM();
     baPaintUat();
     baPaintOKRs();
+    baPaintMethodWarnings();
     baWireEditButton();
     baSetTools();
     if(!baListenersOn){
@@ -4260,7 +4367,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.7 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.8 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
