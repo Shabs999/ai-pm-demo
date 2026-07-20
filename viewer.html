@@ -370,6 +370,10 @@ tr:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
   border:0; border-radius:var(--r2); padding:11px 22px; cursor:pointer; }
 .dz-btn:hover{ filter:brightness(1.05); }
 .dz-note{ color:var(--muted); font-size:11.5px; margin-top:var(--sp5); line-height:1.6; }
+/* Feature C — one-click reopen banner at the top of the drop zone */
+.dz-reopen{ margin-bottom:var(--sp5); padding-bottom:var(--sp5); border-bottom:1px solid var(--axis); }
+.dz-btn-primary{ font-size:14px; font-weight:600; padding:12px 24px; }
+.dz-reopen-note{ color:var(--muted); font-size:11.5px; margin-top:9px; line-height:1.5; }
 .dz-err{ color:var(--st-late); font-size:12.5px; margin-top:var(--sp4); font-weight:500; }
 .dz-input{ position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; }
 /* paste-JSON affordance in the drop zone */
@@ -394,6 +398,9 @@ tr:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
 .pastebar-dl{ flex:none; font:inherit; font-size:12.5px; font-weight:600; color:var(--accent-ink);
   background:var(--accent); border:0; border-radius:var(--r2); padding:8px 16px; cursor:pointer; }
 .pastebar-dl:hover{ filter:brightness(1.05); }
+.pastebar-dl2{ flex:none; font:inherit; font-size:12.5px; font-weight:500; color:var(--ink2);
+  background:transparent; border:1px solid var(--axis); border-radius:var(--r2); padding:7px 14px; cursor:pointer; }
+.pastebar-dl2:hover{ color:var(--ink); border-color:var(--muted); }
 .pastebar-x{ flex:none; background:none; border:0; color:var(--muted); font-size:17px; line-height:1;
   padding:4px 6px; border-radius:6px; cursor:pointer; }
 .pastebar-x:hover{ color:var(--ink); }
@@ -578,6 +585,7 @@ tr:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
 .ex-clause{ color:var(--ink); min-width:0; }
 .ex-null{ color:var(--muted); font-style:italic; }
 .us-sc-list{ display:flex; flex-direction:column; gap:var(--sp2); }
+.us-rule-sc{ margin-top:var(--sp2); }
 .sc-head-right{ display:inline-flex; align-items:center; gap:var(--sp2); flex:none; }
 .us-redcards{ margin-top:var(--sp3); display:flex; flex-direction:column; gap:var(--sp2); }
 .redcard{ display:flex; gap:8px; align-items:baseline; font-size:12.5px; color:var(--ink);
@@ -629,6 +637,10 @@ tr:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
   box-shadow:inset 0 -1px 0 var(--axis); }
 .ba-ce:empty::before{ content:"—"; color:var(--muted); }
 .ba-ce:focus{ box-shadow:inset 0 -1px 0 var(--accent);
+  background:color-mix(in srgb,var(--accent) 8%,transparent); }
+.head-ce{ display:inline-block; max-width:100%; outline:none; border-radius:4px; box-shadow:inset 0 -1px 0 var(--axis); }
+.head-ce:empty::before{ content:"—"; color:var(--muted); }
+.head-ce:focus{ box-shadow:inset 0 -1px 0 var(--accent);
   background:color-mix(in srgb,var(--accent) 8%,transparent); }
 .ba-sel,.ba-date{ font:inherit; font-size:12px; color:var(--ink); background:var(--surface);
   border:1px solid var(--axis); border-radius:6px; padding:2px 6px; max-width:100%; vertical-align:middle; }
@@ -1380,7 +1392,7 @@ function buildHeader(state){
   var open_risks = (state.risks || []).filter(function(r){ return r.status === "open" || r.status === "mitigating"; }).length;
   var open_conf = (state.conflicts || []).filter(function(c){ return c.status === "open"; }).length;
   var vendors = (p.vendors || []).join(" · ");
-  var sub = esc(p.client) + (vendors ? ("  ·  " + esc(vendors)) : "");
+  var sub = '<span id="head-client">' + esc(p.client) + '</span>' + (vendors ? ("  ·  " + esc(vendors)) : "");
   var n_art = (state.artifacts || []).length;
   var conf_stat = open_conf ? ('<div class="stat stat-warn"><span class="stat-n">' + open_conf + '</span>' +
                   '<span class="stat-l">' + plural(open_conf, "Open conflict") + '</span></div>') : "";
@@ -1393,7 +1405,7 @@ function buildHeader(state){
                '</span><span class="stat-l">OKR score</span></div>'; }
   return '<header class="head">' +
     '<div class="head-main"><div class="head-id">' +
-    '<h1>' + esc(p.name) + '</h1>' +
+    '<h1 id="head-name">' + esc(p.name) + '</h1>' +
     '<div class="head-sub">' + sub + '</div></div>' +
     '<div class="verdict verdict-' + level + '">' +
     '<span class="verdict-dot"></span>' +
@@ -1654,8 +1666,10 @@ function assembleDashboard(state, meta){
   parts.push(section("actions", "Action items", renderActions(state, today), (state.actions || []).length));
   parts.push(section("raid", "RAID — risks, issues & dependencies", renderRaid(state)));
   parts.push(section("decisions", "Decisions log", renderDecisions(state), (state.decisions || []).length, "No decisions recorded yet."));
-  parts.push(section("requirements", "Requirements & use cases", renderRequirements(state), (state.requirements || []).length, "No requirements recorded yet."));
-  parts.push("<section class=\"card\" data-collapsed=\"true\" data-sec=\"userstories\" id=\"ba-us-sec\" hidden>\n  <button class=\"sec-head\" aria-expanded=\"false\"><h2>User stories</h2><span class=\"count\" id=\"ba-us-count\">0</span><span class=\"sec-help\" role=\"link\" tabindex=\"0\" data-help=\"userstories\" title=\"How this section works\" aria-label=\"How this section works\">?</span>\n    <span class=\"chev\" aria-hidden=\"true\"></span></button>\n  <div class=\"sec-body\"><div id=\"ba-us-body\"></div></div>\n</section>");
+  if((state.requirements || []).length){
+    parts.push(section("requirements", "Non-functional & constraints", renderRequirements(state), (state.requirements || []).length));
+  }
+  parts.push("<section class=\"card\" data-collapsed=\"true\" data-sec=\"userstories\" id=\"ba-us-sec\" hidden>\n  <button class=\"sec-head\" aria-expanded=\"false\"><h2>BDD requirements — user stories, rules &amp; scenarios</h2><span class=\"count\" id=\"ba-us-count\">0</span><span class=\"sec-help\" role=\"link\" tabindex=\"0\" data-help=\"userstories\" title=\"How this section works\" aria-label=\"How this section works\">?</span>\n    <span class=\"chev\" aria-hidden=\"true\"></span></button>\n  <div class=\"sec-body\"><div id=\"ba-us-body\"></div></div>\n</section>");
   parts.push("<section class=\"card\" data-collapsed=\"true\" data-sec=\"rtm\" id=\"ba-rtm-sec\" hidden>\n  <button class=\"sec-head\" aria-expanded=\"false\"><h2>Traceability (RTM)</h2><span class=\"sec-help\" role=\"link\" tabindex=\"0\" data-help=\"rtm\" title=\"How this section works\" aria-label=\"How this section works\">?</span>\n    <span class=\"chev\" aria-hidden=\"true\"></span></button>\n  <div class=\"sec-body\"><div id=\"ba-rtm-body\"></div></div>\n</section>");
   parts.push("<section class=\"card\" data-collapsed=\"true\" data-sec=\"uat\" id=\"ba-uat-sec\" hidden>\n  <button class=\"sec-head\" aria-expanded=\"false\"><h2>UAT script</h2><span class=\"count\" id=\"ba-uat-count\">0</span><span class=\"sec-help\" role=\"link\" tabindex=\"0\" data-help=\"uat\" title=\"How this section works\" aria-label=\"How this section works\">?</span>\n    <span class=\"chev\" aria-hidden=\"true\"></span></button>\n  <div class=\"sec-body\"><div id=\"ba-uat-body\"></div></div>\n</section>");
   parts.push(section("questions", "Open questions", renderQuestions(state), (state.openQuestions || []).length, "No open questions."));
@@ -1686,7 +1700,7 @@ function assembleDashboard(state, meta){
   app.innerHTML = '<div class="wrap">' + parts.join("\n") + '</div>';
   wireInteractivity();
   wireFeatures(state, new Date());
-  baInit(state, { afterSave: function(s){ renderState(s, meta.name); }, discard: function(pris){ renderState(pris, meta.name); } });
+  baInit(state, { afterSave: function(s){ renderState(s, meta.name); }, discard: function(pris){ renderState(pris, meta.name); }, onEdit: decorateHeader });
   if(!hashOpened){ hashOpened = true; openHashSection(); }
 
   var rb = document.getElementById("reload-btn");
@@ -1733,15 +1747,54 @@ function openPop(el, x, y){
 document.addEventListener("click", function(e){ if(pop && !pop.contains(e.target)) closePop(); });
 document.addEventListener("keydown", function(e){ if(e.key === "Escape") closePop(); });
 window.addEventListener("resize", closePop, true);
+window.addEventListener("scroll", closePop, { passive: true });
 
 function wireProvenance(root){
   (root || document).querySelectorAll(".prov").forEach(function(el){
     if(el.__provWired) return; el.__provWired = true;
-    el.addEventListener("click", function(e){ e.stopPropagation(); openPop(el, e.clientX, e.clientY); });
+    el.addEventListener("click", function(e){
+      if(document.body.classList.contains("ba-editing")) return;  // edits, not popover
+      e.stopPropagation(); openPop(el, e.clientX, e.clientY);
+    });
     el.addEventListener("keydown", function(e){
+      if(document.body.classList.contains("ba-editing")) return;
+      // ignore Space/Enter typed inside an editable field (would swallow the character)
+      var t = e.target;
+      if(t && t.closest && t.closest('[contenteditable="true"],input,textarea,select')) return;
       if(e.key === "Enter" || e.key === " "){ e.preventDefault();
         var r = el.getBoundingClientRect(); openPop(el, r.left + 20, r.bottom); }
     });
+  });
+}
+
+/* Feature A — make the project name + client line editable in edit mode.
+   The header is host-rendered; the BA block calls this via host.onEdit(on).
+   Project is a singleton (not in the id-map) and has no history array in the
+   schema, so — matching how lastEdited/lastDigest are written — scalar project
+   fields update in place WITHOUT manual-edit history entries. */
+function decorateHeader(on){
+  [["head-name","name"],["head-client","client"]].forEach(function(pair){
+    var el = document.getElementById(pair[0]); if(!el) return;
+    var field = pair[1];
+    if(on){
+      el.setAttribute("contenteditable", "true");
+      el.setAttribute("spellcheck", "false");
+      el.classList.add("head-ce");
+      if(!el.__headWired){
+        el.__headWired = true;
+        el.addEventListener("input", function(){
+          if(!BA.state.project) BA.state.project = {};
+          var v = el.textContent.replace(/\s+/g, " ").replace(/^\s+/, "");
+          BA.state.project[field] = v;
+          BA.dirty = true;
+          if(field === "name") document.title = (v ? v : "AI PM") + " — Dashboard";
+        });
+      }
+    } else {
+      el.removeAttribute("contenteditable");
+      el.classList.remove("head-ce");
+      el.textContent = (BA.state.project && BA.state.project[field]) || "";
+    }
   });
 }
 
@@ -2238,15 +2291,16 @@ function openHashSection(){
       line("Action", "examples", "action", ex.action) +
       line("Outcome", "examples", "outcome", ex.outcome) + '</div>';
   }
-  function baRuleCard(us, ru){
+  function baRuleCard(us, ru, scens){
     var exs = (ru.examples||[]).map(function(ex){ return baExampleRow(ru, ex); }).join('') ||
       (BA.editing ? '' : '<div class="ex-line"><span class="ex-clause ex-null">No examples yet.</span></div>');
     var del = BA.editing ? baDelBtn("rules", ru.id) : "";
     var add = BA.editing ? baAddBtn("example", ru.id, "+ Example") : "";
+    var sc = (scens && scens.length) ? ('<div class="us-sc-list us-rule-sc">' + scens.map(baScenario).join('') + '</div>') : "";
     return '<div class="rule prov" tabindex="0" data-kind="rule" data-id="' + baEsc(ru.id) + '"' +
       '>' +
       '<div class="rule-title">' + baText("rules", ru.id, "title", ru.title) + del + '</div>' +
-      exs + add + '</div>';
+      exs + add + sc + '</div>';
   }
   function baScenario(sc){
     var st = sc.status || "draft";
@@ -2289,13 +2343,22 @@ function openHashSection(){
     return '<div class="us-redcards">' + items + '</div>';
   }
   function baStoryCard(us){
-    var rules = (us.rules||[]).map(function(ru){ return baRuleCard(us, ru); }).join('');
+    var scens = us.scenarios || [];
+    var matched = {};
+    var rules = (us.rules||[]).map(function(ru){
+      var rs = scens.filter(function(s){ return s.ruleRef === ru.id; });
+      rs.forEach(function(s){ matched[s.id] = true; });
+      return baRuleCard(us, ru, rs);
+    }).join('');
     var addRule = BA.editing ? baAddBtn("rule", us.id, "+ Rule") : "";
-    var scen = (us.scenarios||[]).map(baScenario).join('');
+    var other = scens.filter(function(s){ return !matched[s.id]; });
+    var anyMatched = scens.length > other.length;
+    var scLabel = anyMatched ? "Other scenarios" : "Scenarios";
+    var scen = other.map(baScenario).join('');
     var addSc = BA.editing ? baAddBtn("scenario", us.id, "+ Scenario") : "";
     var del = BA.editing ? baDelBtn("userStories", us.id) : "";
     var rulesBlock = (rules || BA.editing) ? ('<div class="us-sub-h">Rules &amp; examples</div><div class="us-rules">' + rules + addRule + '</div>') : "";
-    var scBlock = (scen || BA.editing) ? ('<div class="us-sub-h">Formulated scenarios</div><div class="us-sc-list">' + scen + addSc + '</div>') : "";
+    var scBlock = (scen || BA.editing) ? ('<div class="us-sub-h">' + scLabel + '</div><div class="us-sc-list">' + scen + addSc + '</div>') : "";
     return '<div class="us prov" tabindex="0" data-kind="us" data-id="' + baEsc(us.id) + '"' +
       ((us.sources&&us.sources.length)?' data-sources="' + baEsc(us.sources.join(" ")) + '"':'') + '>' +
       '<div class="us-head"><span class="us-title">' + baText("userStories", us.id, "title", us.title) + '</span>' +
@@ -3209,12 +3272,14 @@ function openHashSection(){
     baDecorate(true);
     baPaintStories(); baPaintRTM(); baPaintUat(); baPaintOKRs();
     baSetTools();
+    if(BA.host.onEdit) BA.host.onEdit(true);
   }
   function baExitEditVisual(){
     BA.editing = false;
     document.body.classList.remove('ba-editing');
     baClearBanner();
     baSetTools();
+    if(BA.host.onEdit) BA.host.onEdit(false);
   }
   function baDiscardRequest(){
     // leaving edit mode without saving: inline confirm (never window.confirm)
@@ -3962,7 +4027,7 @@ function mergeDelta(base, delta){
   var bits = [nUpdated + " item" + (nUpdated === 1 ? "" : "s") + " updated", nAdded + " added"];
   if(nArtifact) bits.push(nArtifact + " new artifact" + (nArtifact === 1 ? "" : "s"));
   if(nIgnored) bits.push(nIgnored + " unknown section" + (nIgnored === 1 ? "" : "s") + " ignored");
-  PASTE_INFO = "Delta merged — " + bits.join(", ") + " — verify below, then Download state.json.";
+  PASTE_INFO = "Delta merged — " + bits.join(", ") + " — verify below, then save state.json.";
   PASTE_WARN = null;
   PASTED = true;
   pasteBarDismissed = false;
@@ -4009,15 +4074,33 @@ function mountPasteBar(state){
     : (PASTE_INFO
         ? esc(PASTE_INFO)
         : 'Loaded from pasted JSON — verify below, then save it to SharePoint as <code>state.json</code>');
+  // when a live read-write handle exists, the primary action writes the file in
+  // place (Feature C.3/C.4); otherwise it downloads a copy as before.
+  var inPlace = pasteHasHandle();
+  var primary = inPlace
+    ? '<button type="button" class="pastebar-dl" id="pastebar-dl">Save to state.json</button>' +
+      '<button type="button" class="pastebar-dl2" id="pastebar-dl2">Download copy</button>'
+    : '<button type="button" class="pastebar-dl" id="pastebar-dl">Download state.json</button>';
   bar.innerHTML =
-    '<span class="pastebar-txt">' + txt + '</span>' +
-    '<button type="button" class="pastebar-dl" id="pastebar-dl">Download state.json</button>' +
+    '<span class="pastebar-txt">' + txt + '</span>' + primary +
     '<button type="button" class="pastebar-x" id="pastebar-x" aria-label="Dismiss">×</button>';
   wrap.insertBefore(bar, wrap.firstChild);
   var dl = bar.querySelector("#pastebar-dl");
-  if(dl) dl.addEventListener("click", function(){ hostDownloadJSON(state); });
+  if(dl) dl.addEventListener("click", function(){
+    if(pasteHasHandle()) pasteSaveInPlace(state); else hostDownloadJSON(state);
+  });
+  var dl2 = bar.querySelector("#pastebar-dl2");
+  if(dl2) dl2.addEventListener("click", function(){ hostDownloadJSON(state); });
   var x = bar.querySelector("#pastebar-x");
   if(x) x.addEventListener("click", function(){ pasteBarDismissed = true; bar.remove(); });
+}
+function pasteHasHandle(){ return !!(baFileHandle && baFileHandle.createWritable); }
+function pasteSaveInPlace(state){
+  var text = JSON.stringify(state, null, 2);
+  baFileHandle.createWritable().then(function(w){
+    return Promise.resolve(w.write(text)).then(function(){ return w.close(); });
+  }).then(function(){ baToast("Saved to state.json ✓"); })
+    .catch(function(){ hostDownloadJSON(state); });
 }
 
 function showPasteError(msg){
@@ -4091,6 +4174,68 @@ function fetchState(url, name, dropOnFail){
   });
 }
 
+/* ---- persistent file handle (Feature C) — Chromium File System Access API ----
+   A FileSystemFileHandle structured-clones into IndexedDB, so a returning visitor
+   can reopen the same state.json (one permission click) and save back in place.
+   Everything here is feature-detected; browsers without the APIs behave as before. */
+function idbOpen(){
+  return new Promise(function(resolve, reject){
+    if(!window.indexedDB){ reject(new Error("no indexedDB")); return; }
+    var req = indexedDB.open("aipm", 1);
+    req.onupgradeneeded = function(){ req.result.createObjectStore("handles"); };
+    req.onsuccess = function(){ resolve(req.result); };
+    req.onerror = function(){ reject(req.error); };
+  });
+}
+function idbPutHandle(handle){
+  return idbOpen().then(function(db){
+    return new Promise(function(resolve, reject){
+      var tx = db.transaction("handles", "readwrite");
+      tx.objectStore("handles").put(handle, "state");
+      tx.oncomplete = function(){ db.close(); resolve(true); };
+      tx.onerror = function(){ db.close(); reject(tx.error); };
+    });
+  }).catch(function(){ return false; });
+}
+function idbGetHandle(){
+  return idbOpen().then(function(db){
+    return new Promise(function(resolve, reject){
+      var tx = db.transaction("handles", "readonly");
+      var r = tx.objectStore("handles").get("state");
+      r.onsuccess = function(){ db.close(); resolve(r.result || null); };
+      r.onerror = function(){ db.close(); reject(r.error); };
+    });
+  }).catch(function(){ return null; });
+}
+function idbDelHandle(){
+  return idbOpen().then(function(db){
+    return new Promise(function(resolve){
+      var tx = db.transaction("handles", "readwrite");
+      tx.objectStore("handles").delete("state");
+      tx.oncomplete = function(){ db.close(); resolve(true); };
+      tx.onerror = function(){ db.close(); resolve(false); };
+    });
+  }).catch(function(){ return false; });
+}
+/* keep the handle live in-module AND persist it for next visit */
+function rememberHandle(h){ baFileHandle = h || null; if(h) idbPutHandle(h); }
+/* reopen a persisted handle: request permission, read, load, keep it live */
+function reopenFromHandle(h){
+  if(!h || !h.requestPermission){
+    idbDelHandle(); showDropZone("Couldn't reopen that file — open it manually below.",
+      "Open or drag your state.json here"); return;
+  }
+  Promise.resolve(h.requestPermission({ mode: "readwrite" })).then(function(perm){
+    if(perm !== "granted") throw new Error("permission " + perm);
+    baFileHandle = h;
+    return h.getFile();
+  }).then(function(f){ readFile(f); }).catch(function(){
+    idbDelHandle();
+    showDropZone("That file is no longer reachable — open it manually below.",
+      "Open or drag your state.json here");
+  });
+}
+
 function showDropZone(errMsg, title){
   closePop();
   document.title = "AI PM — Dashboard viewer";
@@ -4133,7 +4278,7 @@ function showDropZone(errMsg, title){
   pick.addEventListener("click", function(){
     if(window.showOpenFilePicker){
       window.showOpenFilePicker({ types:[{ description:"JSON", accept:{ "application/json":[".json"] } }] })
-        .then(function(hs){ baFileHandle = hs[0]; return hs[0].getFile(); })
+        .then(function(hs){ rememberHandle(hs[0]); return hs[0].getFile(); })
         .then(function(f){ readFile(f); })
         .catch(function(e){ if(!(e && e.name === "AbortError")) input.click(); });
     } else { input.click(); }
@@ -4150,12 +4295,41 @@ function showDropZone(errMsg, title){
   });
   zone.addEventListener("drop", function(e){
     e.preventDefault(); e.stopPropagation(); zone.classList.remove("drag");
-    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    var dt = e.dataTransfer;
+    var f = dt && dt.files && dt.files[0];
+    var item = dt && dt.items && dt.items[0];
+    // Chromium exposes a live FileSystemFileHandle on the drop — capture it so
+    // the dropped file gets the same reopen/save-in-place treatment as picker opens.
+    if(item && item.getAsFileSystemHandle){
+      Promise.resolve(item.getAsFileSystemHandle()).then(function(h){
+        if(h && h.kind === "file"){ rememberHandle(h); return h.getFile().then(function(hf){ readFile(hf); }); }
+        if(f) readFile(f);
+      }).catch(function(){ if(f) readFile(f); });
+      return;
+    }
     if(f) readFile(f);
   });
   // swallow drops elsewhere on the page so the browser doesn't navigate away
   document.addEventListener("dragover", preventNav);
   document.addEventListener("drop", preventNav);
+
+  // Feature C — offer one-click reopen of the last file when a handle is stored.
+  if(window.indexedDB){
+    idbGetHandle().then(function(h){
+      if(!h) return;
+      var host = document.getElementById("dropzone");
+      if(!host) return;
+      var fname = h.name || "state.json";
+      var re = document.createElement("div");
+      re.className = "dz-reopen";
+      re.innerHTML = '<button class="dz-btn dz-btn-primary" id="dz-reopen-btn" type="button">Reopen ' +
+        esc(fname) + '</button>' +
+        '<div class="dz-reopen-note">picks up where you left off — one permission click may appear</div>';
+      host.insertBefore(re, host.firstChild);
+      var rb = document.getElementById("dz-reopen-btn");
+      if(rb) rb.addEventListener("click", function(){ reopenFromHandle(h); });
+    });
+  }
 }
 function preventNav(e){ e.preventDefault(); }
 
