@@ -122,6 +122,12 @@ tr.ask-pulse>td{ animation:ask-pulse 1s ease-out 1; }
 .sec-head h2{ font-size:15px; letter-spacing:-.006em; }
 .card:not([data-collapsed="true"]) .sec-head{ border-bottom:1px solid var(--grid); }
 .sec-head .count{ font-size:12px; }
+.sec-help{ flex:0 0 auto; box-sizing:border-box; display:inline-flex;
+  align-items:center; justify-content:center; width:16px; height:16px; padding:0;
+  border:1px solid var(--muted); border-radius:50%; color:var(--muted);
+  font-size:11px; font-weight:600; line-height:1; text-decoration:none; cursor:pointer;
+  transition:color .15s,border-color .15s; }
+.sec-help:hover,.sec-help:focus-visible{ color:var(--accent); border-color:var(--accent); }
 .chev{ margin-left:auto; width:9px; height:9px; border-right:2px solid var(--muted);
   border-bottom:2px solid var(--muted); transform:rotate(45deg); transition:transform .15s; }
 .card[data-collapsed="true"] .chev{ transform:rotate(-45deg); }
@@ -1033,6 +1039,7 @@ function renderRoadmap(state, tl){
 
   return '<section class="card hero" data-sec="roadmap" data-collapsed="' + collapsedAttr("roadmap") + '">' +
     '<button class="sec-head" aria-expanded="' + expandedAria("roadmap") + '"><h2>Roadmap</h2>' +
+    secHelp("roadmap") +
     '<span class="chev" aria-hidden="true"></span></button>' +
     '<div class="sec-body">' +
     '<div class="legend">' + legend + '</div>' +
@@ -1043,12 +1050,17 @@ function renderRoadmap(state, tl){
     '</div></div></section>';
 }
 
+function secHelp(key){
+  return '<span class="sec-help" role="link" tabindex="0" data-help="' + esc(key) +
+    '" title="How this section works" aria-label="How this section works">?</span>';
+}
+
 function section(secKey, title, body, count, empty){
   if(empty === undefined) empty = "Nothing recorded yet.";
   var cnt = (count !== undefined && count !== null) ? '<span class="count">' + count + '</span>' : "";
   var inner = (body && body.trim()) ? body : '<p class="empty">' + esc(empty) + '</p>';
   return '<section class="card" data-sec="' + esc(secKey) + '" data-collapsed="' + collapsedAttr(secKey) + '">' +
-    '<button class="sec-head" aria-expanded="' + expandedAria(secKey) + '"><h2>' + esc(title) + '</h2>' + cnt +
+    '<button class="sec-head" aria-expanded="' + expandedAria(secKey) + '"><h2>' + esc(title) + '</h2>' + cnt + secHelp(secKey) +
     '<span class="chev" aria-hidden="true"></span></button>' +
     '<div class="sec-body">' + inner + '</div></section>';
 }
@@ -1207,6 +1219,7 @@ function renderRequirements(state){
 function whatChangedShell(){
   return '<section class="card" data-sec="whatchanged" data-collapsed="' + collapsedAttr("whatchanged") + '">' +
     '<button class="sec-head" aria-expanded="' + expandedAria("whatchanged") + '"><h2>What changed</h2>' +
+    secHelp("whatchanged") +
     '<span class="chev" aria-hidden="true"></span></button>' +
     '<div class="sec-body">' +
     '<div class="wc-range" role="group" aria-label="Change range">' +
@@ -1261,7 +1274,7 @@ function renderConflicts(state){
                'need' + (n === 1 ? "s" : "") + ' review</div>';
   return '<section class="card cf-card" data-sec="conflicts" data-collapsed="' + collapsedAttr("conflicts") + '">' +
     '<button class="sec-head" aria-expanded="' + expandedAria("conflicts") + '"><h2>Conflicts</h2>' +
-    '<span class="count">' + n + '</span><span class="chev" aria-hidden="true"></span></button>' +
+    '<span class="count">' + n + '</span>' + secHelp("conflicts") + '<span class="chev" aria-hidden="true"></span></button>' +
     '<div class="sec-body">' + banner + '<ul class="cf-list">' + rows + '</ul></div></section>';
 }
 
@@ -1635,16 +1648,16 @@ function assembleDashboard(state, meta){
   var tl = buildTimeline(state, today);
   parts.push(renderRoadmap(state, tl));
   parts.push(whatChangedShell());
-  parts.push("<section class=\"card\" data-collapsed=\"true\" data-sec=\"okrs\" id=\"ba-okr-sec\" hidden>\n  <button class=\"sec-head\" aria-expanded=\"false\"><h2>OKRs</h2><span class=\"count\" id=\"ba-okr-count\">0</span>\n    <span class=\"chev\" aria-hidden=\"true\"></span></button>\n  <div class=\"sec-body\"><div id=\"ba-okr-body\"></div></div>\n</section>");
+  parts.push("<section class=\"card\" data-collapsed=\"true\" data-sec=\"okrs\" id=\"ba-okr-sec\" hidden>\n  <button class=\"sec-head\" aria-expanded=\"false\"><h2>OKRs</h2><span class=\"count\" id=\"ba-okr-count\">0</span><span class=\"sec-help\" role=\"link\" tabindex=\"0\" data-help=\"okrs\" title=\"How this section works\" aria-label=\"How this section works\">?</span>\n    <span class=\"chev\" aria-hidden=\"true\"></span></button>\n  <div class=\"sec-body\"><div id=\"ba-okr-body\"></div></div>\n</section>");
 
   parts.push(section("milestones", "Milestones", renderMilestonesTable(state), (state.milestones || []).length));
   parts.push(section("actions", "Action items", renderActions(state, today), (state.actions || []).length));
   parts.push(section("raid", "RAID — risks, issues & dependencies", renderRaid(state)));
   parts.push(section("decisions", "Decisions log", renderDecisions(state), (state.decisions || []).length, "No decisions recorded yet."));
   parts.push(section("requirements", "Requirements & use cases", renderRequirements(state), (state.requirements || []).length, "No requirements recorded yet."));
-  parts.push("<section class=\"card\" data-collapsed=\"true\" data-sec=\"userstories\" id=\"ba-us-sec\" hidden>\n  <button class=\"sec-head\" aria-expanded=\"false\"><h2>User stories</h2><span class=\"count\" id=\"ba-us-count\">0</span>\n    <span class=\"chev\" aria-hidden=\"true\"></span></button>\n  <div class=\"sec-body\"><div id=\"ba-us-body\"></div></div>\n</section>");
-  parts.push("<section class=\"card\" data-collapsed=\"true\" data-sec=\"rtm\" id=\"ba-rtm-sec\" hidden>\n  <button class=\"sec-head\" aria-expanded=\"false\"><h2>Traceability (RTM)</h2>\n    <span class=\"chev\" aria-hidden=\"true\"></span></button>\n  <div class=\"sec-body\"><div id=\"ba-rtm-body\"></div></div>\n</section>");
-  parts.push("<section class=\"card\" data-collapsed=\"true\" data-sec=\"uat\" id=\"ba-uat-sec\" hidden>\n  <button class=\"sec-head\" aria-expanded=\"false\"><h2>UAT script</h2><span class=\"count\" id=\"ba-uat-count\">0</span>\n    <span class=\"chev\" aria-hidden=\"true\"></span></button>\n  <div class=\"sec-body\"><div id=\"ba-uat-body\"></div></div>\n</section>");
+  parts.push("<section class=\"card\" data-collapsed=\"true\" data-sec=\"userstories\" id=\"ba-us-sec\" hidden>\n  <button class=\"sec-head\" aria-expanded=\"false\"><h2>User stories</h2><span class=\"count\" id=\"ba-us-count\">0</span><span class=\"sec-help\" role=\"link\" tabindex=\"0\" data-help=\"userstories\" title=\"How this section works\" aria-label=\"How this section works\">?</span>\n    <span class=\"chev\" aria-hidden=\"true\"></span></button>\n  <div class=\"sec-body\"><div id=\"ba-us-body\"></div></div>\n</section>");
+  parts.push("<section class=\"card\" data-collapsed=\"true\" data-sec=\"rtm\" id=\"ba-rtm-sec\" hidden>\n  <button class=\"sec-head\" aria-expanded=\"false\"><h2>Traceability (RTM)</h2><span class=\"sec-help\" role=\"link\" tabindex=\"0\" data-help=\"rtm\" title=\"How this section works\" aria-label=\"How this section works\">?</span>\n    <span class=\"chev\" aria-hidden=\"true\"></span></button>\n  <div class=\"sec-body\"><div id=\"ba-rtm-body\"></div></div>\n</section>");
+  parts.push("<section class=\"card\" data-collapsed=\"true\" data-sec=\"uat\" id=\"ba-uat-sec\" hidden>\n  <button class=\"sec-head\" aria-expanded=\"false\"><h2>UAT script</h2><span class=\"count\" id=\"ba-uat-count\">0</span><span class=\"sec-help\" role=\"link\" tabindex=\"0\" data-help=\"uat\" title=\"How this section works\" aria-label=\"How this section works\">?</span>\n    <span class=\"chev\" aria-hidden=\"true\"></span></button>\n  <div class=\"sec-body\"><div id=\"ba-uat-body\"></div></div>\n</section>");
   parts.push(section("questions", "Open questions", renderQuestions(state), (state.openQuestions || []).length, "No open questions."));
   parts.push(renderConflicts(state));
   var pk = renderParkingLot(state);
@@ -2304,8 +2317,6 @@ function openHashSection(){
   function baRTMBody(){
     var stories = BA.state.userStories || [];
     var bar = '<div class="rtm-bar">' +
-      '<button class="rx-btn" type="button" id="ba-rtm-csv">Export RTM (CSV)</button>' +
-      '<button class="rx-btn" type="button" id="ba-uat-csv">Export UAT (CSV)</button>' +
       '<button class="rx-btn" type="button" id="ba-uat-md">Export UAT (MD)</button></div>';
     if(!stories.length) return bar + '<p class="empty">No user stories to trace yet.</p>';
     var rows = "";
@@ -2348,23 +2359,6 @@ function openHashSection(){
   }
   function baPid(){ return (BA.state.project && BA.state.project.id) || 'project'; }
 
-  function baExportRTM(){
-    var rows = [["Story ID","Story","Rule","Examples","Scenario IDs","Status","Sources"]];
-    (BA.state.userStories||[]).forEach(function(us){
-      var scIds = (us.scenarios||[]).map(function(s){ return s.id; }).join(" ");
-      var srcs = (us.sources||[]).join(" ");
-      var rules = us.rules || [];
-      if(!rules.length){
-        rows.push([us.id, us.title, "", 0, scIds, us.status||"", srcs]);
-      } else {
-        rules.forEach(function(ru){
-          rows.push([us.id, us.title, ru.title, (ru.examples||[]).length, scIds, us.status||"", srcs]);
-        });
-      }
-    });
-    baDownload(baPid() + "-rtm.csv", baCsv(rows), "text/csv");
-  }
-
   function baUatCases(){
     var cases = [];
     function join(a){ return (a||[]).join("; "); }
@@ -2383,13 +2377,6 @@ function openHashSection(){
       });
     });
     return cases;
-  }
-  function baExportUatCsv(){
-    var rows = [["Case ID","Type","Story / Requirement","Test title","Preconditions","Steps","Expected","Status"]];
-    baUatCases().forEach(function(c){
-      rows.push([c.caseId, c.groupKind, c.group, c.title, c.pre, c.steps, c.expect, c.status]);
-    });
-    baDownload(baPid() + "-uat.csv", baCsv(rows), "text/csv");
   }
   function baExportUatMd(){
     var cases = baUatCases();
@@ -3014,8 +3001,6 @@ function openHashSection(){
     var stories = BA.state.userStories || [];
     sec.hidden = !(stories.length > 0);
     body.innerHTML = baRTMBody();
-    var b1 = document.getElementById('ba-rtm-csv'); if(b1) b1.addEventListener('click', function(e){ e.stopPropagation(); baExportRTM(); });
-    var b2 = document.getElementById('ba-uat-csv'); if(b2) b2.addEventListener('click', function(e){ e.stopPropagation(); baExportUatCsv(); });
     var b3 = document.getElementById('ba-uat-md'); if(b3) b3.addEventListener('click', function(e){ e.stopPropagation(); baExportUatMd(); });
   }
   function baPaintOKRs(){
@@ -3809,6 +3794,15 @@ function wireInteractivity(){
       card.setAttribute("data-collapsed", col ? "false" : "true");
       h.setAttribute("aria-expanded", col ? "true" : "false");
       saveSections();
+    });
+  });
+
+  // Section "?" help links: open how-it-works.html without toggling the collapse.
+  document.querySelectorAll(".sec-help").forEach(function(el){
+    function go(){ window.open("how-it-works.html#help-" + el.getAttribute("data-help"), "_blank", "noopener"); }
+    el.addEventListener("click", function(e){ e.stopPropagation(); e.preventDefault(); go(); });
+    el.addEventListener("keydown", function(e){
+      if(e.key === "Enter" || e.key === " " || e.key === "Spacebar"){ e.stopPropagation(); e.preventDefault(); go(); }
     });
   });
 

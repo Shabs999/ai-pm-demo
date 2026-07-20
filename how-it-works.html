@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI PM — Every meeting updates the picture</title>
+<style>
+  :root{
+    --plane:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+    --ring:#e4e3de; --accent:#0a6dc2; --good:#1a7f37; --warn:#9a6700; --warnbg:#fff3d6;
+    --goodbg:#e9f4ec; --accentbg:#e8f1fa; --cta:#0a6dc2; --ctaink:#fff;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --plane:#0d0d0d; --surface:#1a1a19; --ink:#f5f5f2; --ink2:#c3c2b7; --muted:#898781;
+      --ring:#2e2d2a; --accent:#66a9e0; --good:#57ab5a; --warn:#d4a72c; --warnbg:#2a2416;
+      --goodbg:#16241a; --accentbg:#14212e; --cta:#2f81d1; --ctaink:#fff; }
+  }
+  *{ box-sizing:border-box; margin:0; }
+  body{ background:var(--plane); color:var(--ink);
+    font:14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding:44px 24px 56px; }
+  .wrap{ max-width:1040px; margin:0 auto; }
+  .kicker{ font-size:11px; font-weight:600; letter-spacing:.08em; text-indent:.08em;
+    text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+  h1{ font-size:30px; line-height:1.2; letter-spacing:-.015em; max-width:700px; }
+  .sub{ color:var(--ink2); margin-top:10px; max-width:620px; font-size:15px; }
+  .cta{ display:inline-block; margin-top:20px; background:var(--cta); color:var(--ctaink);
+    font-weight:600; font-size:14px; border-radius:10px; padding:12px 22px; text-decoration:none; }
+  section{ margin-top:40px; }
+  h2{ font-size:15px; margin-bottom:14px; }
+
+  .stakes{ background:var(--surface); border:1px solid var(--ring); border-left:3px solid var(--warn);
+    border-radius:12px; padding:18px 20px; max-width:820px; }
+  .stakes p{ color:var(--ink2); }
+  .stakes b{ color:var(--ink); }
+
+  .flow{ display:flex; align-items:stretch; gap:0; }
+  .step{ flex:1; background:var(--surface); border:1px solid var(--ring); border-radius:12px;
+    padding:18px 18px 16px; }
+  .arrow{ flex:0 0 34px; display:flex; align-items:center; justify-content:center;
+    color:var(--muted); font-size:18px; }
+  .num{ width:24px; height:24px; border-radius:50%; background:var(--ink); color:var(--plane);
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600;
+    margin-bottom:10px; }
+  .step h3{ font-size:14px; margin-bottom:6px; }
+  .step p{ font-size:12.5px; color:var(--ink2); }
+  .step .eg{ margin-top:10px; display:flex; flex-wrap:wrap; gap:4px; }
+  .chip{ font-size:10px; font-weight:600; letter-spacing:.05em; text-indent:.05em;
+    text-transform:uppercase; color:var(--ink2); background:var(--plane);
+    border:1px solid var(--ring); border-radius:999px; padding:2px 8px; }
+
+  .guide{ display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:900px; }
+  .gcard{ background:var(--surface); border:1px solid var(--ring); border-radius:12px; padding:18px; }
+  .gcard h3{ font-size:13px; margin-bottom:6px; }
+  .gcard p{ font-size:12.5px; color:var(--ink2); }
+
+  .paths{ display:grid; grid-template-columns:1fr; gap:16px; max-width:640px; }
+  .path{ background:var(--surface); border:1px solid var(--ring); border-radius:12px; padding:18px;
+    display:flex; flex-direction:column; }
+  .path.rec{ border-color:var(--good); }
+  .badge{ display:inline-block; align-self:flex-start; font-size:10px; font-weight:600; letter-spacing:.05em;
+    text-indent:.05em; text-transform:uppercase; border-radius:999px; padding:3px 9px; margin-bottom:10px; }
+  .badge.work{ background:var(--goodbg); color:var(--good); }
+  .badge.home{ background:var(--accentbg); color:var(--accent); }
+  .path h3{ font-size:14px; margin-bottom:6px; }
+  .path p{ font-size:12.5px; color:var(--ink2); }
+  .path ol{ margin:10px 0 12px 18px; font-size:12.5px; color:var(--ink2); }
+  .path li{ margin-top:4px; }
+  .path li b{ color:var(--ink); font-weight:600; }
+  .boundary{ margin-top:auto; font-size:12px; border-radius:8px; padding:8px 10px; }
+  .boundary.ok{ background:var(--goodbg); color:var(--good); }
+  .boundary.warn{ background:var(--warnbg); color:var(--warn); }
+
+  .after{ background:var(--surface); border:1px solid var(--ring); border-radius:12px;
+    padding:18px 20px; max-width:820px; }
+  .after p{ color:var(--ink2); }
+  .after b{ color:var(--ink); }
+  .idea{ margin-top:40px; text-align:center; font-size:17px; font-weight:600; }
+  .foot{ margin-top:18px; font-size:11.5px; color:var(--muted); text-align:center; }
+
+  .help-list{ display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:900px; }
+  .help-block{ background:var(--surface); border:1px solid var(--ring); border-radius:12px;
+    padding:18px; scroll-margin-top:20px; }
+  .help-block h3{ font-size:13px; margin-bottom:6px; }
+  .help-block p{ font-size:12.5px; color:var(--ink2); }
+  .help-block:target{ border-color:var(--accent); box-shadow:0 0 0 2px var(--accentbg); }
+  .backtop{ display:inline-block; margin-top:10px; font-size:11px; color:var(--muted); text-decoration:none; }
+  .backtop:hover{ color:var(--accent); }
+
+  @media (max-width:860px){
+    .flow{ flex-direction:column; }
+    .arrow{ transform:rotate(90deg); flex-basis:26px; }
+    .paths,.guide,.help-list{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">AI PM</div>
+  <h1>One picture of your project — current as of the last meeting.</h1>
+  <p class="sub">Roadmap, decisions, risks, and who owes what — assembled automatically from the
+  meetings you already record. <b>Every meeting updates the picture.</b></p>
+  <a class="cta" href="#plan">Drop in your first transcript</a>
+
+  <section>
+    <div class="stakes">
+      <p><b>The villain is the meeting black hole.</b> Teams records everything — and nobody digests
+      any of it. Decisions evaporate, action items die inside transcripts, a workstream stalls for
+      weeks before anyone notices. So when someone asks <i>"where are we?"</i>, you're managing from
+      memory — and hoping. Information you already paid for shouldn't disappear.</p>
+    </div>
+  </section>
+
+  <section id="plan">
+    <h2>The living-picture loop — three steps, every meeting</h2>
+    <div class="flow">
+      <div class="step">
+        <div class="num">1</div>
+        <h3>Drop</h3>
+        <p>Transcript, email, BRD, design doc — everything goes into <b>one inbox folder</b>.
+        No filing, no naming, no folders.</p>
+        <div class="eg"><span class="chip">.vtt</span><span class="chip">.docx</span>
+        <span class="chip">email</span><span class="chip">BRD</span><span class="chip">design doc</span></div>
+      </div>
+      <div class="arrow">&#8594;</div>
+      <div class="step">
+        <div class="num">2</div>
+        <h3>Digest</h3>
+        <p>The system extracts milestones, decisions, actions, risks &amp; requirements and
+        <b>merges them into one project state</b>. A moved date is flagged, never silently
+        rewritten. What fits nowhere is parked — <b>nothing is dropped</b>.</p>
+      </div>
+      <div class="arrow">&#8594;</div>
+      <div class="step">
+        <div class="num">3</div>
+        <h3>See the picture</h3>
+        <p>Open the dashboard: roadmap with milestones, RAID, decisions, open questions — every
+        item traceable to the meeting it came from. <b>Every meeting updates the picture.</b></p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Why trust it</h2>
+    <div class="guide">
+      <div class="gcard">
+        <h3>Built by someone who lived this</h3>
+        <p>Multi-vendor projects, stakeholders across teams, forty transcripts nobody read — we know
+        the sinking feeling of a steering committee asking for status you don't have.</p>
+      </div>
+      <div class="gcard">
+        <h3>Your data never leaves your ecosystem</h3>
+        <p>Runs inside your Microsoft 365 tenant — Copilot does the reading, SharePoint holds the
+        picture. Nothing to install, nothing sent to a third party, nothing for IT to veto.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where the digest runs — pick per machine</h2>
+    <div class="paths">
+      <div class="path rec">
+        <span class="badge work">Work computer</span>
+        <h3>In-tenant: M365 Copilot does the extraction</h3>
+        <ol>
+          <li>Give the <b>Digester agent</b> the current <b>state.json</b> + the new artifact</li>
+          <li>Save the JSON reply back to <b>SharePoint</b></li>
+          <li>Open the dashboard page — validated &amp; rendered in the browser</li>
+        </ol>
+        <div class="boundary ok">&#10003; Meeting content never leaves the company's Microsoft 365 boundary.</div>
+      </div>
+      
+    </div>
+  </section>
+
+  <section>
+    <div class="after">
+      <p><b>After:</b> a stakeholder opens the dashboard and knows in one minute where the project
+      stands, what changed this week, and who owes what. You go from <i>"let me get back to you"</i>
+      to <b>the person who always has the picture</b> — and the meeting black hole goes hungry.</p>
+    </div>
+  </section>
+
+  <section id="help">
+    <h2>How each dashboard section works</h2>
+    <div class="help-list">
+      <div class="help-block" id="help-roadmap">
+        <h3>Roadmap</h3>
+        <p>The project's milestones on a timeline, one lane per workstream. Pill color = status
+        (planned, on track, at risk, late, done). Click a milestone to see where that date came
+        from — every fact traces to a source document.</p>
+        <a class="backtop" href="#help">Back to top &#8593;</a>
+      </div>
+      <div class="help-block" id="help-whatchanged">
+        <h3>What changed</h3>
+        <p>A digest-by-digest log of what each new artifact changed — new items, changed dates,
+        status moves. Use the range buttons to see what changed since yesterday, last week, or the
+        last steering meeting.</p>
+        <a class="backtop" href="#help">Back to top &#8593;</a>
+      </div>
+      <div class="help-block" id="help-okrs">
+        <h3>OKRs</h3>
+        <p>Objectives and Key Results extracted from stated goals. Objectives are qualitative and
+        time-bound; each key result is measurable (start &#8594; target &#8594; current). Scores
+        compute only from numbers a source actually stated — the system never invents figures. Draft
+        until the team adopts them.</p>
+        <a class="backtop" href="#help">Back to top &#8593;</a>
+      </div>
+      <div class="help-block" id="help-milestones">
+        <h3>Milestones</h3>
+        <p>Every dated commitment, its workstream, status and confidence. History is kept — when a
+        date moves, the old date stays on record with the source that moved it.</p>
+        <a class="backtop" href="#help">Back to top &#8593;</a>
+      </div>
+      <div class="help-block" id="help-actions">
+        <h3>Action items</h3>
+        <p>Action items with owner, due date and status. Overdue items are flagged. Nothing is marked
+        done unless a source said it was done.</p>
+        <a class="backtop" href="#help">Back to top &#8593;</a>
+      </div>
+      <div class="help-block" id="help-raid">
+        <h3>RAID &mdash; risks, issues &amp; dependencies</h3>
+        <p>Risks, issues and dependencies. Severity comes from what sources said, not from opinion.
+        Dependencies track who is waiting on whom, and by when.</p>
+        <a class="backtop" href="#help">Back to top &#8593;</a>
+      </div>
+      <div class="help-block" id="help-decisions">
+        <h3>Decisions log</h3>
+        <p>Decisions as stated in meetings and documents, each with its source. If a later artifact
+        contradicts an earlier decision, a conflict is raised instead of silently overwriting.</p>
+        <a class="backtop" href="#help">Back to top &#8593;</a>
+      </div>
+      <div class="help-block" id="help-requirements">
+        <h3>Requirements &amp; use cases</h3>
+        <p>Non-functional and technical constraints — performance, security, compliance,
+        environment — plus classic use-case documents imported as-is. Functional behavior lives in
+        User stories instead.</p>
+        <a class="backtop" href="#help">Back to top &#8593;</a>
+      </div>
+      <div class="help-block" id="help-userstories">
+        <h3>User stories</h3>
+        <p>Requirements in BDD form via Example Mapping: each story carries rules (the story's
+        testable aspects), concrete examples per rule in plain business language, and Gherkin
+        scenarios formulated from the key examples. Everything starts as draft; team agreement
+        promotes it.</p>
+        <a class="backtop" href="#help">Back to top &#8593;</a>
+      </div>
+      <div class="help-block" id="help-rtm">
+        <h3>Traceability (RTM)</h3>
+        <p>The traceability matrix — which scenarios cover which story and rule, and where gaps are.
+        Derived automatically from the user stories; it is never maintained by hand.</p>
+        <a class="backtop" href="#help">Back to top &#8593;</a>
+      </div>
+      <div class="help-block" id="help-uat">
+        <h3>UAT script</h3>
+        <p>User-acceptance test scripts derived from the Gherkin scenarios. Each case tells the
+        tester why the test exists (story and rule), the preconditions, the steps, and exactly what
+        to look for. Each case traces back through scenario &#8594; example &#8594; rule &#8594;
+        story.</p>
+        <a class="backtop" href="#help">Back to top &#8593;</a>
+      </div>
+      <div class="help-block" id="help-questions">
+        <h3>Open questions</h3>
+        <p>Open questions the sources could not answer — including blocking unknowns raised while
+        mapping stories (red cards). This list is the agenda for your next requirements workshop.</p>
+        <a class="backtop" href="#help">Back to top &#8593;</a>
+      </div>
+      <div class="help-block" id="help-conflicts">
+        <h3>Conflicts</h3>
+        <p>Contradictions between sources: what was said before, what was said now, and both sources.
+        Conflicts stay open until a decision resolves them — disagreement is made visible, never
+        averaged away.</p>
+        <a class="backtop" href="#help">Back to top &#8593;</a>
+      </div>
+      <div class="help-block" id="help-artifacts">
+        <h3>Artifact feed</h3>
+        <p>Every document, transcript and email that has been digested, with date and a one-line
+        summary. This is the provenance feed — every item on the dashboard links back to entries
+        here.</p>
+        <a class="backtop" href="#help">Back to top &#8593;</a>
+      </div>
+      <div class="help-block" id="help-team">
+        <h3>Team &amp; stakeholders</h3>
+        <p>Stakeholders mentioned in the sources, grouped by organisation, with roles where
+        stated.</p>
+        <a class="backtop" href="#help">Back to top &#8593;</a>
+      </div>
+      <div class="help-block" id="help-parkinglot">
+        <h3>Parking lot</h3>
+        <p>Relevant information that fits no section yet. Recurring parking-lot themes become new
+        dashboard sections over time — this is how the system grows.</p>
+        <a class="backtop" href="#help">Back to top &#8593;</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="idea">Every meeting updates the picture.</div>
+  <div class="foot">AI PM &middot; next up: Power Automate makes the drop automatic &middot; July 2026</div>
+</div>
+</body>
+</html>
