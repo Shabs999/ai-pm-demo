@@ -346,6 +346,7 @@ body.ba-editing .stk-orgf::before{ content:"org"; margin-right:4px; font-size:9.
 .cop-item{ font:inherit; font-size:12.5px; text-align:left; padding:8px 11px; border:0; border-radius:6px;
   background:transparent; color:var(--ink); cursor:pointer; white-space:nowrap; }
 .cop-item:hover{ background:color-mix(in srgb,var(--muted) 10%,transparent); }
+.cop-menu[hidden]{ display:none !important; }
 .foot{ text-align:center; color:var(--muted); font-size:11.5px; margin-top:var(--sp5); }
 @media (max-width:720px){ .raid-grid,.stk-grid{ grid-template-columns:1fr; } .head-main{ flex-direction:column; }
   .stat-stamp{ margin-left:0; text-align:left; } }
@@ -1722,7 +1723,7 @@ function assembleDashboard(state, meta){
   // footer: render.py line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.9.1 · state validated against schema.json' +
+    ' · AI PM v4.9.2 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -1758,7 +1759,13 @@ function assembleDashboard(state, meta){
         cmenu.hidden = true; cbtn.setAttribute("aria-expanded", "false");
         baCopyCopilotMessage(cbtn, state, it.getAttribute("data-cmode")); });
     });
-    document.addEventListener("click", function(){ if(!cmenu.hidden){ cmenu.hidden = true; cbtn.setAttribute("aria-expanded", "false"); } });
+    if(!window.__copDocClose){
+      window.__copDocClose = true;
+      document.addEventListener("click", function(){
+        var m = document.getElementById("copilot-menu"), b = document.getElementById("copilot-msg");
+        if(m && !m.hidden){ m.hidden = true; if(b) b.setAttribute("aria-expanded", "false"); }
+      });
+    }
   }
 }
 
@@ -4199,19 +4206,43 @@ function normalizeDigest(state){
   (state.requirements || []).forEach(function(it){
     if(it && it.kind === "technical"){ it.kind = "non-functional"; nKind++; }
   });
-  var artIds = {};
-  (state.artifacts || []).forEach(function(a){ if(a && a.id) artIds[a.id] = true; });
+  var artIds = {}, artSquash = {};
+  function baSquash(s){ return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, ""); }
+  (state.artifacts || []).forEach(function(a){
+    if(!a || !a.id) return;
+    artIds[a.id] = true;
+    var q = baSquash(a.id);
+    artSquash[q] = (q in artSquash) ? "!ambiguous" : a.id;
+  });
+  function baResolveArt(p){
+    if(!p) return null;
+    if(artIds[p]) return p;
+    var hit = artSquash[baSquash(p)];
+    return (hit && hit !== "!ambiguous") ? hit : null;
+  }
   var nConfSrc = 0;
   (state.conflicts || []).forEach(function(c){
     if(!c) return;
     ["sourceOld","sourceNew"].forEach(function(f){
       var v = c[f];
-      if(typeof v === "string" && v.indexOf(",") !== -1){
-        var parts = v.split(",").map(function(x){ return x.trim(); }).filter(Boolean);
-        var hit = null;
-        parts.forEach(function(p){ if(!hit && artIds[p]) hit = p; });
-        if(hit){ c[f] = hit; nConfSrc++; }
-      }
+      if(typeof v !== "string" || !v.trim() || artIds[v]) return;
+      var parts = v.split(",").map(function(x){ return x.trim(); }).filter(Boolean);
+      var hit = null;
+      parts.forEach(function(p){ if(!hit) hit = baResolveArt(p); });
+      if(hit){ c[f] = hit; nConfSrc++; }
+    });
+  });
+  var nSrcFix = 0;
+  ["milestones","actions","decisions","risks","issues","dependencies","requirements",
+   "openQuestions","userStories","okrs","parkingLot","stakeholders","workstreams"].forEach(function(sec){
+    (state[sec] || []).forEach(function(it){
+      if(!it || !Array.isArray(it.sources)) return;
+      it.sources = it.sources.map(function(sid){
+        if(artIds[sid]) return sid;
+        var r = baResolveArt(sid);
+        if(r){ nSrcFix++; return r; }
+        return sid;
+      });
     });
   });
   if(nPeople) notes.push(nPeople + " stakeholder" + (nPeople === 1 ? "" : "s") + " auto-created from named owners");
@@ -4220,7 +4251,8 @@ function normalizeDigest(state){
   if(nTitle) notes.push(nTitle + " title" + (nTitle === 1 ? "" : "s") + " recovered from a differently named field");
   if(nDepSt) notes.push(nDepSt + " dependency status" + (nDepSt === 1 ? "" : "es") + " normalized (active → open)");
   if(nKind) notes.push(nKind + " requirement kind" + (nKind === 1 ? "" : "s") + " normalized (technical → non-functional)");
-  if(nConfSrc) notes.push(nConfSrc + " conflict source ref" + (nConfSrc === 1 ? "" : "s") + " reduced to a single artifact id");
+  if(nConfSrc) notes.push(nConfSrc + " conflict source ref" + (nConfSrc === 1 ? "" : "s") + " repaired to a real artifact id");
+  if(nSrcFix) notes.push(nSrcFix + " source ref" + (nSrcFix === 1 ? "" : "s") + " matched to the correct artifact id");
   return notes;
 }
 
@@ -4751,7 +4783,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.9.1 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.9.2 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
