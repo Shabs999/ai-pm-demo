@@ -331,6 +331,13 @@ tr:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
 .stk:hover{ background:color-mix(in srgb,var(--muted) 7%,transparent); }
 .stk-name{ font-weight:500; }
 .stk-role{ font-size:12px; color:var(--muted); text-align:right; }
+.stk-role:empty{ display:none; }
+.stk-orgf{ display:none; font-size:12px; color:var(--muted); }
+body.ba-editing .stk-orgf{ display:inline-block; }
+body.ba-editing .stk-role::before{ content:"role"; margin-right:4px; font-size:9.5px; font-weight:700;
+  letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
+body.ba-editing .stk-orgf::before{ content:"org"; margin-right:4px; font-size:9.5px; font-weight:700;
+  letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
 
 .foot{ text-align:center; color:var(--muted); font-size:11.5px; margin-top:var(--sp5); }
 @media (max-width:720px){ .raid-grid,.stk-grid{ grid-template-columns:1fr; } .head-main{ flex-direction:column; }
@@ -652,7 +659,9 @@ tr:focus-visible{ outline:2px solid var(--accent); outline-offset:-2px; }
   border-radius:5px; cursor:pointer; }
 .ba-del:hover{ background:color-mix(in srgb,var(--st-late) 14%,transparent); }
 .ba-del-sm{ width:15px; height:15px; font-size:11px; }
-.ba-confirm{ display:inline-flex; align-items:center; gap:6px; margin-left:6px; vertical-align:middle; }
+.ba-confirm{ display:inline-flex; align-items:center; gap:6px; margin-left:6px; vertical-align:middle;
+  position:relative; z-index:6; background:var(--surface); border:1px solid var(--st-late);
+  border-radius:14px; padding:2px 8px; white-space:nowrap; box-shadow:0 2px 10px rgba(0,0,0,.22); }
 .ba-discard-confirm{ display:inline-flex; align-items:center; gap:6px; margin-left:var(--sp1); }
 .ba-confirm-q{ font-size:11px; color:var(--st-late); font-weight:600; }
 .ba-cy,.ba-cn{ font:inherit; font-size:11px; padding:2px 8px; border-radius:5px; cursor:pointer;
@@ -1317,9 +1326,10 @@ function renderStakeholders(state){
   if(!orgs.length) return "";
   var blocks = orgs.map(function(org){
     var people = seen[org].map(function(s){
-      var role = s.role ? ('<span class="stk-role">' + esc(s.role) + '</span>') : "";
-      return '<li class="stk prov" tabindex="0" data-kind="stk"' + provAttrs(s) + '>' +
-        '<span class="stk-name">' + esc(s.name) + '</span>' + role + '</li>';
+      return '<li class="stk prov" tabindex="0" data-kind="stk" data-eitem="stakeholders" data-id="' + esc(s.id) + '"' + provAttrs(s) + '>' +
+        '<span class="stk-name" data-ef="name">' + esc(s.name) + '</span>' +
+        '<span class="stk-role" data-ef="role">' + esc(s.role == null ? "" : s.role) + '</span>' +
+        '<span class="stk-orgf" data-ef="org">' + esc(s.org == null ? "" : s.org) + '</span></li>';
     }).join("");
     return '<div class="stk-org"><h3>' + esc(org) + '<span class="count">' + seen[org].length + '</span></h3>' +
       '<ul class="stk-list">' + people + '</ul></div>';
@@ -1699,7 +1709,7 @@ function assembleDashboard(state, meta){
   // footer: render.py line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.8.1 · state validated against schema.json' +
+    ' · AI PM v4.8.2 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -3144,7 +3154,8 @@ function openHashSection(){
   }
   function baBlankLegacy(coll){
     var ids = baAllIds(BA.state), obj, prefix, label;
-    if(coll==='actions'){ obj = { id: baUid('act-','new action'), title:"New action", owner:null, due:null, status:"open", sources:[], history:[] }; }
+    if(coll==='stakeholders'){ obj = { id: baUid('stk-','new person'), name:"New person", org:null, role:null, sources:[] }; }
+    else if(coll==='actions'){ obj = { id: baUid('act-','new action'), title:"New action", owner:null, due:null, status:"open", sources:[], history:[] }; }
     else if(coll==='risks'){ obj = { id: baUid('risk-','new risk'), title:"New risk", severity:"medium", likelihood:null, mitigation:null, status:"open", sources:[], history:[] }; }
     else if(coll==='openQuestions'){ obj = { id: baUid('q-','new question'), question:"New question", raisedBy:null, date:baToday(), status:"open", answer:null, sources:[], history:[] }; }
     else if(coll==='parkingLot'){ obj = { id: baUid('pk-','new note'), note:"New parked note", context:null, date:baToday(), suggestion:null, sources:[] }; }
@@ -3154,6 +3165,12 @@ function openHashSection(){
     return obj;
   }
   function baLegacyRowHtml(coll, obj){
+    if(coll==='stakeholders'){
+      return '<li class="stk prov ba-newrow" data-eitem="stakeholders" data-id="' + baEsc(obj.id) + '">' +
+        '<span class="stk-name" data-ef="name">' + baText("stakeholders", obj.id, "name", obj.name) + baDelBtn("stakeholders", obj.id) + '</span>' +
+        '<span class="stk-role" data-ef="role">' + baText("stakeholders", obj.id, "role", obj.role) + '</span>' +
+        '<span class="stk-orgf" data-ef="org">' + baText("stakeholders", obj.id, "org", obj.org) + '</span></li>';
+    }
     if(coll==='actions'){
       return '<tr class="prov ba-newrow" data-eitem="actions" data-id="' + baEsc(obj.id) + '">' +
         '<td data-ef="title">' + baText("actions", obj.id, "title", obj.title) + baDelBtn("actions", obj.id) + '</td>' +
@@ -3200,7 +3217,7 @@ function openHashSection(){
     document.querySelectorAll('[data-eitem]').forEach(function(el){ baDecorateItem(el, on); });
     // per-section add buttons for legacy collections; locate the section via an
     // existing item's marker so it works regardless of data-sec slug (differs per renderer)
-    var adds = [["actions","+ Action"],["risks","+ Risk"],
+    var adds = [["stakeholders","+ Person"],["actions","+ Action"],["risks","+ Risk"],
       ["openQuestions","+ Question"],["parkingLot","+ Parking item"]];
     adds.forEach(function(a){
       var item = document.querySelector('[data-eitem="' + a[0] + '"]');
@@ -4433,7 +4450,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.8.1 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.8.2 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
