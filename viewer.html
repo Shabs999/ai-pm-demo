@@ -1709,7 +1709,7 @@ function assembleDashboard(state, meta){
   // footer: render.py line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.8.6 · state validated against schema.json' +
+    ' · AI PM v4.8.7 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -4152,9 +4152,31 @@ function normalizeDigest(state){
   (state.requirements || []).forEach(function(it){
     if(it && it.status === "draft"){ it.status = "proposed"; nReqSt++; }
   });
+  var nTitle = 0;
+  ["milestones","actions","risks","issues","dependencies","requirements"].forEach(function(sec){
+    (state[sec] || []).forEach(function(it){
+      if(!it || (typeof it.title === "string" && it.title.trim())) return;
+      var alt = null;
+      ["name","label","milestone","text","summary","description"].forEach(function(f){
+        if(!alt && typeof it[f] === "string" && it[f].trim()) alt = it[f].trim();
+      });
+      if(alt){ it.title = alt; nTitle++; }
+    });
+  });
+  var nDepSt = 0;
+  (state.dependencies || []).forEach(function(it){
+    if(it && it.status === "active"){ it.status = "open"; nDepSt++; }
+  });
+  var nKind = 0;
+  (state.requirements || []).forEach(function(it){
+    if(it && it.kind === "technical"){ it.kind = "non-functional"; nKind++; }
+  });
   if(nPeople) notes.push(nPeople + " stakeholder" + (nPeople === 1 ? "" : "s") + " auto-created from named owners");
   if(nSum) notes.push(nSum + " decision summar" + (nSum === 1 ? "y" : "ies") + " recovered");
   if(nReqSt) notes.push(nReqSt + " requirement status" + (nReqSt === 1 ? "" : "es") + " normalized (draft → proposed)");
+  if(nTitle) notes.push(nTitle + " title" + (nTitle === 1 ? "" : "s") + " recovered from a differently named field");
+  if(nDepSt) notes.push(nDepSt + " dependency status" + (nDepSt === 1 ? "" : "es") + " normalized (active → open)");
+  if(nKind) notes.push(nKind + " requirement kind" + (nKind === 1 ? "" : "s") + " normalized (technical → non-functional)");
   return notes;
 }
 
@@ -4455,7 +4477,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.8.6 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.8.7 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
