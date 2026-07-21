@@ -1723,7 +1723,7 @@ function assembleDashboard(state, meta){
   // footer: render.py line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.9.2 · state validated against schema.json' +
+    ' · AI PM v4.9.3 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -4214,11 +4214,26 @@ function normalizeDigest(state){
     var q = baSquash(a.id);
     artSquash[q] = (q in artSquash) ? "!ambiguous" : a.id;
   });
+  var artByDate = {};
+  (state.artifacts || []).forEach(function(a){
+    if(!a || !a.id) return;
+    var m = /^art-(\d{4}-\d{2}-\d{2})/.exec(a.id);
+    var key = m ? m[1] : (a.date ? String(a.date).slice(0, 10) : null);
+    if(key) artByDate[key] = (key in artByDate) ? "!ambiguous" : a.id;
+  });
   function baResolveArt(p){
     if(!p) return null;
     if(artIds[p]) return p;
     var hit = artSquash[baSquash(p)];
-    return (hit && hit !== "!ambiguous") ? hit : null;
+    if(hit && hit !== "!ambiguous") return hit;
+    // last deterministic anchor: the date embedded in the ref — but only when
+    // exactly ONE known artifact carries that date (never guess between two).
+    var m = /^art-(\d{4}-\d{2}-\d{2})/.exec(String(p));
+    if(m){
+      var d = artByDate[m[1]];
+      if(d && d !== "!ambiguous") return d;
+    }
+    return null;
   }
   var nConfSrc = 0;
   (state.conflicts || []).forEach(function(c){
@@ -4783,7 +4798,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.9.2 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.9.3 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
