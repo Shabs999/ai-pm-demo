@@ -339,6 +339,13 @@ body.ba-editing .stk-role::before{ content:"role"; margin-right:4px; font-size:9
 body.ba-editing .stk-orgf::before{ content:"org"; margin-right:4px; font-size:9.5px; font-weight:700;
   letter-spacing:.05em; text-transform:uppercase; color:var(--muted); }
 
+.cop-wrap{ position:relative; display:inline-block; }
+.cop-menu{ position:absolute; right:0; top:calc(100% + 5px); z-index:40; background:var(--surface);
+  border:1px solid var(--ring); border-radius:9px; box-shadow:0 6px 22px rgba(0,0,0,.16);
+  padding:4px; min-width:240px; display:flex; flex-direction:column; }
+.cop-item{ font:inherit; font-size:12.5px; text-align:left; padding:8px 11px; border:0; border-radius:6px;
+  background:transparent; color:var(--ink); cursor:pointer; white-space:nowrap; }
+.cop-item:hover{ background:color-mix(in srgb,var(--muted) 10%,transparent); }
 .foot{ text-align:center; color:var(--muted); font-size:11.5px; margin-top:var(--sp5); }
 @media (max-width:720px){ .raid-grid,.stk-grid{ grid-template-columns:1fr; } .head-main{ flex-direction:column; }
   .stat-stamp{ margin-left:0; text-align:left; } }
@@ -1407,7 +1414,12 @@ function buildFilters(state){
     '<button class="tool-btn" id="expand-all" type="button">Expand all</button>' +
     '<button class="tool-btn" id="collapse-all" type="button">Collapse all</button>' +
     '<button class="tool-btn" id="status-report" type="button">Status report</button>' +
-    '<button class="tool-btn" id="copilot-msg" type="button">Copilot message</button>' +
+    '<span class="cop-wrap"><button class="tool-btn" id="copilot-msg" type="button" aria-haspopup="true" aria-expanded="false">Copilot message \u25be</button>' +
+    '<div class="cop-menu" id="copilot-menu" hidden>' +
+    '<button type="button" class="cop-item" data-cmode="paste">Copy \u2014 paste the transcript</button>' +
+    '<button type="button" class="cop-item" data-cmode="attach">Copy \u2014 attach the transcript file</button>' +
+    '<button type="button" class="cop-item" data-cmode="verify">Copy \u2014 check the last digest</button>' +
+    '</div></span>' +
     '<button class="tool-btn" id="ba-edit-btn" type="button">\u270e Edit</button>' +
     '<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle light or dark theme"></button>' +
     '</div></div>';
@@ -1710,7 +1722,7 @@ function assembleDashboard(state, meta){
   // footer: render.py line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.9 · state validated against schema.json' +
+    ' · AI PM v4.9.1 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -1737,7 +1749,17 @@ function assembleDashboard(state, meta){
   // "Copilot message" — build the compact digest + ready-to-send message from
   // the state we just rendered (the same object renderState stores as LAST_STATE).
   var cbtn = document.getElementById("copilot-msg");
-  if(cbtn) cbtn.addEventListener("click", function(e){ e.stopPropagation(); baCopyCopilotMessage(cbtn, state); });
+  var cmenu = document.getElementById("copilot-menu");
+  if(cbtn && cmenu){
+    cbtn.addEventListener("click", function(e){ e.stopPropagation();
+      var open = cmenu.hidden; cmenu.hidden = !open; cbtn.setAttribute("aria-expanded", String(open)); });
+    cmenu.querySelectorAll(".cop-item").forEach(function(it){
+      it.addEventListener("click", function(e){ e.stopPropagation();
+        cmenu.hidden = true; cbtn.setAttribute("aria-expanded", "false");
+        baCopyCopilotMessage(cbtn, state, it.getAttribute("data-cmode")); });
+    });
+    document.addEventListener("click", function(){ if(!cmenu.hidden){ cmenu.hidden = true; cbtn.setAttribute("aria-expanded", "false"); } });
+  }
 }
 
 /* ---- interactivity (ported verbatim from render.py JS, made re-runnable) --- */
@@ -4177,12 +4199,28 @@ function normalizeDigest(state){
   (state.requirements || []).forEach(function(it){
     if(it && it.kind === "technical"){ it.kind = "non-functional"; nKind++; }
   });
+  var artIds = {};
+  (state.artifacts || []).forEach(function(a){ if(a && a.id) artIds[a.id] = true; });
+  var nConfSrc = 0;
+  (state.conflicts || []).forEach(function(c){
+    if(!c) return;
+    ["sourceOld","sourceNew"].forEach(function(f){
+      var v = c[f];
+      if(typeof v === "string" && v.indexOf(",") !== -1){
+        var parts = v.split(",").map(function(x){ return x.trim(); }).filter(Boolean);
+        var hit = null;
+        parts.forEach(function(p){ if(!hit && artIds[p]) hit = p; });
+        if(hit){ c[f] = hit; nConfSrc++; }
+      }
+    });
+  });
   if(nPeople) notes.push(nPeople + " stakeholder" + (nPeople === 1 ? "" : "s") + " auto-created from named owners");
   if(nSum) notes.push(nSum + " decision summar" + (nSum === 1 ? "y" : "ies") + " recovered");
   if(nReqSt) notes.push(nReqSt + " requirement status" + (nReqSt === 1 ? "" : "es") + " normalized (draft → proposed)");
   if(nTitle) notes.push(nTitle + " title" + (nTitle === 1 ? "" : "s") + " recovered from a differently named field");
   if(nDepSt) notes.push(nDepSt + " dependency status" + (nDepSt === 1 ? "" : "es") + " normalized (active → open)");
   if(nKind) notes.push(nKind + " requirement kind" + (nKind === 1 ? "" : "s") + " normalized (technical → non-functional)");
+  if(nConfSrc) notes.push(nConfSrc + " conflict source ref" + (nConfSrc === 1 ? "" : "s") + " reduced to a single artifact id");
   return notes;
 }
 
@@ -4274,18 +4312,56 @@ function baBuildStateDigest(state){
   });
   return d;
 }
-function baBuildCopilotMessage(state){
+function baCopilotHeader(state){
   return "CURRENT STATE DIGEST (compact — the dashboard keeps full history locally):\n" +
     JSON.stringify(baBuildStateDigest(state)) + "\n\n" +
     "FILE: <filename>\n" +
     "TYPE: transcript\n" +
     "DATE: <yyyy-mm-dd the content is from>\n" +
-    "CONTEXT: <one line, or [work it out yourself]>\n" +
-    "NOTE: [Do a full Example Mapping pass: extract EVERY requirement-relevant statement;\n" +
+    "CONTEXT: <one line, or [work it out yourself]>\n";
+}
+function baLatestArtifactId(state){
+  var arts = (state && state.artifacts) || [];
+  if(!arts.length) return null;
+  var best = arts[arts.length - 1];
+  arts.forEach(function(a){
+    if(!a || !a.id) return;
+    var k = String(a.digestedAt || a.date || "");
+    var bk = String(best.digestedAt || best.date || "");
+    if(k > bk) best = a;
+  });
+  return best && best.id ? best.id : null;
+}
+function baBuildCopilotMessage(state, mode){
+  if(mode === "verify"){
+    var pid = (state.project && state.project.id) || "<project-id>";
+    var aid = baLatestArtifactId(state) || "<artifact-id>";
+    return "VERIFY PASS — check your last digest for completeness.\n" +
+      "Re-read the SAME transcript from earlier in this chat (pasted or attached). Compare it\n" +
+      "carefully against the CURRENT STATE DIGEST below, which already includes your reply.\n" +
+      "Look for anything requirement-relevant that is still MISSING or captured incorrectly:\n" +
+      "milestones, actions (owner/due), decisions, risks, issues, dependencies, stakeholders,\n" +
+      "requirements, user stories (rules / examples / scenarios), open questions, OKR facts.\n" +
+      "Reply with a normal delta containing ONLY the missing or corrected items. Do NOT\n" +
+      "register a new artifact — cite the existing artifact \"" + aid + "\" in sources.\n" +
+      "If nothing is missing, reply with exactly:\n" +
+      "{\"delta\": true, \"project\": {\"id\": \"" + pid + "\"}, \"updates\": {}}\n\n" +
+      "CURRENT STATE DIGEST:\n" + JSON.stringify(baBuildStateDigest(state));
+  }
+  var noteBase = "NOTE: [Do a full Example Mapping pass: extract EVERY requirement-relevant statement;\n" +
     "all supported rules per story; 3 examples per rule where sources allow; at least one\n" +
-    "scenario per rule with ruleRef and exampleRef. Completeness beats brevity.]\n" +
+    "scenario per rule with ruleRef and exampleRef. Completeness beats brevity.";
+  if(mode === "attach"){
+    return baCopilotHeader(state) +
+      noteBase + "\nRead the attached transcript IN FULL, not a summary of it.]\n" +
+      "---\n" +
+      "The meeting transcript is the attached file — see FILE above.\n" +
+      "(Click + and attach the transcript file before sending.)";
+  }
+  return baCopilotHeader(state) +
+    noteBase + "]\n" +
     "---\n" +
-    "<paste the meeting transcript here — or attach the transcript file instead>";
+    "<paste the meeting transcript here>";
 }
 function baClipFallback(text){
   var ta = document.createElement("textarea");
@@ -4295,8 +4371,8 @@ function baClipFallback(text){
   try { document.execCommand("copy"); } catch(e){}
   document.body.removeChild(ta);
 }
-function baCopyCopilotMessage(btn, state){
-  var text = baBuildCopilotMessage(state || LAST_STATE || {});
+function baCopyCopilotMessage(btn, state, mode){
+  var text = baBuildCopilotMessage(state || LAST_STATE || {}, mode);
   function confirmCopied(){
     if(!btn) return;
     var orig = btn.getAttribute("data-orig-label");
@@ -4675,7 +4751,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.9 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.9.1 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
