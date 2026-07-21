@@ -1699,7 +1699,7 @@ function assembleDashboard(state, meta){
   // footer: render.py line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.8 · state validated against schema.json' +
+    ' · AI PM v4.8.1 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -4074,6 +4074,68 @@ var OMISSION_SECTIONS = ["stakeholders","workstreams","milestones","actions","de
   "userStories","okrs","parkingLot"];
 var DELTA_SECTIONS = OMISSION_SECTIONS;
 
+/* Auto-repair — deterministic cleanup of common digester slips so the user
+   never hand-fixes them: (a) a person NAME left in an owner/raisedBy field
+   becomes a real stakeholders entry (created on first sight) referenced by id;
+   (b) a decision missing its required summary recovers it from the item's own
+   title/text/rationale. Moves only content that is already present — never
+   invents anything. Runs on pasted digester replies (full or delta) only. */
+function normalizeDigest(state){
+  if(!state || typeof state !== "object") return [];
+  var notes = [];
+  if(!Array.isArray(state.stakeholders)) state.stakeholders = [];
+  var stk = state.stakeholders;
+  var byName = {}, allIds = {};
+  ["stakeholders","workstreams","milestones","actions","decisions","risks","issues",
+   "dependencies","requirements","openQuestions","conflicts","artifacts","userStories",
+   "okrs","parkingLot"].forEach(function(sec){
+    (Array.isArray(state[sec]) ? state[sec] : []).forEach(function(it){ if(it && it.id) allIds[it.id] = true; });
+  });
+  stk.forEach(function(s){ if(s && s.id && s.name) byName[String(s.name).trim().toLowerCase()] = s.id; });
+  var nPeople = 0;
+  function slugId(name){
+    var base = "stk-" + String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "").slice(0, 40);
+    var id = base || "stk-person", n = 2;
+    while(allIds[id]){ id = base + "-" + n; n++; }
+    return id;
+  }
+  function fixRef(it, field){
+    if(!it) return;
+    var v = it[field];
+    if(typeof v !== "string" || !v.trim() || allIds[v]) return;
+    var name = v.trim();
+    // id-shaped but unknown (e.g. "stk-ahmed") — leave it for the validator;
+    // anything with spaces or capitals is a human name we can repair.
+    if(/^[a-z0-9][a-z0-9-]*$/.test(name)) return;
+    var key = name.toLowerCase();
+    var id = byName[key];
+    if(!id){
+      id = slugId(name);
+      stk.push({ id: id, name: name, org: null, role: null,
+        sources: Array.isArray(it.sources) ? it.sources.slice() : [] });
+      allIds[id] = true; byName[key] = id;
+      nPeople++;
+    }
+    it[field] = id;
+  }
+  (state.actions || []).forEach(function(it){ fixRef(it, "owner"); });
+  (state.openQuestions || []).forEach(function(it){ fixRef(it, "raisedBy"); });
+  (state.okrs || []).forEach(function(it){ fixRef(it, "owner"); });
+  var nSum = 0;
+  (state.decisions || []).forEach(function(it){
+    if(!it || (typeof it.summary === "string" && it.summary.trim())) return;
+    var alt = null;
+    ["title","decision","text","note","detail","rationale"].forEach(function(f){
+      if(!alt && typeof it[f] === "string" && it[f].trim()) alt = it[f].trim();
+    });
+    if(alt){ it.summary = alt; nSum++; }
+  });
+  if(nPeople) notes.push(nPeople + " stakeholder" + (nPeople === 1 ? "" : "s") + " auto-created from named owners");
+  if(nSum) notes.push(nSum + " decision summar" + (nSum === 1 ? "y" : "ies") + " recovered");
+  return notes;
+}
+
 /* Delta merge — M365 Copilot can't reliably emit a full large state.json (it
    silently trims arrays), so the agent may instead reply with a DELTA object:
    {delta:true, project:{...changed fields...}, newArtifact:{...}, updates:{section:[items]}}.
@@ -4134,6 +4196,7 @@ function mergeDelta(base, delta){
   var bits = [nUpdated + " item" + (nUpdated === 1 ? "" : "s") + " updated", nAdded + " added"];
   if(nArtifact) bits.push(nArtifact + " new artifact" + (nArtifact === 1 ? "" : "s"));
   if(nIgnored) bits.push(nIgnored + " unknown section" + (nIgnored === 1 ? "" : "s") + " ignored");
+  normalizeDigest(merged).forEach(function(n){ bits.push(n); });
   PASTE_INFO = "Delta merged — " + bits.join(", ") + " — verify below, then save state.json.";
   PASTE_WARN = null;
   PASTED = true;
@@ -4235,8 +4298,11 @@ function loadFromPaste(raw){
     }
   }
   if(state && state.delta === true){ mergeDelta(LAST_STATE, state); return; }
+  var fixNotes = normalizeDigest(state);
   PASTE_WARN = omissionCheck(LAST_STATE, state);
-  PASTE_INFO = null;
+  PASTE_INFO = fixNotes.length
+    ? ("Auto-repaired — " + fixNotes.join(", ") + " — verify below, then save state.json.")
+    : null;
   PASTED = true;
   pasteBarDismissed = false;
   renderState(state, "pasted JSON");
@@ -4367,7 +4433,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.8 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.8.1 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
