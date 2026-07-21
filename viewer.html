@@ -1407,6 +1407,7 @@ function buildFilters(state){
     '<button class="tool-btn" id="expand-all" type="button">Expand all</button>' +
     '<button class="tool-btn" id="collapse-all" type="button">Collapse all</button>' +
     '<button class="tool-btn" id="status-report" type="button">Status report</button>' +
+    '<button class="tool-btn" id="copilot-msg" type="button">Copilot message</button>' +
     '<button class="tool-btn" id="ba-edit-btn" type="button">\u270e Edit</button>' +
     '<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle light or dark theme"></button>' +
     '</div></div>';
@@ -1709,7 +1710,7 @@ function assembleDashboard(state, meta){
   // footer: render.py line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.8.8 · state validated against schema.json' +
+    ' · AI PM v4.9 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -1732,6 +1733,11 @@ function assembleDashboard(state, meta){
 
   var rb = document.getElementById("reload-btn");
   if(rb) rb.addEventListener("click", function(){ showDropZone(null, "Load a different state.json"); });
+
+  // "Copilot message" — build the compact digest + ready-to-send message from
+  // the state we just rendered (the same object renderState stores as LAST_STATE).
+  var cbtn = document.getElementById("copilot-msg");
+  if(cbtn) cbtn.addEventListener("click", function(e){ e.stopPropagation(); baCopyCopilotMessage(cbtn, state); });
 }
 
 /* ---- interactivity (ported verbatim from render.py JS, made re-runnable) --- */
@@ -4180,10 +4186,190 @@ function normalizeDigest(state){
   return notes;
 }
 
+/* ---- state digest (Feature: "Copilot message") ----------------------------
+   Copilot's chat input has a hard size cap and the full state.json grows with
+   every artifact, so from v4.9 we send the agent a COMPACT DIGEST instead of the
+   whole state: ids, titles, statuses, dates and the short sources id-lists it
+   needs for provenance + order-independence. Everything the agent never has to
+   see (history, long bodies, given/when/then, example prose) stays local in the
+   dashboard, which preserves it on merge. Output is JSON.stringify (no
+   pretty-print) — compactness is the whole point. */
+function baDigClean(o){
+  // drop null / undefined / "" / empty-array fields; preserve insertion order
+  var r = {};
+  for(var k in o){
+    if(!Object.prototype.hasOwnProperty.call(o, k)) continue;
+    var v = o[k];
+    if(v === null || v === undefined || v === "") continue;
+    if(Array.isArray(v) && v.length === 0) continue;
+    r[k] = v;
+  }
+  return r;
+}
+function baDigPick(it, keys){
+  // build a compact object taking only `keys`, in order, dropping empties
+  var o = {};
+  keys.forEach(function(k){ o[k] = it ? it[k] : undefined; });
+  return baDigClean(o);
+}
+function baDigList(arr, fn){
+  return (Array.isArray(arr) ? arr : []).map(fn);
+}
+function baBuildStateDigest(state){
+  state = state || {};
+  var d = {};
+  if(state.project) d.project = state.project;               // small — copy as-is
+  d.artifacts = baDigList(state.artifacts, function(a){
+    return baDigPick(a, ["id","file","type","date"]); });
+  d.stakeholders = baDigList(state.stakeholders, function(s){
+    return baDigPick(s, ["id","name","role","org"]); });
+  d.workstreams = Array.isArray(state.workstreams) ? state.workstreams : []; // small — full
+  d.milestones = baDigList(state.milestones, function(m){
+    return baDigPick(m, ["id","title","status","due","workstream","owner","sources"]); });
+  d.actions = baDigList(state.actions, function(a){
+    return baDigPick(a, ["id","title","owner","due","status","sources"]); });
+  d.decisions = baDigList(state.decisions, function(x){
+    return baDigPick(x, ["id","summary","date","sources"]); });
+  d.risks = baDigList(state.risks, function(r){
+    return baDigPick(r, ["id","title","severity","likelihood","status","sources"]); });
+  d.issues = baDigList(state.issues, function(x){
+    return baDigPick(x, ["id","title","severity","status","sources"]); });
+  d.dependencies = baDigList(state.dependencies, function(x){
+    return baDigPick(x, ["id","title","status","sources"]); });
+  d.requirements = baDigList(state.requirements, function(r){
+    var o = baDigPick(r, ["id","title","kind","status","sources"]);
+    var sc = baDigList(r.scenarios, function(s){ return baDigPick(s, ["id","title","status"]); });
+    if(sc.length) o.scenarios = sc;
+    return o; });
+  d.openQuestions = baDigList(state.openQuestions, function(q){
+    return baDigPick(q, ["id","question","status","storyRef","sources"]); });
+  d.conflicts = baDigList(state.conflicts, function(c){
+    return baDigPick(c, ["id","about","status"]); });
+  d.userStories = baDigList(state.userStories, function(u){
+    var o = baDigPick(u, ["id","title","status","workstream"]);
+    if(u && u.narrative){ var n = baDigClean(u.narrative); if(Object.keys(n).length) o.narrative = n; }
+    var rules = baDigList(u && u.rules, function(rl){
+      var ro = baDigPick(rl, ["id","title"]);
+      var ex = baDigList(rl.examples, function(e){ return baDigPick(e, ["id","title"]); });
+      if(ex.length) ro.examples = ex;
+      return ro; });
+    if(rules.length) o.rules = rules;
+    var scs = baDigList(u && u.scenarios, function(s){
+      return baDigPick(s, ["id","title","ruleRef","exampleRef","status"]); });
+    if(scs.length) o.scenarios = scs;
+    return o; });
+  d.okrs = baDigList(state.okrs, function(k){
+    var o = baDigPick(k, ["id","objective","period","status"]);
+    var krs = baDigList(k && k.keyResults, function(kr){
+      return baDigPick(kr, ["id","statement","metric","start","target","current","unit"]); });
+    if(krs.length) o.keyResults = krs;
+    return o; });
+  d.parkingLot = baDigList(state.parkingLot, function(p){
+    var o = baDigPick(p, ["id","note","date"]);
+    if(typeof o.note === "string" && o.note.length > 120) o.note = o.note.slice(0, 120) + "…";
+    return o; });
+  // drop any section that ended up empty, to keep the payload tight
+  Object.keys(d).forEach(function(k){
+    if(Array.isArray(d[k]) && d[k].length === 0) delete d[k];
+  });
+  return d;
+}
+function baBuildCopilotMessage(state){
+  return "CURRENT STATE DIGEST (compact — the dashboard keeps full history locally):\n" +
+    JSON.stringify(baBuildStateDigest(state)) + "\n\n" +
+    "FILE: <filename>\n" +
+    "TYPE: transcript\n" +
+    "DATE: <yyyy-mm-dd the content is from>\n" +
+    "CONTEXT: <one line, or [work it out yourself]>\n" +
+    "NOTE: [Do a full Example Mapping pass: extract EVERY requirement-relevant statement;\n" +
+    "all supported rules per story; 3 examples per rule where sources allow; at least one\n" +
+    "scenario per rule with ruleRef and exampleRef. Completeness beats brevity.]\n" +
+    "---\n" +
+    "<paste the meeting transcript here — or attach the transcript file instead>";
+}
+function baClipFallback(text){
+  var ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed"; ta.style.top = "-1000px"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try { document.execCommand("copy"); } catch(e){}
+  document.body.removeChild(ta);
+}
+function baCopyCopilotMessage(btn, state){
+  var text = baBuildCopilotMessage(state || LAST_STATE || {});
+  function confirmCopied(){
+    if(!btn) return;
+    var orig = btn.getAttribute("data-orig-label");
+    if(orig === null){ orig = btn.textContent; btn.setAttribute("data-orig-label", orig); }
+    btn.textContent = "Copied ✓";
+    clearTimeout(btn._copiedTimer);
+    btn._copiedTimer = setTimeout(function(){ btn.textContent = orig; }, 2000);
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(confirmCopied, function(){ baClipFallback(text); confirmCopied(); });
+  } else {
+    baClipFallback(text); confirmCopied();
+  }
+}
+
 /* Delta merge — M365 Copilot can't reliably emit a full large state.json (it
    silently trims arrays), so the agent may instead reply with a DELTA object:
    {delta:true, project:{...changed fields...}, newArtifact:{...}, updates:{section:[items]}}.
    We merge it locally into a deep copy of LAST_STATE. */
+/* Field-level, history-preserving merge of a delta item onto the existing item.
+   A digest-informed agent only ever SAW ids/titles/statuses, so a wholesale
+   replace would wipe bodies (narrative, rule/example/scenario internals,
+   given/when/then, history) it never received. Instead we shallow-merge each
+   provided field, and:
+     - history: union (existing first, then delta entries not already present),
+     - sources: union of ids (existing order first, no duplicates),
+     - nested story internals (rules/examples/scenarios/keyResults): id-based
+       upsert INTO the existing array, recursively — keeping entries the delta
+       never mentioned.
+   An explicit null in a delta field DOES overwrite (that's how the agent clears
+   a field). New nested items (unknown id) are pushed as-is. */
+var BA_ID_ARRAYS = { rules: 1, examples: 1, scenarios: 1, keyResults: 1 };
+function baUnionHistory(ex, dv){
+  var out = Array.isArray(ex) ? ex.slice() : [];
+  var seen = {};
+  out.forEach(function(e){ seen[JSON.stringify(e)] = 1; });
+  (Array.isArray(dv) ? dv : []).forEach(function(e){
+    var key = JSON.stringify(e);
+    if(!seen[key]){ out.push(e); seen[key] = 1; }
+  });
+  return out;
+}
+function baUnionSources(ex, dv){
+  var out = [], seen = {};
+  function add(list){ (Array.isArray(list) ? list : []).forEach(function(s){
+    if(!seen[s]){ out.push(s); seen[s] = 1; } }); }
+  add(ex); add(dv);
+  return out;
+}
+function baUpsertIdArray(exArr, dArr){
+  var out = Array.isArray(exArr) ? exArr.slice() : [];
+  (Array.isArray(dArr) ? dArr : []).forEach(function(item){
+    if(item && item.id != null){
+      var idx = -1;
+      for(var j = 0; j < out.length; j++){ if(out[j] && out[j].id === item.id){ idx = j; break; } }
+      if(idx >= 0){ baMergeItem(out[idx], item); } else { out.push(item); }
+    } else { out.push(item); }
+  });
+  return out;
+}
+function baMergeItem(existing, delta){
+  for(var k in delta){
+    if(!Object.prototype.hasOwnProperty.call(delta, k)) continue;
+    var dv = delta[k];
+    if(k === "history"){ existing.history = baUnionHistory(existing.history, dv); continue; }
+    if(k === "sources"){ existing.sources = baUnionSources(existing.sources, dv); continue; }
+    if(BA_ID_ARRAYS[k] && Array.isArray(dv)){
+      existing[k] = baUpsertIdArray(existing[k], dv); continue;
+    }
+    existing[k] = dv;   // plain field set — an explicit null here DOES overwrite
+  }
+  return existing;
+}
 function mergeDelta(base, delta){
   if(!base){
     showPasteError("This is a delta reply — first load the current state.json " +
@@ -4231,7 +4417,9 @@ function mergeDelta(base, delta){
         if(item && item.id){
           var idx = -1;
           for(var j = 0; j < arr.length; j++){ if(arr[j] && arr[j].id === item.id){ idx = j; break; } }
-          if(idx >= 0){ arr[idx] = item; nUpdated++; } else { arr.push(item); nAdded++; }
+          // MATCH → field-level, history-preserving merge (never wholesale replace,
+          // so bodies the digest-informed agent never saw survive). No match → new.
+          if(idx >= 0){ baMergeItem(arr[idx], item); nUpdated++; } else { arr.push(item); nAdded++; }
         } else { arr.push(item); nAdded++; }
       });
     })(merged[sec]);
@@ -4487,7 +4675,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.8.8 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.9 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
