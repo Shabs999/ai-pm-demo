@@ -1723,7 +1723,7 @@ function assembleDashboard(state, meta){
   // footer: render.py line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.9.3 · state validated against schema.json' +
+    ' · AI PM v4.9.4 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -4240,11 +4240,19 @@ function normalizeDigest(state){
     if(!c) return;
     ["sourceOld","sourceNew"].forEach(function(f){
       var v = c[f];
-      if(typeof v !== "string" || !v.trim() || artIds[v]) return;
-      var parts = v.split(",").map(function(x){ return x.trim(); }).filter(Boolean);
+      if(typeof v === "string" && artIds[v]) return;   // already a valid single id
+      // Copilot writes this field as a comma-joined string OR as an ARRAY of ids
+      // (an array renders comma-joined in error text — visually identical).
+      var parts = null;
+      if(Array.isArray(v)){
+        parts = v.map(function(x){ return String(x == null ? "" : x).trim(); }).filter(Boolean);
+      } else if(typeof v === "string" && v.trim()){
+        parts = v.split(",").map(function(x){ return x.trim(); }).filter(Boolean);
+      }
+      if(!parts || !parts.length) return;
       var hit = null;
       parts.forEach(function(p){ if(!hit) hit = baResolveArt(p); });
-      if(hit){ c[f] = hit; nConfSrc++; }
+      if(hit && c[f] !== hit){ c[f] = hit; nConfSrc++; }
     });
   });
   var nSrcFix = 0;
@@ -4798,7 +4806,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.9.3 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.9.4 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
