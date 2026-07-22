@@ -540,6 +540,19 @@ body.ba-editing .stk-orgf::before{ content:"org"; margin-right:4px; font-size:9.
 .wc-note{ display:block; margin-top:3px; font-size:11.5px; color:var(--st-done); }
 .wc-empty{ color:var(--muted); font-style:italic; margin:2px 0 0; }
 
+/* ---------- Ingestion history ---------- */
+.ig-list{ display:flex; flex-direction:column; }
+.ig-row{ display:flex; gap:var(--sp3); align-items:baseline; padding:9px var(--sp2); border-bottom:1px solid var(--grid); }
+.ig-row:last-child{ border-bottom:0; }
+.ig-date{ flex:none; min-width:96px; font-size:12px; color:var(--muted); }
+.ig-body{ flex:1; min-width:0; }
+.ig-file{ font-size:13px; color:var(--ink); word-break:break-word; }
+.ig-chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:5px; }
+.ig-chip{ font-size:11px; color:var(--ink2); padding:2px 8px; border-radius:5px;
+  background:color-mix(in srgb,var(--muted) 12%,transparent); border:1px solid var(--ring); }
+.ig-none{ margin-top:4px; font-size:11.5px; color:var(--muted); font-style:italic; }
+.ig-noattr{ margin-top:var(--sp3); padding-top:var(--sp3); border-top:1px solid var(--grid); font-size:11.5px; color:var(--muted); }
+
 /* ---------- Status-report modal ---------- */
 .modal-overlay{ position:fixed; inset:0; z-index:60; background:rgba(11,11,11,.44);
   display:flex; align-items:center; justify-content:center; padding:var(--sp5); }
@@ -1362,6 +1375,65 @@ function renderArtifacts(state){
   return '<ul class="art-feed">' + out + '</ul>';
 }
 
+// Ingestion history (host code — keep counts/text in sync with the reference renderer's
+// render_ingestion). Sections whose items carry a `sources` provenance array.
+var INGEST_SECS = ["userStories","requirements","actions","decisions","risks",
+  "issues","dependencies","milestones","openQuestions","okrs","conflicts"];
+var INGEST_LBL = {
+  userStories:["story","stories"], requirements:["requirement","requirements"],
+  actions:["action","actions"], decisions:["decision","decisions"],
+  risks:["risk","risks"], issues:["issue","issues"],
+  dependencies:["dependency","dependencies"], milestones:["milestone","milestones"],
+  openQuestions:["open question","open questions"], okrs:["OKR","OKRs"],
+  conflicts:["conflict","conflicts"], scenarios:["scenario","scenarios"]
+};
+function renderIngestion(state){
+  var arts = (state.artifacts || []).slice();
+  if(!arts.length) return "";
+  function lbl(sec, n){ var l = INGEST_LBL[sec]; return n + " " + (n === 1 ? l[0] : l[1]); }
+  arts.sort(function(a, b){
+    var da = parseDate(a.date), db = parseDate(b.date);
+    var na = da ? da.dn : -Infinity, nb = db ? db.dn : -Infinity;
+    if(na !== nb) return nb - na;
+    var ga = a.digestedAt || "", gb = b.digestedAt || "";
+    if(ga !== gb) return ga < gb ? 1 : -1;
+    var ia = a.id || "", ib = b.id || "";
+    return ia < ib ? 1 : (ia > ib ? -1 : 0);
+  });
+  var scen = [];
+  (state.userStories || []).forEach(function(us){ (us.scenarios || []).forEach(function(sc){ scen.push(sc); }); });
+  (state.requirements || []).forEach(function(r){ (r.scenarios || []).forEach(function(sc){ scen.push(sc); }); });
+  var rows = arts.map(function(a){
+    var chips = [], i, list, src, s;
+    for(s = 0; s < INGEST_SECS.length; s++){
+      list = state[INGEST_SECS[s]] || []; var c = 0;
+      for(i = 0; i < list.length; i++){ src = list[i].sources || []; if(src.length && src[0] === a.id) c++; }
+      if(c) chips.push('<span class="ig-chip">' + esc(lbl(INGEST_SECS[s], c)) + '</span>');
+    }
+    var sc = 0;
+    for(i = 0; i < scen.length; i++){ src = scen[i].sources || []; if(src.length && src[0] === a.id) sc++; }
+    if(sc) chips.push('<span class="ig-chip">' + esc(lbl("scenarios", sc)) + '</span>');
+    var deep = 0;
+    for(s = 0; s < INGEST_SECS.length; s++){
+      list = state[INGEST_SECS[s]] || [];
+      for(i = 0; i < list.length; i++){ src = list[i].sources || []; if(src.length > 1 && src.slice(1).indexOf(a.id) !== -1) deep++; }
+    }
+    if(deep) chips.push('<span class="ig-chip">' + esc("deepened " + deep) + '</span>');
+    var body = chips.length ? '<div class="ig-chips">' + chips.join("") + '</div>'
+                            : '<div class="ig-none">nothing attributed</div>';
+    return '<div class="ig-row"><div class="ig-date num">' + esc(fmtDate(a.date)) +
+      '</div><div class="ig-body"><div class="ig-file">' + esc(a.file || a.id) + '</div>' + body + '</div></div>';
+  }).join("");
+  var ns = 0;
+  for(var s2 = 0; s2 < INGEST_SECS.length; s2++){
+    var l2 = state[INGEST_SECS[s2]] || [];
+    for(var k = 0; k < l2.length; k++){ var sr = l2[k].sources; if(!sr || !sr.length) ns++; }
+  }
+  var tail = ns ? ('<div class="ig-noattr">' + ns + (ns === 1 ? " item carries" : " items carry") +
+    ' no source attribution</div>') : "";
+  return '<div class="ig-list">' + rows + '</div>' + tail;
+}
+
 function renderParkingLot(state){
   var items = (state.parkingLot || []).slice().sort(function(a, b){
     var da = parseDate(a.date), db = parseDate(b.date);
@@ -1703,6 +1775,7 @@ function assembleDashboard(state, meta){
   var tl = buildTimeline(state, today);
   parts.push(renderRoadmap(state, tl));
   parts.push(whatChangedShell());
+  parts.push(section("ingestion", "Ingestion history", renderIngestion(state)));
   parts.push("<section class=\"card\" data-collapsed=\"true\" data-sec=\"okrs\" id=\"ba-okr-sec\" hidden>\n  <button class=\"sec-head\" aria-expanded=\"false\"><h2>OKRs</h2><span class=\"count\" id=\"ba-okr-count\">0</span><span class=\"sec-help\" role=\"link\" tabindex=\"0\" data-help=\"okrs\" title=\"How this section works\" aria-label=\"How this section works\">?</span>\n    <span class=\"chev\" aria-hidden=\"true\"></span></button>\n  <div class=\"sec-body\"><div id=\"ba-okr-body\"></div></div>\n</section>");
 
   parts.push(section("milestones", "Milestones", renderMilestonesTable(state), (state.milestones || []).length));
@@ -1725,7 +1798,7 @@ function assembleDashboard(state, meta){
   // footer: the reference renderer line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.11 · state validated against schema.json' +
+    ' · AI PM v4.12 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -4433,7 +4506,7 @@ function baBuildCopilotMessage(state, mode){
     // so past ingestions can be audited retroactively chat by chat.
     var pid = (state.project && state.project.id) || "<project-id>";
     return "VERIFY PASS — check your digest of THIS chat's transcript for completeness.\n" +
-      "Re-read the transcript from earlier in this chat (pasted or attached) IN FULL. Compare\n" +
+      "Re-read the meeting transcript IN FULL — it is either earlier in this chat or attached\nto this message. Compare\n" +
       "it carefully against the CURRENT STATE DIGEST below, which already includes what was\n" +
       "captured. Look for anything requirement-relevant that is still MISSING or captured\n" +
       "incorrectly: milestones, actions (owner/due), decisions, risks, issues, dependencies,\n" +
@@ -4955,7 +5028,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.11 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.12 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
