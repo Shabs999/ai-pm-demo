@@ -1725,7 +1725,7 @@ function assembleDashboard(state, meta){
   // footer: the reference renderer line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.10.5 · state validated against schema.json' +
+    ' · AI PM v4.11 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -4428,16 +4428,20 @@ var BA_FILE_TYPED_LINE = "Read ALL attached files IN FULL — together they cont
   "Follow your instructions and reply with the JSON delta only.";
 function baBuildCopilotMessage(state, mode){
   if(mode === "verify"){
+    // Runs correctly in ANY meeting's chat, not just the newest: the agent matches the
+    // transcript it re-reads against the digest's artifacts list (id/file/date) itself,
+    // so past ingestions can be audited retroactively chat by chat.
     var pid = (state.project && state.project.id) || "<project-id>";
-    var aid = baLatestArtifactId(state) || "<artifact-id>";
-    return "VERIFY PASS — check your last digest for completeness.\n" +
-      "Re-read the SAME transcript from earlier in this chat (pasted or attached). Compare it\n" +
-      "carefully against the CURRENT STATE DIGEST below, which already includes your reply.\n" +
-      "Look for anything requirement-relevant that is still MISSING or captured incorrectly:\n" +
-      "milestones, actions (owner/due), decisions, risks, issues, dependencies, stakeholders,\n" +
-      "requirements, user stories (rules / examples / scenarios), open questions, OKR facts.\n" +
+    return "VERIFY PASS — check your digest of THIS chat's transcript for completeness.\n" +
+      "Re-read the transcript from earlier in this chat (pasted or attached) IN FULL. Compare\n" +
+      "it carefully against the CURRENT STATE DIGEST below, which already includes what was\n" +
+      "captured. Look for anything requirement-relevant that is still MISSING or captured\n" +
+      "incorrectly: milestones, actions (owner/due), decisions, risks, issues, dependencies,\n" +
+      "stakeholders, requirements, user stories (rules / examples / scenarios), open\n" +
+      "questions, OKR facts.\n" +
       "Reply with a normal delta containing ONLY the missing or corrected items. Do NOT\n" +
-      "register a new artifact — cite the existing artifact \"" + aid + "\" in sources.\n" +
+      "register a new artifact — in sources, cite the id of the EXISTING artifact from the\n" +
+      "digest's artifacts list whose file and date match this chat's transcript.\n" +
       "If nothing is missing, reply with exactly:\n" +
       "{\"delta\": true, \"project\": {\"id\": \"" + pid + "\"}, \"updates\": {}}\n\n" +
       "CURRENT STATE DIGEST:\n" + JSON.stringify(baBuildStateDigest(state));
@@ -4951,7 +4955,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.10.5 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.11 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
