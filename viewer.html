@@ -1724,7 +1724,7 @@ function assembleDashboard(state, meta){
   // footer: the reference renderer line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.10.1 · state validated against schema.json' +
+    ' · AI PM v4.10.2 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -4396,8 +4396,10 @@ function baLatestArtifactId(state){
   return best && best.id ? best.id : null;
 }
 // Copilot typed-input caps vary by tenant (some count line breaks double); attached
-// files have far larger limits, so oversize messages travel as files.
-var BA_SAFE_TYPED = 10000;
+// files have far larger limits, so oversize messages travel as files. 10,000 proved
+// too optimistic on a real tenant (its cap sat below that, near the 8,000 the agent
+// builder enforces) — 6,000 sits safely under every cap observed, CRLF-counted or not.
+var BA_SAFE_TYPED = 6000;
 // The standing depth NOTE, shared by the typed message and the file variants.
 var BA_NOTE_BASE = "NOTE: [Do a full Example Mapping pass: extract EVERY requirement-relevant statement;\n" +
   "all supported rules per story; 3 examples per rule where sources allow; at least one\n" +
@@ -4934,7 +4936,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.10.1 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.10.2 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
