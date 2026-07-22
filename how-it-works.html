@@ -301,9 +301,12 @@
       <div class="help-block" id="help-uat">
         <h3>UAT script</h3>
         <p>User-acceptance test scripts derived from the Gherkin scenarios. Each case tells the
-        tester why the test exists (story and rule), the preconditions, the steps, and exactly what
-        to look for. Each case traces back through scenario &#8594; example &#8594; rule &#8594;
-        story.</p>
+        tester why the test exists (story and rule), who performs it, and a single numbered
+        <b>Script</b>: "Prepare:" steps set the preconditions (Given), plain steps are the actions
+        to take (When), and "Check &#8212;" steps say exactly what to verify (Then). Step depth
+        mirrors the sources &#8212; meetings usually state one action and its outcome, so scripts
+        grow richer when specs, BRDs or test plans are ingested. Each case traces back through
+        scenario &#8594; example &#8594; rule &#8594; story.</p>
         <a class="backtop" href="#help">Back to top &#8593;</a>
       </div>
       <div class="help-block" id="help-questions">

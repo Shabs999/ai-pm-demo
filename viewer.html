@@ -1817,7 +1817,7 @@ function assembleDashboard(state, meta){
   // footer: the reference renderer line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.13 · state validated against schema.json' +
+    ' · AI PM v4.14 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -2702,12 +2702,16 @@ function openHashSection(){
     return cases.map(function(c){
       var why = baEsc(c.storyTitle) +
         (c.ruleTitle ? ' <span class="uat-arrow">&#8594;</span> ' + baEsc(c.ruleTitle) : "");
-      var ctx = c.given.length ? c.given.map(baEsc).join("<br>") : '<span class="ex-null">&#8212;</span>';
-      var steps = c.when.length
-        ? '<ol class="uat-steps">' + c.when.map(function(w){ return '<li>' + baEsc(baImperative(w)) + '</li>'; }).join('') + '</ol>'
-        : '<span class="ex-null">&#8212;</span>';
-      var exp = c.then.length
-        ? c.then.map(function(t){ return '<div class="uat-exp-line">' + baEsc(baExpectPhrase(t)) + '</div>'; }).join('')
+      // One numbered script: preparation (given) -> actions (when) -> checks (then).
+      // Meetings rarely yield multi-action whens, so a when-only list read as a
+      // one-step script; composing all three parts uses everything the scenario
+      // already knows without inventing procedure.
+      var script = [];
+      c.given.forEach(function(g){ script.push("Prepare: " + g); });
+      c.when.forEach(function(w){ script.push(baImperative(w)); });
+      c.then.forEach(function(t){ script.push("Check — " + baExpectPhrase(t).replace(/^Look for: /, "")); });
+      var steps = script.length
+        ? '<ol class="uat-steps">' + script.map(function(s){ return '<li>' + baEsc(s) + '</li>'; }).join('') + '</ol>'
         : '<span class="ex-null">&#8212;</span>';
       var tr = ["scenario " + c.scenarioId];
       if(c.exampleId) tr.push("example " + c.exampleId);
@@ -2718,9 +2722,7 @@ function openHashSection(){
         '<span class="uatcase-title">' + baEsc(c.title) + '</span></div>' +
         '<div class="uat-row"><span class="uat-lbl">Why</span><span class="uat-val">' + why + '</span></div>' +
         '<div class="uat-row"><span class="uat-lbl">Performed by</span><span class="uat-val">' + (c.persona ? baEsc(c.persona) : '<span class="ex-null">&#8212;</span>') + '</span></div>' +
-        '<div class="uat-row"><span class="uat-lbl">Context</span><span class="uat-val">' + ctx + '</span></div>' +
-        '<div class="uat-row"><span class="uat-lbl">Steps</span><span class="uat-val">' + steps + '</span></div>' +
-        '<div class="uat-row"><span class="uat-lbl">Expected</span><span class="uat-val">' + exp + '</span></div>' +
+        '<div class="uat-row"><span class="uat-lbl">Script</span><span class="uat-val">' + steps + '</span></div>' +
         '<div class="uatcase-trace">Tests ' + baEsc(tr.join(" · ")) + '</div></div>';
     }).join('');
   }
@@ -4510,7 +4512,9 @@ var BA_SAFE_TYPED = 6000;
 // The standing depth NOTE, shared by the typed message and the file variants.
 var BA_NOTE_BASE = "NOTE: [Do a full Example Mapping pass: extract EVERY requirement-relevant statement;\n" +
   "all supported rules per story; 3 examples per rule where sources allow; at least one\n" +
-  "scenario per rule with ruleRef and exampleRef. Completeness beats brevity.";
+  "scenario per rule with ruleRef and exampleRef. Completeness beats brevity. When the\n" +
+  "source describes a sequence, write given/when/then as MULTI-STEP arrays — one action\n" +
+  "or check per entry; never invent steps the source does not support.";
 // The one typed line for ALL "Build message file" sends. It is copied at menu-click
 // time (clipboard writes need a live user gesture — after the file picker closes the
 // browser silently refuses them), so it must fit both the single combined file and
@@ -5081,7 +5085,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.13 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.14 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
