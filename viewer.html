@@ -1817,7 +1817,7 @@ function assembleDashboard(state, meta){
   // footer: the reference renderer line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.14 · state validated against schema.json' +
+    ' · AI PM v4.14.1 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -4535,6 +4535,9 @@ function baBuildCopilotMessage(state, mode){
       "incorrectly: milestones, actions (owner/due), decisions, risks, issues, dependencies,\n" +
       "stakeholders, requirements, user stories (rules / examples / scenarios), open\n" +
       "questions, OKR facts.\n" +
+      "Also deepen thin scenarios: where the transcript describes a sequence, return the\n" +
+      "scenario (same id) with given/when/then as MULTI-STEP arrays — one action or check\n" +
+      "per entry; never invent steps the transcript does not support.\n" +
       "Reply with a normal delta containing ONLY the missing or corrected items. Do NOT\n" +
       "register a new artifact — in sources, cite the id of the EXISTING artifact from the\n" +
       "digest's artifacts list whose file and date match this chat's transcript.\n" +
@@ -5085,7 +5088,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.14 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.14.1 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
