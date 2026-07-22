@@ -1725,7 +1725,7 @@ function assembleDashboard(state, meta){
   // footer: the reference renderer line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.10.3 · state validated against schema.json' +
+    ' · AI PM v4.10.4 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -4215,6 +4215,19 @@ function normalizeDigest(state){
   (state.requirements || []).forEach(function(it){
     if(it && it.kind === "technical"){ it.kind = "non-functional"; nKind++; }
   });
+  var nIssSt = 0;
+  (state.issues || []).forEach(function(it){
+    if(!it) return;
+    var before = JSON.stringify(it.status === undefined ? null : it.status);
+    // LLM type drift: a status sent as a one-element array unwraps first.
+    if(Array.isArray(it.status) && it.status.length === 1 && typeof it.status[0] === "string"){
+      it.status = it.status[0];
+    }
+    // Invented "settled by a decision" dialect — the schema meaning is resolved.
+    if(it.status === "answered-by-decision" || it.status === "resolved-by-decision" ||
+       it.status === "answered"){ it.status = "resolved"; }
+    if(JSON.stringify(it.status === undefined ? null : it.status) !== before) nIssSt++;
+  });
   var artIds = {}, artSquash = {};
   function baSquash(s){ return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, ""); }
   (state.artifacts || []).forEach(function(a){
@@ -4283,6 +4296,7 @@ function normalizeDigest(state){
   if(nTitle) notes.push(nTitle + " title" + (nTitle === 1 ? "" : "s") + " recovered from a differently named field");
   if(nDepSt) notes.push(nDepSt + " dependency status" + (nDepSt === 1 ? "" : "es") + " normalized (active → open)");
   if(nKind) notes.push(nKind + " requirement kind" + (nKind === 1 ? "" : "s") + " normalized (technical → non-functional)");
+  if(nIssSt) notes.push(nIssSt + " issue status" + (nIssSt === 1 ? "" : "es") + " normalized to a schema value (e.g. answered-by-decision → resolved)");
   if(nConfSrc) notes.push(nConfSrc + " conflict source ref" + (nConfSrc === 1 ? "" : "s") + " repaired to a real artifact id");
   if(nSrcFix) notes.push(nSrcFix + " source ref" + (nSrcFix === 1 ? "" : "s") + " matched to the correct artifact id");
   return notes;
@@ -4937,7 +4951,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.10.3 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.10.4 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
