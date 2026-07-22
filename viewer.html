@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23227081'/%3E%3Crect x='7' y='8.5' width='18' height='3.4' rx='1.7' fill='%23fff'/%3E%3Crect x='7' y='14.3' width='11' height='3.4' rx='1.7' fill='%23fff' opacity='.82'/%3E%3Crect x='7' y='20.1' width='15' height='3.4' rx='1.7' fill='%23fff' opacity='.62'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2335a8bf'/%3E%3Cstop offset='1' stop-color='%231d6273'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpolyline points='5,19 10.5,19 14,9 18.5,25 22,15.5 27,15.5' stroke='%23fff' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='27.2' cy='15.5' r='2.4' fill='%23ffd166'/%3E%3C/svg%3E">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AI PM — Dashboard viewer</title>
 <!-- Apply persisted theme BEFORE first paint to avoid a flash of the wrong theme. -->
@@ -1725,7 +1725,7 @@ function assembleDashboard(state, meta){
   // footer: the reference renderer line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.10.4 · state validated against schema.json' +
+    ' · AI PM v4.10.5 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -4951,7 +4951,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.10.4 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.10.5 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
