@@ -8,7 +8,7 @@
 <script>try{var t=localStorage.getItem("aipm-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
 <style>
 /* ============================================================================
-   CSS — copied verbatim from pipeline/render.py (the normative renderer), with
+   CSS — copied verbatim from the reference renderer (the normative renderer), with
    a small block of viewer-only additions at the end (drop zone, banners, foot).
    ========================================================================== */
 :root{
@@ -352,7 +352,7 @@ body.ba-editing .stk-orgf::before{ content:"org"; margin-right:4px; font-size:9.
   .stat-stamp{ margin-left:0; text-align:left; } }
 
 /* ============================================================================
-   Viewer-only additions (not in render.py): drop zone, validation banner,
+   Viewer-only additions (not in the reference renderer): drop zone, validation banner,
    parse-error page, footer privacy note + reload affordance.
    ========================================================================== */
 .vbanner{ border-radius:var(--r); padding:var(--sp4) var(--sp5); margin-bottom:var(--sp4);
@@ -787,7 +787,7 @@ body.ba-editing .sec-head{ cursor:pointer; }
 (function(){
 /* ==========================================================================
    AI PM zero-code dashboard viewer.
-   Ports pipeline/render.py (rendering) + pipeline/validate.py (validation) to
+   Ports the reference renderer (rendering) + the reference validator (validation) to
    the browser. Zero external requests. Loads state via: embedded JSON -> ?state=
    -> fetch('state.json') -> drag/drop file picker.
    ========================================================================== */
@@ -1419,6 +1419,7 @@ function buildFilters(state){
     '<div class="cop-menu" id="copilot-menu" hidden>' +
     '<button type="button" class="cop-item" data-cmode="paste">Copy \u2014 paste the transcript</button>' +
     '<button type="button" class="cop-item" data-cmode="attach">Copy \u2014 attach the transcript file</button>' +
+    '<button type="button" class="cop-item" data-cmode="file">Build message file \u2014 transcript + digest</button>' +
     '<button type="button" class="cop-item" data-cmode="verify">Copy \u2014 check the last digest</button>' +
     '</div></span>' +
     '<button class="tool-btn" id="ba-edit-btn" type="button">\u270e Edit</button>' +
@@ -1463,7 +1464,7 @@ function buildHeader(state){
 }
 
 /* ========================================================================== */
-/*  VALIDATION — ported from pipeline/validate.py                             */
+/*  VALIDATION — ported from the reference validator                             */
 /* ========================================================================== */
 var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 var ENUMS = {
@@ -1720,10 +1721,10 @@ function assembleDashboard(state, meta){
   parts.push(section("artifacts", "Artifact feed", renderArtifacts(state), (state.artifacts || []).length, "No artifacts digested yet."));
   parts.push(section("team", "Team & stakeholders", renderStakeholders(state), (state.stakeholders || []).length, "No stakeholders recorded yet."));
 
-  // footer: render.py line + viewer privacy note + reload affordance
+  // footer: the reference renderer line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.9.4 · state validated against schema.json' +
+    ' · AI PM v4.10 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -1757,7 +1758,9 @@ function assembleDashboard(state, meta){
     cmenu.querySelectorAll(".cop-item").forEach(function(it){
       it.addEventListener("click", function(e){ e.stopPropagation();
         cmenu.hidden = true; cbtn.setAttribute("aria-expanded", "false");
-        baCopyCopilotMessage(cbtn, state, it.getAttribute("data-cmode")); });
+        var mode = it.getAttribute("data-cmode");
+        if(mode === "file"){ baCopilotFileFlow(cbtn, state); }
+        else { baCopyCopilotMessage(cbtn, state, mode); } });
     });
     if(!window.__copDocClose){
       window.__copDocClose = true;
@@ -1769,7 +1772,7 @@ function assembleDashboard(state, meta){
   }
 }
 
-/* ---- interactivity (ported verbatim from render.py JS, made re-runnable) --- */
+/* ---- interactivity (ported verbatim from the reference renderer JS, made re-runnable) --- */
 var pop = null;
 function closePop(){ if(pop){ pop.remove(); pop = null; } }
 function popEsc(s){
@@ -1877,7 +1880,7 @@ function openHashSection(){
 
   /* ====================================================================== *
    *  FEATURE BLOCK — BDD .feature export · What changed · Status report.    *
-   *  Kept BYTE-IDENTICAL between render.py and viewer.html. Depends only on *
+   *  Kept BYTE-IDENTICAL between the reference renderer and viewer.html. Depends only on *
    *  host functions openPop(el,x,y) and wireProvenance(root).              *
    * ====================================================================== */
   function fEsc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){
@@ -2175,7 +2178,7 @@ function openHashSection(){
 
   /* ====================================================================== *
    *  BA MODULE — User stories · Example Mapping · RTM · UAT · Edit mode.    *
-   *  Kept BYTE-IDENTICAL between render.py and viewer.html. Depends only on *
+   *  Kept BYTE-IDENTICAL between the reference renderer and viewer.html. Depends only on *
    *  host function wireProvenance(root). Entry point: baInit(state, host).  *
    *  host = { afterSave(state), discard(pristine) } (both optional).        *
    * ====================================================================== */
@@ -3268,7 +3271,7 @@ function openHashSection(){
   /* ====================== validation (port, incl. userStories) ====================== */
   /* method-standard advisory checks (Example Mapping / BDD) — non-blocking.
      Returns [{msg, red}]. Surfaced by baPaintMethodWarnings on load (both the
-     zero-code viewer and the static render.py dashboard); never blocks save. */
+     zero-code viewer and the static the reference renderer dashboard); never blocks save. */
   function baMethodWarnings(state){
     var W = [];
     function warn(msg, red){ W.push({ msg: msg, red: !!red }); }
@@ -3456,11 +3459,11 @@ function openHashSection(){
   function baDiscard(){
     baExitEditVisual();
     if(BA.host.discard){ BA.host.discard(baClone(BA.pristine)); return; }
-    // default (render.py static): reload restores the embedded pristine state
+    // default (the reference renderer static): reload restores the embedded pristine state
     location.reload();
   }
   function baApplyReadonly(){
-    // render.py fallback: convert decorated legacy items to read-only in place,
+    // the reference renderer fallback: convert decorated legacy items to read-only in place,
     // drop new-row markers, and repaint BA sections.
     baBuildIdMap();
     document.querySelectorAll('[data-eitem]').forEach(function(el){
@@ -3705,7 +3708,7 @@ function openHashSection(){
 
   /* ====================================================================== *
    *  ASK BAR — deterministic natural-language drill-down (zero-LLM).        *
-   *  Kept BYTE-IDENTICAL between render.py and viewer.html. Interprets the  *
+   *  Kept BYTE-IDENTICAL between the reference renderer and viewer.html. Interprets the  *
    *  live DOM (filter options + rendered rows) and drives the existing      *
    *  filter/collapse controls via askInit(host). host = { apply(),          *
    *  expand(cardEl) } — both optional. Never mutates data; never networks.  *
@@ -4387,6 +4390,13 @@ function baLatestArtifactId(state){
   });
   return best && best.id ? best.id : null;
 }
+// Copilot typed-input caps vary by tenant (some count line breaks double); attached
+// files have far larger limits, so oversize messages travel as files.
+var BA_SAFE_TYPED = 10000;
+// The standing depth NOTE, shared by the typed message and the file variants.
+var BA_NOTE_BASE = "NOTE: [Do a full Example Mapping pass: extract EVERY requirement-relevant statement;\n" +
+  "all supported rules per story; 3 examples per rule where sources allow; at least one\n" +
+  "scenario per rule with ruleRef and exampleRef. Completeness beats brevity.";
 function baBuildCopilotMessage(state, mode){
   if(mode === "verify"){
     var pid = (state.project && state.project.id) || "<project-id>";
@@ -4403,9 +4413,7 @@ function baBuildCopilotMessage(state, mode){
       "{\"delta\": true, \"project\": {\"id\": \"" + pid + "\"}, \"updates\": {}}\n\n" +
       "CURRENT STATE DIGEST:\n" + JSON.stringify(baBuildStateDigest(state));
   }
-  var noteBase = "NOTE: [Do a full Example Mapping pass: extract EVERY requirement-relevant statement;\n" +
-    "all supported rules per story; 3 examples per rule where sources allow; at least one\n" +
-    "scenario per rule with ruleRef and exampleRef. Completeness beats brevity.";
+  var noteBase = BA_NOTE_BASE;
   if(mode === "attach"){
     return baCopilotHeader(state) +
       noteBase + "\nRead the attached transcript IN FULL, not a summary of it.]\n" +
@@ -4426,8 +4434,8 @@ function baClipFallback(text){
   try { document.execCommand("copy"); } catch(e){}
   document.body.removeChild(ta);
 }
-function baCopyCopilotMessage(btn, state, mode){
-  var text = baBuildCopilotMessage(state || LAST_STATE || {}, mode);
+// Copy `text` to the clipboard and flash the "Copied ✓" feedback on the button.
+function baCopyCopilotClip(btn, text){
   function confirmCopied(){
     if(!btn) return;
     var orig = btn.getAttribute("data-orig-label");
@@ -4441,6 +4449,116 @@ function baCopyCopilotMessage(btn, state, mode){
   } else {
     baClipFallback(text); confirmCopied();
   }
+}
+// Download `text` as a plain-text file. Named top-level so tests can stub it.
+function baDownloadTextFile(name, text){
+  var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 0);
+}
+// Host-side status bar, reusing the same .ba-toast mechanism as repair notes.
+function baCopToast(msg){
+  var t = document.createElement("div");
+  t.className = "ba-toast"; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.classList.add("show"); }, 10);
+  setTimeout(function(){ t.classList.remove("show");
+    setTimeout(function(){ if(t.parentNode) t.remove(); }, 300); }, 4000);
+}
+// Prefilled DATE for a picked file: a yyyy-mm-dd prefix of the name if present,
+// else the file's lastModified as yyyy-mm-dd.
+function baFileDate(file){
+  var m = /^(\d{4}-\d{2}-\d{2})/.exec((file && file.name) || "");
+  if(m) return m[1];
+  var d = new Date((file && file.lastModified) || Date.now());
+  function p(n){ return (n < 10 ? "0" : "") + n; }
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+// Digest header with FILE/TYPE/DATE prefilled from a picked file.
+function baCopilotFileHeader(state, file){
+  return "CURRENT STATE DIGEST (compact — the dashboard keeps full history locally):\n" +
+    JSON.stringify(baBuildStateDigest(state)) + "\n\n" +
+    "FILE: " + ((file && file.name) || "<filename>") + "\n" +
+    "TYPE: transcript\n" +
+    "DATE: " + baFileDate(file) + "\n" +
+    "CONTEXT: [work it out yourself]\n";
+}
+// The digest+header+NOTE portion for a two-file (transcript attached separately) send.
+function baCopilotDigestFile(state){
+  return baCopilotHeader(state || LAST_STATE || {}) + BA_NOTE_BASE + "]\n" +
+    "---\nThe meeting transcript is the OTHER attached file — read it IN FULL, not a summary of it.\n";
+}
+// The hidden file input, created once and reused.
+function baCopilotFileInput(){
+  var inp = document.getElementById("cop-file-input");
+  if(!inp){
+    inp = document.createElement("input");
+    inp.type = "file";
+    inp.id = "cop-file-input";
+    inp.accept = ".vtt,.txt,.srt,.md,.docx";
+    inp.style.display = "none";
+    document.body.appendChild(inp);
+  }
+  return inp;
+}
+// Mode "file": pick a transcript, build a message FILE + copy a short typed line.
+function baCopilotFileFlow(btn, state){
+  state = state || LAST_STATE || {};
+  var inp = baCopilotFileInput();
+  inp.value = "";
+  inp.onchange = function(){
+    var file = inp.files && inp.files[0];
+    if(!file) return;
+    var name = file.name || "transcript";
+    var header = baCopilotFileHeader(state, file);
+    if(/\.(docx|doc)$/i.test(name)){
+      // Binary transcript — cannot inline; ship the digest as its own file.
+      var dtxt = header + BA_NOTE_BASE + "]\n" +
+        "---\nThe meeting transcript is the OTHER attached file — read it IN FULL, not a summary of it.\n";
+      baDownloadTextFile("ai-pm-digest.txt", dtxt);
+      baCopyCopilotClip(btn,
+        "Read BOTH attached files IN FULL — ai-pm-digest.txt (current state digest + artifact header) and the transcript file. Follow your instructions and reply with the JSON delta only.");
+      baCopToast("ai-pm-digest.txt downloaded + short message copied — in Copilot: paste, click +, attach ai-pm-digest.txt AND the transcript file, send.");
+      return;
+    }
+    var rdr = new FileReader();
+    rdr.onload = function(){
+      var content = String(rdr.result == null ? "" : rdr.result);
+      var msg = header + BA_NOTE_BASE +
+        "\nRead the transcript below IN FULL, not a summary of it.]\n" +
+        "---\nTRANSCRIPT (complete, read in full):\n" + content;
+      baDownloadTextFile("ai-pm-message.txt", msg);
+      baCopyCopilotClip(btn,
+        "Read the attached ai-pm-message.txt IN FULL — it contains the CURRENT STATE DIGEST, the artifact header, and the complete meeting transcript. Follow your instructions and reply with the JSON delta only.");
+      baCopToast("ai-pm-message.txt downloaded + short message copied — in Copilot: paste, click +, attach ai-pm-message.txt, send.");
+    };
+    rdr.readAsText(file);
+  };
+  inp.click();
+}
+function baCopyCopilotMessage(btn, state, mode){
+  state = state || LAST_STATE || {};
+  var text = baBuildCopilotMessage(state, mode);
+  // Small enough to type — behave exactly as before (regression-critical).
+  if(text.length <= BA_SAFE_TYPED){ baCopyCopilotClip(btn, text); return; }
+  // Oversize: the digest alone exceeds Copilot's typed-input cap — travel as a file.
+  if(mode === "verify"){
+    baDownloadTextFile("ai-pm-verify.txt", text);
+    baCopyCopilotClip(btn,
+      "Read the attached ai-pm-verify.txt IN FULL and do exactly what it says. Reply with the JSON delta only (empty updates if nothing is missing).");
+    baCopToast("ai-pm-verify.txt downloaded + short message copied — paste, attach it, send (same chat as the transcript).");
+    return;
+  }
+  // paste / attach: digest+header+NOTE as a file, transcript stays a separate attachment.
+  baDownloadTextFile("ai-pm-digest.txt", baCopilotDigestFile(state));
+  baCopyCopilotClip(btn,
+    "Read BOTH attached files IN FULL — ai-pm-digest.txt (current state digest + artifact header) and the transcript file. Follow your instructions and reply with the JSON delta only.");
+  baCopToast("Project too big to type — ai-pm-digest.txt downloaded + short message copied. In Copilot: paste, attach ai-pm-digest.txt AND the transcript file, send. (Or use 'Build message file' for a single combined file.)");
 }
 
 /* Delta merge — M365 Copilot can't reliably emit a full large state.json (it
@@ -4806,7 +4924,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.9.4 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.10 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
