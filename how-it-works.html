@@ -207,6 +207,20 @@
         meeting actually contributed &mdash; how many stories, requirements, actions, decisions,
         risks and so on it <em>introduced</em>, plus how many existing items it <em>deepened</em>
         (added detail or a fresh source to).</p>
+        <p>Each &ldquo;introduced&rdquo; chip reads <strong>stories&nbsp;+1&nbsp;(11&nbsp;&#8594;&nbsp;12)</strong>:
+        the label and how many that meeting added, then the running total <em>before &#8594; after</em>
+        this meeting. So you can verify the arithmetic at a glance &mdash; &ldquo;we had 11 stories,
+        this meeting added 1, now 12.&rdquo; The counts build up oldest meeting first, so the
+        <em>newest</em> row&rsquo;s &ldquo;after&rdquo; values are the current totals: they match the
+        number badges on the dashboard&rsquo;s own section headers exactly (e.g. the newest
+        <em>milestones</em> &ldquo;after&rdquo; equals the count beside <strong>Milestones</strong>).
+        &ldquo;deepened&rdquo; chips carry no totals &mdash; they don&rsquo;t change any count.</p>
+        <p>Each row is dated by the <em>artifact&rsquo;s own date</em> &mdash; the DATE line from the
+        message header you sent the digester, not the day you downloaded the file. The best fix for a
+        wrong date is at the source: correct the DATE line before you send the message so it lands
+        right the first time. To repair one that already landed wrong, send a small pasted delta that
+        sets just that artifact&rsquo;s date; the history re-sorts itself the moment the date is
+        right.</p>
         <p>A flat user-story count is normal: once the core stories exist, later meetings usually
         deepen them &mdash; adding rules, examples or scenarios &mdash; instead of adding brand-new
         stories. Seeing &ldquo;deepened&rdquo; climb while &ldquo;introduced&rdquo; stays low is the
