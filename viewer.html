@@ -1724,7 +1724,7 @@ function assembleDashboard(state, meta){
   // footer: the reference renderer line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.10 · state validated against schema.json' +
+    ' · AI PM v4.10.1 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -1759,7 +1759,12 @@ function assembleDashboard(state, meta){
       it.addEventListener("click", function(e){ e.stopPropagation();
         cmenu.hidden = true; cbtn.setAttribute("aria-expanded", "false");
         var mode = it.getAttribute("data-cmode");
-        if(mode === "file"){ baCopilotFileFlow(cbtn, state); }
+        if(mode === "file"){
+          // Clipboard writes are only allowed DURING a user click — copy the short
+          // typed line now, before the file picker steals the gesture.
+          baCopyCopilotClip(cbtn, BA_FILE_TYPED_LINE);
+          baCopilotFileFlow(cbtn, state);
+        }
         else { baCopyCopilotMessage(cbtn, state, mode); } });
     });
     if(!window.__copDocClose){
@@ -4397,6 +4402,13 @@ var BA_SAFE_TYPED = 10000;
 var BA_NOTE_BASE = "NOTE: [Do a full Example Mapping pass: extract EVERY requirement-relevant statement;\n" +
   "all supported rules per story; 3 examples per rule where sources allow; at least one\n" +
   "scenario per rule with ruleRef and exampleRef. Completeness beats brevity.";
+// The one typed line for ALL "Build message file" sends. It is copied at menu-click
+// time (clipboard writes need a live user gesture — after the file picker closes the
+// browser silently refuses them), so it must fit both the single combined file and
+// the digest-file + docx two-attachment case.
+var BA_FILE_TYPED_LINE = "Read ALL attached files IN FULL — together they contain the " +
+  "CURRENT STATE DIGEST, the artifact header, and the complete meeting transcript. " +
+  "Follow your instructions and reply with the JSON delta only.";
 function baBuildCopilotMessage(state, mode){
   if(mode === "verify"){
     var pid = (state.project && state.project.id) || "<project-id>";
@@ -4521,9 +4533,7 @@ function baCopilotFileFlow(btn, state){
       var dtxt = header + BA_NOTE_BASE + "]\n" +
         "---\nThe meeting transcript is the OTHER attached file — read it IN FULL, not a summary of it.\n";
       baDownloadTextFile("ai-pm-digest.txt", dtxt);
-      baCopyCopilotClip(btn,
-        "Read BOTH attached files IN FULL — ai-pm-digest.txt (current state digest + artifact header) and the transcript file. Follow your instructions and reply with the JSON delta only.");
-      baCopToast("ai-pm-digest.txt downloaded + short message copied — in Copilot: paste, click +, attach ai-pm-digest.txt AND the transcript file, send.");
+      baCopToast("ai-pm-digest.txt downloaded; the short message is already on your clipboard — in Copilot: paste, click +, attach ai-pm-digest.txt AND the transcript file, send.");
       return;
     }
     var rdr = new FileReader();
@@ -4533,9 +4543,7 @@ function baCopilotFileFlow(btn, state){
         "\nRead the transcript below IN FULL, not a summary of it.]\n" +
         "---\nTRANSCRIPT (complete, read in full):\n" + content;
       baDownloadTextFile("ai-pm-message.txt", msg);
-      baCopyCopilotClip(btn,
-        "Read the attached ai-pm-message.txt IN FULL — it contains the CURRENT STATE DIGEST, the artifact header, and the complete meeting transcript. Follow your instructions and reply with the JSON delta only.");
-      baCopToast("ai-pm-message.txt downloaded + short message copied — in Copilot: paste, click +, attach ai-pm-message.txt, send.");
+      baCopToast("ai-pm-message.txt downloaded; the short message is already on your clipboard — in Copilot: paste, click +, attach ai-pm-message.txt, send.");
     };
     rdr.readAsText(file);
   };
@@ -4547,17 +4555,19 @@ function baCopyCopilotMessage(btn, state, mode){
   // Small enough to type — behave exactly as before (regression-critical).
   if(text.length <= BA_SAFE_TYPED){ baCopyCopilotClip(btn, text); return; }
   // Oversize: the digest alone exceeds Copilot's typed-input cap — travel as a file.
+  // Clipboard first, download second — writes need the click's user activation,
+  // and the download click must not get a chance to consume it.
   if(mode === "verify"){
-    baDownloadTextFile("ai-pm-verify.txt", text);
     baCopyCopilotClip(btn,
       "Read the attached ai-pm-verify.txt IN FULL and do exactly what it says. Reply with the JSON delta only (empty updates if nothing is missing).");
+    baDownloadTextFile("ai-pm-verify.txt", text);
     baCopToast("ai-pm-verify.txt downloaded + short message copied — paste, attach it, send (same chat as the transcript).");
     return;
   }
   // paste / attach: digest+header+NOTE as a file, transcript stays a separate attachment.
-  baDownloadTextFile("ai-pm-digest.txt", baCopilotDigestFile(state));
   baCopyCopilotClip(btn,
     "Read BOTH attached files IN FULL — ai-pm-digest.txt (current state digest + artifact header) and the transcript file. Follow your instructions and reply with the JSON delta only.");
+  baDownloadTextFile("ai-pm-digest.txt", baCopilotDigestFile(state));
   baCopToast("Project too big to type — ai-pm-digest.txt downloaded + short message copied. In Copilot: paste, attach ai-pm-digest.txt AND the transcript file, send. (Or use 'Build message file' for a single combined file.)");
 }
 
@@ -4924,7 +4934,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.10 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.10.1 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
