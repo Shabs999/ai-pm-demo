@@ -1471,7 +1471,7 @@ function renderView(keepScroll){
 
   var files = ALL_RECORDS.map(function(pr){ return esc(pr.stateFile || (pr.folder ? pr.folder + "/state.json" : pr.name)); }).join(" · ");
   parts.push(
-    '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) + ' · AI PM v4.14.3 program rollup · states validated against schema.json' +
+    '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) + ' · AI PM v4.14.4 program rollup · states validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · loaded ' + esc(META.loadedAt) + '</div>' +
     '<div class="foot-files">State files: ' + files + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load different projects</button></div></div>');

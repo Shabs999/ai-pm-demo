@@ -1817,7 +1817,7 @@ function assembleDashboard(state, meta){
   // footer: the reference renderer line + viewer privacy note + reload affordance
   parts.push(
     '<div class="foot">Rendered ' + fmtDate(today.toISOString().slice(0,10)) +
-    ' · AI PM v4.14.3 · state validated against schema.json' +
+    ' · AI PM v4.14.4 · state validated against schema.json' +
     '<div class="foot-priv">Rendered in your browser — data never leaves this page · ' +
     esc(meta.name) + ' · loaded ' + esc(meta.loadedAt) + '</div>' +
     '<div><button class="reload-link" id="reload-btn" type="button">Load a different state file</button></div>' +
@@ -4668,7 +4668,7 @@ function baCopilotFileHeader(state, file){
   // documents (pdf/docx/pptx/…) let the Digester classify from name + content.
   var nm = (file && file.name) || "";
   var type = /\.(vtt|srt)$/i.test(nm) ? "transcript"
-    : "[work it out from the file name and content — transcript, minutes, brd, design-doc, deck or other]";
+    : "[work it out from the file name and content — transcript, minutes, email, brd, design-doc, deck or other]";
   return "CURRENT STATE DIGEST (compact — the dashboard keeps full history locally):\n" +
     JSON.stringify(baBuildStateDigest(state)) + "\n\n" +
     "FILE: " + (nm || "<filename>") + "\n" +
@@ -4688,7 +4688,7 @@ function baCopilotFileInput(){
     inp = document.createElement("input");
     inp.type = "file";
     inp.id = "cop-file-input";
-    inp.accept = ".vtt,.txt,.srt,.md,.csv,.docx,.doc,.pdf,.pptx,.ppt,.xlsx,.xls";
+    inp.accept = ".vtt,.txt,.srt,.md,.csv,.eml,.docx,.doc,.pdf,.pptx,.ppt,.xlsx,.xls,.msg";
     inp.style.display = "none";
     document.body.appendChild(inp);
   }
@@ -4704,7 +4704,7 @@ function baCopilotFileFlow(btn, state){
     if(!file) return;
     var name = file.name || "transcript";
     var header = baCopilotFileHeader(state, file);
-    if(/\.(docx|doc|pdf|pptx|ppt|xlsx|xls)$/i.test(name)){
+    if(/\.(docx|doc|pdf|pptx|ppt|xlsx|xls|msg)$/i.test(name)){
       // Binary transcript — cannot inline; ship the digest as its own file.
       var dtxt = header + BA_NOTE_BASE + "]\n" +
         "---\nThe source artifact (transcript or document) is the OTHER attached file — read it IN FULL, not a summary of it.\n";
@@ -5110,7 +5110,7 @@ function showDropZone(errMsg, title){
     '<div class="dz-paste-actions">' +
     '<button class="dz-btn" id="dz-paste-btn" type="button">Load pasted JSON</button></div>' +
     '</div>' +
-    '<div class="dz-note">AI PM v4.14.3 · Tip: on a network share you can also add ' +
+    '<div class="dz-note">AI PM v4.14.4 · Tip: on a network share you can also add ' +
     '<code>?state=path/to/state.json</code> to the URL.</div>' +
     '</div></div>';
 
